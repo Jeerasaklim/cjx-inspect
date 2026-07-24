@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CJX Inspect</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0E0E0F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CJX Inspect">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#0E0E0F;--card:#191A1D;--line:#2A2A2E;--ink:#F5F5F2;--muted:#9A9A93;--faint:#67675F;
+  --yellow:#F5C518;--yInk:#1A1500;--pass:#37D98B;--fail:#FF5C5C;--build:#FF9F1C;}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Noto Sans Thai","Sukhumvit Set","Sarabun",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%;overflow-x:hidden}
+.wrap{max-width:640px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) calc(env(safe-area-inset-right,0px) + 16px) calc(env(safe-area-inset-bottom,0px) + 48px) calc(env(safe-area-inset-left,0px) + 16px)}
+.hide{display:none!important}
+.tbar{display:flex;align-items:center;gap:10px;padding:12px 4px 14px}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.02em}.brand b{color:var(--yellow)}
+.brand em{color:var(--muted);font-weight:600;font-style:normal;font-size:15px}
+.who{margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 11px 5px 6px;cursor:pointer}
+.who:active{background:#222226}
+.who .wav{width:30px;height:30px;border-radius:50%;background:var(--yellow);color:var(--yInk);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.who .wtx{text-align:left;line-height:1.2;min-width:0}
+.who .wtx b{display:block;color:var(--ink);font-size:12.5px;font-weight:700;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .role{font-size:10px;font-weight:700;color:var(--muted)}
+.who .wcv{color:var(--faint);font-size:12px;flex:0 0 auto}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px}
+h2{font-size:15px;font-weight:800;margin:0 0 12px;letter-spacing:-.01em}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 6px}
+input[type=email],input[type=password],input[type=text]{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:11px;background:#141416;color:var(--ink);font-size:15px;font-family:inherit}
+input:focus{outline:2px solid var(--yellow);border-color:var(--yellow)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:0;border-radius:12px;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer;letter-spacing:-.01em}
+.btn.pri{background:var(--yellow);color:var(--yInk)}
+.btn.gho{background:#242428;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{width:auto;padding:9px 14px;font-size:13px;border-radius:10px}
+.btn:active{transform:translateY(1px)}
+.row{display:flex;gap:10px}
+.msg{font-size:13px;padding:10px 13px;border-radius:10px;margin-top:12px}
+.msg.err{background:#241416;color:#FF9B9B;border:1px solid #4a2323}
+.msg.ok{background:#12271B;color:#7EE6B0;border:1px solid #23503a}
+.hint{font-size:12px;color:var(--faint);margin-top:10px;line-height:1.7}
+.note{background:#1C1608;border:1px solid #3A2E10;border-radius:11px;padding:11px 13px;font-size:12px;color:#D9B84A;line-height:1.6}
+.count{font-size:12px;color:var(--muted);margin-bottom:6px}
+a.link{color:var(--yellow);text-decoration:none}
+
+/* home pool */
+.hero{padding:2px 2px 14px}
+.hero .big{font-size:40px;font-weight:800;line-height:.95;letter-spacing:-.03em;color:var(--yellow)}
+.hero .hl{color:var(--muted);font-size:13px;margin-top:6px}
+.search{display:flex;align-items:center;gap:9px;background:#161618;border-radius:12px;padding:12px 13px;color:var(--faint);font-size:13px;margin-bottom:14px;border:1px solid var(--line)}
+.search input{border:0;background:transparent;padding:0;color:var(--ink);font-size:14px;flex:1}
+.search input:focus{outline:0}
+.tabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs b{font-size:12.5px;font-weight:700;color:var(--ink);background:#1e1f23;border:1px solid var(--line);padding:9px 15px;border-radius:999px;white-space:nowrap;cursor:pointer;flex:0 0 auto}
+.tabs b:active{transform:translateY(1px)}
+.tabs b.on{background:var(--yellow);color:var(--yInk);border-color:var(--yellow)}
+.sc{background:var(--card);border-radius:16px;padding:15px;margin-bottom:12px;cursor:pointer}
+.sc:active{transform:scale(.996)}
+.sc .tp{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.sc .nm{font-weight:700;font-size:15px;letter-spacing:-.01em;color:#fff}
+.sc .mt{color:var(--muted);font-size:11.5px;margin-top:3px}
+.sc .mt .code{color:var(--ink);font-weight:700;font-family:ui-monospace,monospace}
+.dotlab{font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:0 0 auto}
+.dotlab i{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.s-build{color:var(--build)}.s-pass{color:var(--pass)}.s-fail{color:var(--fail)}.s-idle{color:var(--muted)}
+.sc .foot{margin-top:11px;color:var(--faint);font-size:11.5px}
+.spin{color:var(--muted);font-size:13px;padding:20px 0;text-align:center}
+
+/* site detail */
+.bk{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;padding:6px 2px;margin-bottom:6px}
+.heroC{background:var(--card);border-radius:16px;padding:15px;margin-bottom:14px}
+.heroC .t{font-weight:800;font-size:17px;color:#fff}
+.heroC .r{color:var(--muted);font-size:11.5px;margin-top:5px;display:flex;gap:8px;flex-wrap:wrap}
+.heroC .r em{font-style:normal;color:var(--build)}
+.sec{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin:6px 2px 11px}
+.step{display:flex;align-items:center;gap:13px;padding:14px 15px;background:var(--card);border-radius:14px;margin-bottom:9px;cursor:pointer}
+.step .n{font-family:ui-monospace,monospace;font-weight:800;font-size:14px;color:var(--faint);width:20px;flex:0 0 auto}
+.step .snm{font-weight:700;font-size:14px;color:#fff}.step .st{font-size:11.5px;font-weight:700;margin-top:3px;color:var(--muted)}
+.step .chev{margin-left:auto;color:#4A4A46}
+/* inspect */
+.pgbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}.pgbar .tk{flex:1;height:7px;border-radius:99px;background:#2C2C30;overflow:hidden}.pgbar .tk i{display:block;height:100%;background:var(--yellow);transition:width .2s}.pgbar b{font-size:13px;font-weight:800;color:var(--muted)}
+.grp{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.06em;margin:18px 2px 10px;border-top:1px solid var(--line);padding-top:14px}
+.grp.first{border-top:0;padding-top:0;margin-top:2px}
+.cp{background:var(--card);border-radius:14px;padding:14px;margin-bottom:11px;border-left:3px solid transparent}
+.cp.pass{border-left-color:var(--pass)}.cp.fail{border-left-color:var(--fail)}.cp.na{border-left-color:var(--muted)}
+.cp .cno{font-family:ui-monospace,monospace;font-weight:800;font-size:12px;color:var(--yellow)}
+.cp .clb{font-weight:600;font-size:13px;line-height:1.4;color:#EDEDEA;margin-top:2px}
+.cp .chint{font-size:11px;color:var(--faint);margin-top:3px}
+.seg3{display:flex;gap:8px;margin-top:11px}
+.seg3 b{flex:1;text-align:center;padding:12px 4px;border-radius:10px;background:#232327;font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer}
+.seg3 b.on-p{background:var(--pass);color:#062B18}.seg3 b.on-f{background:var(--fail);color:#2B0808}.seg3 b.on-n{background:#3A3A3E;color:#fff}
+.cp .cmt{width:100%;margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#141416;color:var(--ink);font-size:13px;font-family:inherit}
+.cp .cmt:focus{outline:1px solid var(--yellow);border-color:var(--yellow)}
+.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;align-items:center}
+.photos .th{width:60px;height:60px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:#222}
+.addph{display:inline-flex;align-items:center;gap:6px;background:#232327;color:var(--yellow);border:1px dashed #4a4632;border-radius:8px;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer}
+.reqph{font-size:10.5px;font-weight:700;color:var(--fail);margin-top:8px}.reqph.ok{color:var(--pass)}
+/* nav / dashboard / users / summary / approve */
+.actbtn{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.actbtn .btn{width:auto;flex:1;min-width:150px}
+.dcard{background:var(--card);border-radius:14px;padding:14px;margin-bottom:11px;cursor:pointer}
+.dcard:active{transform:scale(.996)}
+.dcard .dt{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.dcard .dn{font-weight:700;font-size:14px;color:#fff}
+.dcard .dmt{color:var(--muted);font-size:11px;margin-top:2px}
+.dbars{display:flex;gap:4px;margin-top:11px}
+.dbars i{flex:1;height:6px;border-radius:99px;background:#2C2C30}
+.dbars i.p{background:var(--pass)}.dbars i.f{background:var(--fail)}.dbars i.d{background:var(--build)}
+.dstat{display:flex;gap:14px;margin-top:9px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.dstat b{color:var(--ink)}.dstat .f{color:var(--fail)}.dstat .p{color:var(--pass)}
+.dseg{display:flex;gap:6px;background:#161618;border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
+.dseg b{flex:1;text-align:center;font-size:12px;font-weight:800;color:var(--muted);padding:9px 4px;border-radius:9px;cursor:pointer}
+.dseg b.on{background:var(--yellow);color:var(--yInk)}
+.dlab{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;margin-bottom:9px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+.dt2{background:var(--card);border-radius:13px;padding:13px;border:1px solid transparent}
+.dt2.tf{cursor:pointer}.dt2.tf:active{transform:scale(.98)}.dt2.on{border-color:var(--yellow)}
+.dt2 .v{font-size:26px;font-weight:800;line-height:1}
+.dt2 .k{font-size:10.5px;color:var(--muted);margin-top:5px}
+.statusbar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:#26262b;margin-bottom:8px}
+.statusbar i{display:block;height:100%}
+.statuslg{display:flex;flex-wrap:wrap;gap:12px;font-size:10.5px;color:var(--muted);margin-bottom:18px}
+.statuslg span{display:flex;align-items:center;gap:5px}.statuslg i{width:9px;height:9px;border-radius:50%}
+.kpibig{border-radius:16px;padding:16px;margin-bottom:12px}.kpibig .v{font-size:38px;font-weight:800;line-height:1}
+.mono{font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.urow2{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);cursor:pointer}
+.urow2 .um{flex:1;min-width:0}
+.barwrap{height:6px;border-radius:99px;background:#26262b;overflow:hidden}.barwrap i{display:block;height:100%;border-radius:99px}
+.cd{display:flex;gap:13px;align-items:center;background:var(--card);border-radius:13px;padding:13px;margin-bottom:9px;cursor:pointer}
+.cd .cdn{text-align:center;flex:0 0 auto;width:36px}.cd .cdn b{font-size:22px;font-weight:800;line-height:1;font-family:ui-monospace}.cd .cdn span{font-size:8px;color:var(--faint);display:block}
+.tl{position:relative;padding-left:20px}.tl:before{content:"";position:absolute;left:4px;top:4px;bottom:8px;width:2px;background:#26262b}
+.tlitem{position:relative;margin-bottom:16px;cursor:pointer}.tlitem .tld{position:absolute;left:-20px;top:3px;width:11px;height:11px;border-radius:50%;border:2px solid var(--bg)}
+.dsum{display:flex;gap:10px;margin-bottom:16px}
+.dsum .box{flex:1;background:var(--card);border-radius:14px;padding:14px 10px;text-align:center}
+.dsum .box .v{font-size:27px;font-weight:800;line-height:1}.dsum .box .k{font-size:10.5px;color:var(--muted);margin-top:6px}
+.urow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.urow:first-child{border-top:0}
+.urow .un{flex:1;min-width:0}.urow .un b{font-size:13px;color:#fff;display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.urow .un .uem{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.urow .un .rpill{display:inline-block;font-size:10px;font-weight:800;border-radius:999px;padding:2px 9px;margin-top:5px;letter-spacing:.02em}
+.urow select{background:#141416;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 9px;font-size:12px;font-family:inherit;flex:0 0 auto}
+.summary{background:var(--card);border-radius:14px;padding:16px;margin:18px 0 6px}
+.summary .big{font-size:15px;font-weight:800}
+.summary.ok .big{color:var(--pass)}.summary.bad .big{color:var(--fail)}.summary.mid .big{color:var(--build)}
+.summary .sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.6}
+.punch{margin-top:12px}.punch .pi{font-size:12.5px;color:#FFB4B4;padding:8px 0;border-top:1px solid #33232a}
+.punch .pi b{color:#fff;font-family:ui-monospace,monospace}
+.rnd{display:inline-block;font-size:10px;font-weight:800;color:var(--build);background:#2a1f0c;border-radius:99px;padding:2px 7px;margin-left:7px;vertical-align:middle}
+.appv{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--pass);background:#12271B;border:1px solid #23503a;border-radius:99px;padding:5px 11px;margin-bottom:12px}
+.stamp{font-size:10.5px;color:var(--faint);margin-top:8px}
+.ctr{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px;cursor:pointer}
+.ctr:active{background:#1f2024}
+.ctr>div:first-child{flex:1;min-width:0}
+.ctr .ctrl{font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.ctr .ctrv{font-size:14px;font-weight:700;color:#fff;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctr .ctrv.ph{color:var(--yellow);font-weight:800}
+.ctr .ctre{color:var(--faint);flex:0 0 auto}
+.ctr .ctrsel{margin-top:6px;width:100%;background:#141416;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 11px;font-size:13.5px;font-weight:700;font-family:inherit}
+.ctr .ctrsel:focus{outline:2px solid var(--yellow);border-color:var(--yellow)}
+/* bottom tab bar */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:#141416;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--faint);font-size:9.5px;font-weight:700;padding:9px 0 8px;cursor:pointer}
+.tabbar a.on{color:var(--yellow)}
+.tabbar svg{width:23px;height:23px}
+body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
+/* landing */
+.lgreet{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.lgreet .hi{font-size:12px;color:var(--muted)}.lgreet .hi b{display:block;color:#fff;font-size:18px;font-weight:800;letter-spacing:-.01em}
+.lgreet .av{width:40px;height:40px;border-radius:50%;background:var(--yellow);color:var(--yInk);font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.lsum{background:linear-gradient(135deg,#20210f,#161712);border:1px solid #35340f;border-radius:16px;padding:15px;margin-bottom:14px}
+.lsum .slb{font-size:11px;color:var(--yellow);font-weight:800;margin-bottom:10px}
+.lsum .s3{display:flex;gap:8px}.lsum .b{flex:1;background:rgba(0,0,0,.25);border-radius:11px;padding:11px;text-align:center;cursor:pointer;border:1px solid transparent}
+.lsum .b:active{transform:scale(.98)}.lsum .v{font-size:22px;font-weight:800;line-height:1}.lsum .k{font-size:9.5px;color:var(--muted);margin-top:5px}
+.lcta{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--yellow);color:var(--yInk);font-weight:800;border-radius:13px;padding:14px;font-size:13px;margin-bottom:18px;cursor:pointer}
+.lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:20px}
+.lfi{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;cursor:pointer}
+.lfi .ic{width:52px;height:52px;border-radius:15px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--yellow)}
+.lfi:active .ic{background:#232327}.lfi span{font-size:10.5px;color:var(--muted)}
+/* admin redesign */
+.ahdr{display:flex;align-items:center;gap:13px;margin:2px 2px 16px}
+.ahdr .aic{width:40px;height:40px;border-radius:11px;background:var(--yellow);color:var(--yInk);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ahdr h2{margin:0;font-size:16px}.ahdr p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+.apanel{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;margin-bottom:12px}
+.ap-t{font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:9px;margin-bottom:6px;letter-spacing:-.01em}
+.ap-t .n{width:22px;height:22px;border-radius:7px;background:#2A2A2E;color:var(--yellow);font-family:ui-monospace,monospace;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ap-d{font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:13px}
+.amenu{display:flex;flex-direction:column;gap:10px}
+.aitem{display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;cursor:pointer}
+.aitem:active{transform:scale(.996)}
+.aitem .ai{width:40px;height:40px;border-radius:11px;background:#2A2A2E;color:var(--yellow);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.aitem .at{flex:1;min-width:0}.aitem .at b{font-size:14.5px;font-weight:800;display:block;color:#fff}.aitem .at span{font-size:11.5px;color:var(--muted)}
+.aitem .chev{color:#4A4A46;font-size:18px}
+.pfav{width:52px;height:52px;border-radius:50%;background:var(--yellow);color:var(--yInk);font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:130;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;
+  padding:calc(env(safe-area-inset-top,0px) + 64px) 16px calc(env(safe-area-inset-bottom,0px) + 22px)}
+.lb img{max-width:100%;max-height:72vh;object-fit:contain;border-radius:8px}
+.lb .lbx{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:16px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1}
+.lb .lbx:active{background:rgba(255,255,255,.3)}
+.lb .lbcount{position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);left:0;right:0;text-align:center;color:#fff;font-size:13px;font-weight:700;pointer-events:none}
+.lb .lbnav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.15);border:0;color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb .lbnav:active{background:rgba(255,255,255,.32)}
+.lb .lbprev{left:12px}.lb .lbnext{right:12px}
+.lb .lbdl{color:var(--yInk);font-size:14px;font-weight:800;text-decoration:none;background:var(--yellow);border-radius:12px;padding:13px 22px}
+.photos .th{cursor:pointer}
+.filerow{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:12px}
+.filebtn{display:inline-flex;align-items:center;gap:8px;background:#242428;border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink)}
+.filebtn:active{transform:translateY(1px)}.filebtn input{display:none}
+.fname{font-size:12px;color:var(--muted)}.fname.has{color:var(--pass)}
+.usave{font-size:11px;font-weight:800;color:var(--pass);opacity:0;transition:opacity .2s;white-space:nowrap}
+.usave.on{opacity:1}
+.uself{font-size:10.5px;color:var(--faint);white-space:nowrap}
+.umeTag{font-size:9.5px;font-weight:800;color:var(--yellow);background:#2A2A2E;border-radius:999px;padding:1px 6px;vertical-align:middle}
+.urow select:disabled{opacity:.5}
+.uhint{font-size:11px;color:var(--faint);margin:2px 0 12px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 26px);transform:translateX(-50%) translateY(20px);background:#232327;color:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 18px;font-size:13px;font-weight:700;box-shadow:0 14px 40px -14px #000;opacity:0;transition:transform .26s,opacity .26s;z-index:80;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:#23503a}.toast.err{border-color:#4a2323;color:#FF9B9B}
+/* report view */
+.rbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+#reportFrame{display:block;width:100%;border:0;background:#fff;border-radius:12px;min-height:75vh}
+@media print{ body>.wrap>*{display:none!important} body>.wrap>#viewReport{display:block!important} #viewReport .rbar{display:none!important} #reportFrame{min-height:auto} }
+/* signature */
+.sigmodal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;padding:18px}
+.sigcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;width:100%;max-width:460px}
+.sigttl{font-size:15px;font-weight:800;margin-bottom:12px}
+#sigPad{width:100%;height:200px;background:#fff;border-radius:12px;border:1px solid var(--line);touch-action:none;display:block}
+.sighint{font-size:11.5px;color:var(--faint);margin-top:8px;text-align:center}
+.sigrow{display:flex;gap:11px;margin-top:6px}
+.sigslot{flex:1;background:#fff;border:1px dashed #cfcfc7;border-radius:12px;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:8px;text-align:center;position:relative}
+.sigslot img{max-height:56px;max-width:100%;object-fit:contain}
+.sigslot span{color:#9a9a93;font-size:12px;font-weight:700}
+.sigslot b{position:absolute;bottom:6px;font-size:10.5px;color:#555;font-weight:800}
+.sigslot i{position:absolute;bottom:-16px;font-size:10px;color:var(--muted);font-style:normal}
+.sigslot.signed{border-style:solid;border-color:var(--pass)}
+.sigwrap{margin-bottom:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tbar">
+    <div class="brand">CJ<b>X</b> <em>Inspect</em></div>
+    <div class="who hide" id="who"></div>
+  </div>
+
+  <!-- ===== LOGIN ===== -->
+  <div id="viewAuth">
+    <div class="card">
+      <h2>เข้าสู่ระบบ</h2>
+      <label>อีเมล</label>
+      <input type="email" id="email" placeholder="you@cjmart.co.th" autocomplete="username">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="pass" placeholder="รหัสผ่าน" autocomplete="current-password">
+      <div class="row" style="margin-top:16px">
+        <button class="btn pri" id="btnLogin">เข้าสู่ระบบ</button>
+        <button class="btn gho" id="btnSignup">สมัครใหม่</button>
+      </div>
+      <div id="authMsg"></div>
+      <div style="margin-top:12px"><a class="link" id="btnForgot" style="cursor:pointer;font-size:13px;font-weight:700">ลืมรหัสผ่าน?</a></div>
+      <div class="hint">ครั้งแรกกด "สมัครใหม่" เพื่อสร้างบัญชี · ระบบให้สิทธิ์เริ่มต้นเป็น CM</div>
+    </div>
+  </div>
+
+  <!-- ===== HOME ===== -->
+  <div id="viewHome" class="hide">
+    <div class="actbtn" id="homeActs"></div>
+    <div class="hero"><div class="big" id="statBuild">–</div><div class="hl" id="statLabel">สาขากำลังก่อสร้าง · ต้องเข้าตรวจ</div></div>
+    <div id="cmBar"></div>
+    <div class="search"><span style="color:var(--faint)">⌕</span><input id="q" placeholder="ค้นหาสาขา / รหัส / จังหวัด"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="poolList"><div class="spin">กำลังโหลด…</div></div>
+  </div>
+
+  <!-- ===== LANDING (หน้าหลัก) ===== -->
+  <div id="viewLanding" class="hide"><div id="landBody"></div></div>
+
+  <!-- ===== SITE DETAIL ===== -->
+  <div id="viewSite" class="hide">
+    <div class="bk" id="siteBack">‹ กลับ</div>
+    <div id="siteBody"></div>
+  </div>
+
+  <!-- ===== PHASE / INSPECT ===== -->
+  <div id="viewPhase" class="hide">
+    <div class="bk" id="phaseBack">‹ กลับ</div>
+    <div id="phaseBody"></div>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div id="viewDash" class="hide">
+    <div class="bk" id="dashBack">‹ กลับ</div>
+    <div id="dashBody"><div class="spin">กำลังโหลด…</div></div>
+  </div>
+
+  <!-- ===== PICK SITE (CM) ===== -->
+  <div id="viewPick" class="hide">
+    <div class="bk" id="pickBack">‹ กลับ</div>
+    <div class="heroC"><div class="t">เลือกสาขาเพื่อเริ่มตรวจ</div><div class="r"><span>เลือกจากสาขาที่กำลังก่อสร้าง — เลือกแล้วจะกลายเป็นงานของคุณ</span></div></div>
+    <div class="search"><span style="color:var(--faint)">⌕</span><input id="pq" placeholder="ค้นหาสาขา / รหัส / จังหวัด"></div>
+    <div id="pickList"><div class="spin">กำลังโหลด…</div></div>
+  </div>
+
+  <!-- ===== PROFILE / ACCOUNT ===== -->
+  <div id="viewProfile" class="hide">
+    <div class="bk" id="profBack">‹ กลับ</div>
+    <div class="heroC">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="pfav" id="pfAvatar">?</div>
+        <div style="min-width:0"><div class="t" id="pfName" style="overflow:hidden;text-overflow:ellipsis">—</div>
+          <div class="r"><span id="pfEmail"></span></div>
+          <span class="rpill" id="pfRole" style="margin-top:6px;display:inline-block">—</span></div>
+      </div>
+    </div>
+    <div class="apanel">
+      <div class="ap-t">บัญชีของฉัน</div>
+      <div class="ap-d">จัดการข้อมูลส่วนตัวและความปลอดภัย</div>
+      <div class="amenu">
+        <div class="aitem" id="btnPwd"><div class="ai"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="at"><b>เปลี่ยนรหัสผ่าน</b><span>ตั้งรหัสผ่านใหม่</span></div><span class="chev">›</span></div>
+        <div class="aitem" id="btnEmail"><div class="ai"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg></div><div class="at"><b>เปลี่ยนอีเมล</b><span>ต้องยืนยันผ่านอีเมลใหม่</span></div><span class="chev">›</span></div>
+      </div>
+    </div>
+    <button class="btn gho" id="btnLogout" style="margin-top:4px">ออกจากระบบ</button>
+  </div>
+
+  <!-- ===== ADMIN ===== -->
+  <div id="viewAdmin" class="hide">
+    <div class="bk" id="adminBack">‹ กลับ</div>
+    <div id="adminMenu">
+      <div class="ahdr">
+        <div class="aic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v6c0 4-3 7-7 10-4-3-7-6-7-10V6z"/></svg></div>
+        <div><h2>ผู้ดูแลระบบ</h2><p>เลือกหัวข้อที่ต้องการจัดการ</p></div>
+      </div>
+      <div class="amenu">
+        <div class="aitem" data-sec="store"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></div><div class="at"><b>รายชื่อสาขา</b><span>อัป CSV เพิ่ม/อัปเดตสาขา</span></div><span class="chev">›</span></div>
+        <div class="aitem" data-sec="checklist"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="at"><b>Checklist (8 เฟส)</b><span>โหลดรายการตรวจมาตรฐาน</span></div><span class="chev">›</span></div>
+        <div class="aitem" data-sec="users"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="at"><b>ผู้ใช้ &amp; สิทธิ์</b><span>กำหนด Role รายคน</span></div><span class="chev">›</span></div>
+        <div class="aitem" data-sec="contractor"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg></div><div class="at"><b>ผู้รับเหมา (ผรม.)</b><span>รายชื่อบริษัทผู้รับเหมา</span></div><span class="chev">›</span></div>
+      </div>
+    </div>
+    <div id="adminSec" class="hide">
+      <div class="bk" id="adminSecBack">‹ เมนูผู้ดูแล</div>
+      <div id="secStore" class="asec hide">
+        <div class="apanel">
+          <div class="ap-t">รายชื่อสาขา (Store)</div>
+          <div class="ap-d">อัปไฟล์ <b>.csv</b> (บันทึกแบบ CSV UTF-8) มีคอลัมน์ Store Code, Store Name และถ้ามี Province, Building Type, Opening Date, Contractor (ชื่อ ผรม.) — ระบบจะเพิ่ม/อัปเดตให้อัตโนมัติ</div>
+          <div class="filerow">
+            <label class="filebtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg> เลือกไฟล์ CSV<input type="file" id="csv" accept=".csv,text/csv"></label>
+            <span class="fname" id="csvName">ยังไม่ได้เลือกไฟล์</span>
+          </div>
+          <div class="row">
+            <button class="btn pri sm" id="btnImport">อัปเข้าระบบ</button>
+            <button class="btn gho sm" id="btnTpl">ดาวน์โหลด template</button>
+          </div>
+          <div id="importMsg"></div>
+        </div>
+      </div>
+      <div id="secChecklist" class="asec hide">
+        <div class="apanel">
+          <div class="ap-t">Checklist (8 เฟส)</div>
+          <div class="ap-d">โหลดรายการตรวจมาตรฐาน 8 เฟส เข้าระบบ (ทำครั้งเดียวตอนตั้งระบบ)</div>
+          <button class="btn gho sm" id="btnSeedCl">โหลด checklist เริ่มต้น</button>
+          <div id="clMsg"></div>
+        </div>
+      </div>
+      <div id="secUsers" class="asec hide">
+        <div class="apanel">
+          <div class="ap-t">ผู้ใช้ &amp; สิทธิ์ (Role)</div>
+          <div class="ap-d">กำหนดสิทธิ์ให้แต่ละคน — <b>เลือกจากช่องแล้วบันทึกทันที</b> ไม่ต้องกดยืนยัน</div>
+          <button class="btn gho sm" id="btnUsers">โหลดรายชื่อผู้ใช้</button>
+          <div id="usersBox" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div id="secContractor" class="asec hide">
+        <div class="apanel">
+          <div class="ap-t">ผู้รับเหมา (ผรม.)</div>
+          <div class="ap-d">รายชื่อบริษัทผู้รับเหมา — เพิ่มไว้ให้ CM/หัวหน้า เลือกใส่ให้แต่ละสาขา (dropdown)</div>
+          <div class="filerow"><input type="text" id="ctrNew" placeholder="ชื่อบริษัท ผรม." style="flex:1;min-width:0"><button class="btn pri sm" id="btnCtrAdd">เพิ่ม</button></div>
+          <div id="ctrList" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REPORT (in-app) ===== -->
+  <div id="viewReport" class="hide">
+    <div class="rbar">
+      <span class="bk" id="reportBack" style="margin:0">‹ กลับ</span>
+      <button class="btn pri sm" id="reportPrint" style="width:auto">🖨️ พิมพ์ / บันทึก PDF</button>
+    </div>
+    <iframe id="reportFrame" title="รายงานตรวจงาน"></iframe>
+  </div>
+</div>
+
+<!-- ===== SIGNATURE PAD ===== -->
+<div id="sigModal" class="sigmodal hide">
+  <div class="sigcard">
+    <div class="sigttl" id="sigTitle">ลงลายเซ็น</div>
+    <canvas id="sigPad"></canvas>
+    <div class="sighint">เซ็นด้วยนิ้วในกรอบด้านบน</div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn gho sm" id="sigClear">ล้าง</button>
+      <button class="btn gho sm" id="sigCancel">ยกเลิก</button>
+      <button class="btn pri sm" id="sigSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BOTTOM TAB BAR ===== -->
+<nav class="tabbar hide" id="tabbar">
+  <a data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>หน้าหลัก</a>
+  <a data-tab="inspect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>ตรวจงาน</a>
+  <a data-tab="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>แดชบอร์ด</a>
+  <a data-tab="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>ฉัน</a>
+</nav>
+
+<!-- ===== LIGHTBOX (ดูรูปเต็มจอ) ===== -->
+<div id="lightbox" class="lb hide">
+  <span class="lbx" id="lbClose">✕</span>
+  <span class="lbcount" id="lbCount"></span>
+  <button class="lbnav lbprev" id="lbPrev">‹</button>
+  <img id="lbImg" alt="">
+  <button class="lbnav lbnext" id="lbNext">›</button>
+  <a id="lbDl" class="lbdl" download>⤓ บันทึกรูป</a>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+const SUPABASE_URL = 'https://kmidlzhcdolxzpetecjx.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_4n3ZiIYvxYV335LLZe7Cnw_QHQeCJ3h'
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+const $ = id => document.getElementById(id)
+const show = (el,on)=> el.classList.toggle('hide', !on)
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+function msg(el,t,k){ el.innerHTML = `<div class="msg ${k}">${t}</div>` }
+let _toastT=null
+function toast(text, kind='ok'){
+  let t=$('toast'); if(!t){ t=document.createElement('div'); t.id='toast'; document.body.appendChild(t) }
+  t.className='toast '+kind; t.textContent=text
+  requestAnimationFrame(()=>t.classList.add('on'))
+  clearTimeout(_toastT); _toastT=setTimeout(()=>t.classList.remove('on'), 2400)
+}
+// ---- signature pad ----
+let _sigOnSave=null, _sigDrawn=false
+function openSigPad(title, onSave){
+  _sigOnSave=onSave; _sigDrawn=false
+  $('sigTitle').textContent=title||'ลงลายเซ็น'
+  show($('sigModal'),true)
+  const cv=$('sigPad'), dpr=window.devicePixelRatio||1
+  const r=cv.getBoundingClientRect(); cv.width=r.width*dpr; cv.height=r.height*dpr
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr); ctx.fillStyle='#fff'; ctx.fillRect(0,0,r.width,r.height)
+  ctx.lineWidth=2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#111'
+  let drawing=false
+  const pos=e=>{ const b=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-b.left, y:t.clientY-b.top} }
+  const down=e=>{ e.preventDefault(); drawing=true; _sigDrawn=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y) }
+  const move=e=>{ if(!drawing)return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke() }
+  const up=e=>{ drawing=false }
+  cv._h && cv._h()  // detach old
+  cv.addEventListener('pointerdown',down); cv.addEventListener('pointermove',move); window.addEventListener('pointerup',up)
+  cv._h=()=>{ cv.removeEventListener('pointerdown',down); cv.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up) }
+}
+function closeSigPad(){ const cv=$('sigPad'); if(cv._h) cv._h(); show($('sigModal'),false); _sigOnSave=null }
+$('sigClear').onclick=()=>{ const cv=$('sigPad'), ctx=cv.getContext('2d'); const dpr=window.devicePixelRatio||1; ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height); ctx.restore(); _sigDrawn=false }
+$('sigCancel').onclick=closeSigPad
+$('sigSave').onclick=()=>{ if(!_sigDrawn){ toast('ยังไม่ได้เซ็น','err'); return } const data=$('sigPad').toDataURL('image/png'); const cb=_sigOnSave; closeSigPad(); if(cb) cb(data) }
+// ---- lightbox (ดูรูปเต็มจอ + เลื่อนรูป) ----
+let _lbList=[], _lbIdx=0
+function openLightbox(list, idx){ _lbList=Array.isArray(list)?list.filter(Boolean):[list]; _lbIdx=idx||0; if(!_lbList.length)return; showLb(); show($('lightbox'),true) }
+function showLb(){ const u=_lbList[_lbIdx]||''; $('lbImg').src=u; $('lbDl').href=u
+  $('lbPrev').style.visibility=_lbIdx>0?'visible':'hidden'
+  $('lbNext').style.visibility=_lbIdx<_lbList.length-1?'visible':'hidden'
+  $('lbCount').textContent=_lbList.length>1?(_lbIdx+1)+' / '+_lbList.length:'' }
+function closeLb(){ show($('lightbox'),false); $('lbImg').src='' }
+function lbStep(d){ const k=_lbIdx+d; if(k>=0&&k<_lbList.length){ _lbIdx=k; showLb() } }
+$('lightbox').onclick=closeLb
+$('lbClose').onclick=e=>{ e.stopPropagation(); closeLb() }
+$('lbPrev').onclick=e=>{ e.stopPropagation(); lbStep(-1) }
+$('lbNext').onclick=e=>{ e.stopPropagation(); lbStep(1) }
+$('lbImg').onclick=e=>e.stopPropagation()
+$('lbDl').onclick=e=>e.stopPropagation()
+document.addEventListener('keydown',e=>{ if($('lightbox').classList.contains('hide'))return
+  if(e.key==='ArrowRight')lbStep(1); else if(e.key==='ArrowLeft')lbStep(-1); else if(e.key==='Escape')closeLb() })
+let _lbSx=0
+$('lightbox').addEventListener('touchstart',e=>_lbSx=e.touches[0].clientX,{passive:true})
+$('lightbox').addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-_lbSx; if(Math.abs(dx)>45) lbStep(dx<0?1:-1) },{passive:true})
+const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', admin:'Admin'}
+const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', admin:'#37D98B'}
+const PHASES = [[1,'นัดวางผัง'],[2,'เคลียร์พื้นที่ตอกเข็ม'],[3,'งานโครงสร้างพื้น'],[4,'งานโครงเหล็ก'],
+  [5,'มุงหลังคา/ไซด์ดิ้ง'],[6,'ปูกระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'ระบบสุขาภิบาล/ไฟฟ้า'],[8,'ทดสอบระบบ/เก็บงาน']]
+const CONSTRUCTION_DAYS = 40
+const CHECKLIST_SEED = [{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.1","label":"การกั้นพื้นที่ก่อสร้าง","hint":null,"media":null,"na":false,"sort":0},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.2","label":"คุณภาพงานถมดินและกำแพงกันดิน แน่นและได้ระดับที่ต้องการ กำแพงแข็งแรง","hint":null,"media":null,"na":false,"sort":1},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.3","label":"หมุดกำหนดขอบเขตพื้นที่เช่า หมุดและแนวอาคารระยะร่น ถูกต้องตรงแนวแบบขออนุญาต ชัดเจนแข็งแรง ไม่ล้ม","hint":null,"media":null,"na":false,"sort":2},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.4","label":"บาร์กำหนดค่าระดับดิน-ตัดเข็ม-พื้นที่ขายและสต็อก","hint":null,"media":null,"na":false,"sort":3},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.5","label":"หมุดอ้างอิงสำหรับเช็คฉาก-กรอบอาคาร ทั้ง 4 มุม 8 จุด","hint":null,"media":null,"na":false,"sort":4},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.6","label":"จำนวนหมุด (เสาเข็ม)","hint":null,"media":null,"na":false,"sort":5},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.7","label":"สำรวจสิ่งกีดขวางงานก่อสร้างและทางเข้า-ออก พื้นที่ด้านหน้าตลอดความยาว","hint":null,"media":null,"na":true,"sort":6},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"","label":"• ต้นไม้","hint":null,"media":null,"na":true,"sort":7},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"","label":"• เสาไฟ","hint":null,"media":null,"na":true,"sort":8},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"","label":"• อื่นๆ","hint":null,"media":null,"na":true,"sort":9},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.8","label":"ตำแหน่งเสาป้าย (ว่ามีอุปสรรคหรือไม่)","hint":null,"media":null,"na":true,"sort":10},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.9","label":"สำรวจแนวท่อและบ่อพักของสาธารณะ เพื่อรู้แนวทางการเดินท่อน้ำทิ้ง","hint":null,"media":null,"na":true,"sort":11},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.10","label":"ตำแหน่งติดตั้งคอยล์ร้อน แอร์ และตู้แช่","hint":null,"media":null,"na":true,"sort":12},{"phase":1,"phase_name":"ครั้งที่ 1 · นัดวางผัง","group_title":null,"no":"1.11","label":"สำรวจความเสียหายเดิมของอาคารข้างเคียงก่อนตอกเสาเข็ม รัศมี 30 เมตร","hint":null,"media":null,"na":true,"sort":13},{"phase":2,"phase_name":"ครั้งที่ 2 · เคลียร์พื้นที่ตอกเข็ม + เช็คทางเชื่อม","group_title":null,"no":"2.1","label":"อายุเสาเข็ม","hint":null,"media":null,"na":false,"sort":14},{"phase":2,"phase_name":"ครั้งที่ 2 · เคลียร์พื้นที่ตอกเข็ม + เช็คทางเชื่อม","group_title":null,"no":"2.2","label":"ไซส์ ขนาด ความยาว","hint":null,"media":null,"na":false,"sort":15},{"phase":2,"phase_name":"ครั้งที่ 2 · เคลียร์พื้นที่ตอกเข็ม + เช็คทางเชื่อม","group_title":null,"no":"2.3","label":"มอก.","hint":null,"media":null,"na":false,"sort":16},{"phase":2,"phase_name":"ครั้งที่ 2 · เคลียร์พื้นที่ตอกเข็ม + เช็คทางเชื่อม","group_title":null,"no":"2.4","label":"การอ้างอิง จุดศูนย์กลางเสาก่อนตอก","hint":null,"media":null,"na":false,"sort":17},{"phase":2,"phase_name":"ครั้งที่ 2 · เคลียร์พื้นที่ตอกเข็ม + เช็คทางเชื่อม","group_title":null,"no":"2.5","label":"ดิ่ง","hint":null,"media":null,"na":false,"sort":18},{"phase":2,"phase_name":"ครั้งที่ 2 · เคลียร์พื้นที่ตอกเข็ม + เช็คทางเชื่อม","group_title":null,"no":"2.6","label":"รายการคำนวณ Last 10 Blows","hint":null,"media":null,"na":false,"sort":19},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.1","label":"ระดับตัดเสาเข็ม มี 2 ระดับ","hint":null,"media":null,"na":false,"sort":20},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.2","label":"ระดับลีนห้อง Drop 1 และ Drop 2","hint":null,"media":null,"na":false,"sort":21},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.3","label":"ระดับปากแบบส่วนสต็อกและส่วนขาย, แนวตรงและไม่โยก","hint":null,"media":null,"na":false,"sort":22},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.4","label":"การวางเหล็กเสริมดรอปและไวร์เมท","hint":null,"media":null,"na":false,"sort":23},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.5","label":"ระยะ Concrete Covering","hint":null,"media":null,"na":false,"sort":24},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.6","label":"ระดับพื้นส่วนขายและสต็อก","hint":null,"media":null,"na":false,"sort":25},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.7","label":"ระดับพื้นห้องน้ำ","hint":null,"media":null,"na":false,"sort":26},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.8","label":"ตำแหน่งและระดับเพลทเสา","hint":null,"media":null,"na":false,"sort":27},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.9","label":"Test แรงดันท่อประปา","hint":null,"media":"video","na":false,"sort":28},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.10","label":"งานฝังระบบท่อน้ำดีและท่อน้ำทิ้ง","hint":null,"media":null,"na":false,"sort":29},{"phase":3,"phase_name":"ครั้งที่ 3 · งานโครงสร้างพื้น (Flat Slab)","group_title":null,"no":"3.11","label":"งานฝังระบบท่อไฟฟ้า","hint":null,"media":null,"na":false,"sort":30},{"phase":4,"phase_name":"ครั้งที่ 4 · งานโครงเหล็ก","group_title":null,"no":"4.1","label":"สเปคถูกต้อง ขนาดและความหนา","hint":null,"media":null,"na":false,"sort":31},{"phase":4,"phase_name":"ครั้งที่ 4 · งานโครงเหล็ก","group_title":null,"no":"4.2","label":"ขนาดของโครงถัก ความกว้างและความยาว ถูกต้องตามรูปแบบ","hint":null,"media":null,"na":false,"sort":32},{"phase":4,"phase_name":"ครั้งที่ 4 · งานโครงเหล็ก","group_title":null,"no":"4.3","label":"รอยเชื่อมเป็นเส้นเกล็ดเต็ม ไม่มีสแล็ก","hint":null,"media":null,"na":false,"sort":33},{"phase":4,"phase_name":"ครั้งที่ 4 · งานโครงเหล็ก","group_title":null,"no":"4.4","label":"สีทาเต็มทุกพื้นที่","hint":null,"media":null,"na":false,"sort":34},{"phase":4,"phase_name":"ครั้งที่ 4 · งานโครงเหล็ก","group_title":null,"no":"4.5","label":"เสาได้ศูนย์กลางไม่ล้ม ดิ่ง","hint":null,"media":null,"na":false,"sort":35},{"phase":4,"phase_name":"ครั้งที่ 4 · งานโครงเหล็ก","group_title":null,"no":"4.6","label":"เช็คตำแหน่งเซ็นเตอร์ของโครงถัก","hint":null,"media":null,"na":false,"sort":36},{"phase":4,"phase_name":"ครั้งที่ 4 · งานโครงเหล็ก","group_title":null,"no":"4.7","label":"ไซด์ดิ้งได้แนวไม่พริ้ว","hint":null,"media":null,"na":false,"sort":37},{"phase":4,"phase_name":"ครั้งที่ 4 · งานโครงเหล็ก","group_title":null,"no":"4.8","label":"J-Bolt และ Plate เสาป้าย","hint":null,"media":null,"na":false,"sort":38},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานมุงหลังคาและแผ่นไซด์ดิ้ง","no":"5.1","label":"ตรวจสเปค-ยี่ห้อ","hint":null,"media":null,"na":false,"sort":39},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานมุงหลังคาและแผ่นไซด์ดิ้ง","no":"5.2","label":"น๊อตสกรู การยิงยึดตามกำหนด","hint":null,"media":null,"na":false,"sort":40},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานมุงหลังคาและแผ่นไซด์ดิ้ง","no":"5.3","label":"ครอบต่างๆ ต้องเรียบได้แนว ไม่มีร่องห่าง","hint":null,"media":null,"na":false,"sort":41},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานมุงหลังคาและแผ่นไซด์ดิ้ง","no":"5.4","label":"ไม่มีรอยบุบ","hint":null,"media":null,"na":false,"sort":42},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานมุงหลังคาและแผ่นไซด์ดิ้ง","no":"5.5","label":"รางน้ำและแผ่นหลังคา ความสมบูรณ์ สเปคตามแบบ การติดตั้งได้มาตรฐาน","hint":null,"media":null,"na":false,"sort":43},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานมุงหลังคาและแผ่นไซด์ดิ้ง","no":"","label":"• ยึดสกรูครบ","hint":null,"media":null,"na":false,"sort":44},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานมุงหลังคาและแผ่นไซด์ดิ้ง","no":"","label":"• ความเรียบร้อยงานครอบสันมุมต่างๆ สโลปการระบายน้ำ","hint":null,"media":null,"na":false,"sort":45},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานมุงหลังคาและแผ่นไซด์ดิ้ง","no":"","label":"• ตรวจหาช่องแสง ตามรอยต่อแผ่นและรอยเจาะยึดสกรู","hint":null,"media":null,"na":false,"sort":46},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานติดตั้งผนังไอโซวอลล์","no":"5.6","label":"ตรวจสอบสเปค","hint":null,"media":null,"na":false,"sort":47},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานติดตั้งผนังไอโซวอลล์","no":"5.7","label":"รอยต่อระหว่างแผ่น ร่องต้องตรงขนาดกันทั้งเส้น","hint":null,"media":null,"na":false,"sort":48},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานติดตั้งผนังไอโซวอลล์","no":"5.8","label":"แผ่นเรียบทั้งสองด้าน ไม่มีรอยบุบ","hint":null,"media":null,"na":false,"sort":49},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานติดตั้งผนังไอโซวอลล์","no":"5.9","label":"ยาแนวปิดร่องด้วยซิลิโคนสีขาว","hint":null,"media":null,"na":false,"sort":50},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานติดตั้งผนังไอโซวอลล์","no":"5.10","label":"รีเวทต้องเป็นสีขาว","hint":null,"media":null,"na":false,"sort":51},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานติดตั้งผนังไอโซวอลล์","no":"5.11","label":"ได้แนวตรงไม่ล้ม","hint":null,"media":null,"na":false,"sort":52},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานติดตั้งผนังไอโซวอลล์","no":"5.12","label":"แข็งแรง","hint":null,"media":null,"na":false,"sort":53},{"phase":5,"phase_name":"ครั้งที่ 5 · มุงหลังคา/ไซด์ดิ้ง + ผนังไอโซวอลล์","group_title":"งานติดตั้งผนังไอโซวอลล์","no":"5.13","label":"ทดสอบการรั่ว โดยการฉีดน้ำใส่วัสดุผนัง","hint":"สุ่มถ่ายคลิปการทดสอบ","media":"video","na":false,"sort":54},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานปูกระเบื้อง","no":"6.1","label":"จุดเริ่มต้นการปูกระเบื้อง","hint":null,"media":null,"na":false,"sort":55},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานปูกระเบื้อง","no":"6.2","label":"การหาฉากก่อนปูกระเบื้อง เส้นระดับ","hint":null,"media":null,"na":false,"sort":56},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานปูกระเบื้อง","no":"6.3","label":"วิธีการปูกระเบื้อง (ปูนปรับระดับ หรืองานเททอปปิ้ง)","hint":null,"media":null,"na":false,"sort":57},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานปูกระเบื้อง","no":"6.4","label":"อุปกรณ์ช่วยปรับระดับ","hint":null,"media":null,"na":false,"sort":58},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานปูกระเบื้อง","no":"6.5","label":"ระยะเว้นร่องกระเบื้อง","hint":null,"media":null,"na":false,"sort":59},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานปูกระเบื้อง","no":"6.6","label":"ตรวจสอบการหลุดร่อน","hint":null,"media":null,"na":false,"sort":60},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานปูกระเบื้อง","no":"6.7","label":"งานปูกระเบื้องห้องน้ำ ระดับ แนวกระเบื้องพื้นและผนังต้องได้แนวเดียวกัน","hint":null,"media":null,"na":false,"sort":61},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานฝ้าเพดาน","no":"6.8","label":"วิธีการกำหนดแนวฝ้าเพดาน ระดับอ้างอิง","hint":null,"media":null,"na":false,"sort":62},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานฝ้าเพดาน","no":"6.9","label":"สเปควัสดุอุปกรณ์การติดตั้งฝ้าเพดาน","hint":null,"media":null,"na":false,"sort":63},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานฝ้าเพดาน","no":"6.10","label":"ระยะการแขวนโครงคร่าว","hint":null,"media":null,"na":false,"sort":64},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานฝ้าเพดาน","no":"6.11","label":"ตำแหน่งการแขวนโครงคร่าวฝ้ากับโครงสร้างอาคารหลัก","hint":null,"media":null,"na":false,"sort":65},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานฝ้าเพดาน","no":"6.12","label":"ไม่ตกท้องช้าง ไม่แอ่นกลาง","hint":null,"media":null,"na":false,"sort":66},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานฝ้าเพดาน","no":"6.13","label":"แบบการวางแนวฝ้า ส่วนขายและสต๊อก","hint":null,"media":null,"na":false,"sort":67},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานฝ้าเพดาน","no":"6.14","label":"ตรวจสอบการยึดแน่นของสกรู ไม่ให้หลุดออกได้","hint":null,"media":null,"na":false,"sort":68},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานอลูมิเนียม","no":"6.15","label":"สเปคความหนาของอลูมิเนียม และกระจก","hint":null,"media":null,"na":false,"sort":69},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานอลูมิเนียม","no":"6.16","label":"วิธีการติดตั้ง เช็คฉากเช็คดิ่ง","hint":null,"media":null,"na":false,"sort":70},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานอลูมิเนียม","no":"6.17","label":"ยาแนวปิดร่องรอยต่อด้วยซิลิโคนสีดำ เรียบร้อยหรือไม่","hint":null,"media":null,"na":false,"sort":71},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานอลูมิเนียม","no":"6.18","label":"อลูมิเนียมไม่มีรอยถลอกและบุบ","hint":null,"media":null,"na":false,"sort":72},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"งานอลูมิเนียม","no":"6.19","label":"ความแข็งแรงยางขอบประตูไม่หลุดง่าย","hint":null,"media":null,"na":false,"sort":73},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"ตัวอาคารพร้อมให้ถ่ายรูปขอทะเบียนบ้าน","no":"6.20","label":"โครงสร้างหลัก","hint":null,"media":null,"na":false,"sort":74},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"ตัวอาคารพร้อมให้ถ่ายรูปขอทะเบียนบ้าน","no":"6.21","label":"ผนังภายนอก 3 ด้าน","hint":null,"media":null,"na":false,"sort":75},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"ตัวอาคารพร้อมให้ถ่ายรูปขอทะเบียนบ้าน","no":"6.22","label":"งานกระจกอะลูมิเนียม","hint":null,"media":null,"na":false,"sort":76},{"phase":6,"phase_name":"ครั้งที่ 6 · ปูกระเบื้อง/ฝ้า/อลูมิเนียม","group_title":"ตัวอาคารพร้อมให้ถ่ายรูปขอทะเบียนบ้าน","no":"6.23","label":"ห้องน้ำพร้อมใช้งาน","hint":null,"media":null,"na":false,"sort":77},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานระบบสุขาภิบาล","no":"7.1","label":"ระดับท้องท่อ หรือท้องบ่อพักสาธารณะ","hint":null,"media":null,"na":false,"sort":78},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานระบบสุขาภิบาล","no":"7.2","label":"เกร้าท์จุดต่อท่อ, บ่อพัก","hint":null,"media":null,"na":false,"sort":79},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานระบบสุขาภิบาล","no":"7.3","label":"ทำระดับด้วยบาร์หรือลีน เพื่อวางท่อ-บ่อพัก ไม่ให้เกิดจุดรั่ว","hint":null,"media":null,"na":false,"sort":80},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานระบบสุขาภิบาล","no":"7.4","label":"เทสการไหลของระบบระบายน้ำ","hint":null,"media":"video","na":false,"sort":81},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานระบบสุขาภิบาล","no":"7.5","label":"ระดับการวางถังแซท และถังดักไขมัน","hint":null,"media":null,"na":false,"sort":82},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานระบบสุขาภิบาล","no":"7.6","label":"FCO ฟลอคลีนเอ๊าท์ ใช้งานได้จริง","hint":null,"media":null,"na":false,"sort":83},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานระบบสุขาภิบาล","no":"7.7","label":"บ่อซึม ทำถูกต้องตามหลักการ","hint":null,"media":null,"na":false,"sort":84},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานระบบสุขาภิบาล","no":"7.8","label":"ตรวจสอบแนวท่อระบายน้ำอาคาร","hint":null,"media":null,"na":false,"sort":85},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานไฟฟ้า","no":"7.9","label":"ท่อร้อยสายไฟ","hint":null,"media":null,"na":false,"sort":86},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานไฟฟ้า","no":"7.10","label":"ขนาดสาย มอก.","hint":null,"media":null,"na":false,"sort":87},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานไฟฟ้า","no":"7.11","label":"ตู้เมนไฟ, อุปกรณ์ ตรวจสเปค","hint":null,"media":null,"na":false,"sort":88},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานไฟฟ้า","no":"7.12","label":"จำนวน, ตำแหน่งปลั๊กไฟ และสวิทช์ไฟ","hint":null,"media":null,"na":false,"sort":89},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานไฟฟ้า","no":"7.13","label":"สายกราวด์ (สายดิน) ความยาวของแท่งทองแดง","hint":"ค่าความต้านทานสายดิน (<5 โอห์ม)","media":null,"na":false,"sort":90},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานไฟฟ้า","no":"7.14","label":"การวางเซอร์กิต ได้ตรงกับไดอะแกรม เทสระบบ","hint":null,"media":"video","na":false,"sort":91},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานผิวคอนกรีต","no":"7.15","label":"พื้นคอนกรีตเป็นผิวกึ่งมัน สำหรับพื้นสต๊อก","hint":null,"media":null,"na":false,"sort":92},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานผิวคอนกรีต","no":"7.16","label":"พื้นคอนกรีตเรียบสม่ำเสมอ ไม่มีผิวส้ม ไม่ขึ้นหินหรือเม็ดทราย สำหรับลานจอด","hint":null,"media":null,"na":false,"sort":93},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานผิวคอนกรีต","no":"7.17","label":"มีการหยอดยางมะตอยที่จุดเชื่อมต่อ","hint":null,"media":null,"na":false,"sort":94},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานผิวคอนกรีต","no":"7.18","label":"ตัดกรีตรอย join","hint":null,"media":null,"na":false,"sort":95},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานผิวคอนกรีต","no":"7.19","label":"ลานจอดทางเชื่อม พื้นไม่แตกร้าว ระยะสโลปได้ระดับ","hint":null,"media":null,"na":false,"sort":96},{"phase":7,"phase_name":"ครั้งที่ 7 · ระบบสุขาภิบาล/ไฟฟ้า/ผิวคอนกรีต","group_title":"งานผิวคอนกรีต","no":"7.20","label":"สีช่องจราจรเรียบร้อย ไม่ร่อน","hint":null,"media":null,"na":false,"sort":97},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบไฟฟ้าและแสงสว่าง (Electrical System)","no":"8.1","label":"ทดสอบการทำงานของ Breaker ทุกตัวในตู้ MDB และตรวจสอบป้ายชื่อวงจร (Label) ให้ตรงกับจุดใช้งานจริง","hint":null,"media":"video","na":false,"sort":98},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบไฟฟ้าและแสงสว่าง (Electrical System)","no":"8.2","label":"ทดสอบปุ่ม Test ของตัวตัดไฟรั่ว (RCD/RCBO) ว่าตัดวงจรได้ทันที","hint":null,"media":"video","na":false,"sort":99},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบไฟฟ้าและแสงสว่าง (Electrical System)","no":"8.3","label":"ตรวจสอบความสว่างของโคมไฟทุกจุด (ภายใน, หน้าร้าน, และสปอร์ตไลท์ลานจอดรถ)","hint":null,"media":null,"na":false,"sort":100},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบไฟฟ้าและแสงสว่าง (Electrical System)","no":"8.4","label":"ทดสอบระบบไฟฉุกเฉิน (Emergency Light) โดยการตัดไฟ และเช็คระยะเวลาสำรองไฟ","hint":null,"media":"video","na":false,"sort":101},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบไฟฟ้าและแสงสว่าง (Electrical System)","no":"8.5","label":"ตรวจสอบการตั้งเวลา (Timer) ของป้ายร้านและไฟส่องสว่างหน้าอาคาร","hint":null,"media":null,"na":false,"sort":102},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบประปาและสุขาภิบาล (Sanitary System)","no":"8.6","label":"ทดสอบแรงดันน้ำ (Water Pressure) ทุกจุด: ก๊อกน้ำ, สายชำระ, โถสุขภัณฑ์ และอ่างล้างมือ","hint":null,"media":"video","na":false,"sort":103},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบประปาและสุขาภิบาล (Sanitary System)","no":"8.7","label":"ทดสอบการระบายน้ำ (Drainage): เทน้ำปริมาณมากลงพื้นห้องน้ำและจุดซักล้าง เพื่อเช็คการไหลและน้ำขัง","hint":null,"media":"video","na":false,"sort":104},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบประปาและสุขาภิบาล (Sanitary System)","no":"8.8","label":"ตรวจสอบการรั่วซึมของข้อต่อท่อน้ำดีและท่อน้ำทิ้งใต้เคาน์เตอร์และในห้องน้ำ","hint":null,"media":null,"na":false,"sort":105},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบประปาและสุขาภิบาล (Sanitary System)","no":"8.9","label":"เช็คความเรียบร้อยของบ่อดักไขมันและบ่อพักน้ำทิ้ง (ต้องไม่มีเศษก่อสร้างอุดตัน)","hint":null,"media":null,"na":false,"sort":106},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบปรับอากาศและประตูอัตโนมัติ (HVAC & Auto Door)","no":"8.10","label":"ทดสอบประตูอัตโนมัติ (Auto Door): การทำงานของ Sensor, ความเร็วในการเปิด-ปิด และระบบล็อค","hint":null,"media":"video","na":false,"sort":107},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบปรับอากาศและประตูอัตโนมัติ (HVAC & Auto Door)","no":"8.11","label":"ทดสอบการเดินเครื่องปรับอากาศ (แอร์) ทุกเครื่อง: วัดอุณหภูมิหน้าช่องลม และเช็คเสียงผิดปกติ","hint":null,"media":"video","na":false,"sort":108},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ระบบปรับอากาศและประตูอัตโนมัติ (HVAC & Auto Door)","no":"8.12","label":"ตรวจสอบท่อน้ำทิ้งแอร์ (Drain) ว่าไหลลงท่อระบายน้ำจริง ไม่มีการรั่วหรือน้ำหยดที่ฝ้า","hint":null,"media":null,"na":false,"sort":109},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานสถาปัตยกรรมและความสวยงาม (Architectural Finishes)","no":"8.13","label":"ตรวจสอบความเรียบเนียนของผิวสีผนัง (ไม่มีรอยด่าง, รอยแตกลายงา หรือคราบสกปรก)","hint":null,"media":null,"na":false,"sort":110},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานสถาปัตยกรรมและความสวยงาม (Architectural Finishes)","no":"8.14","label":"ตรวจสอบการยาแนวพื้นกระเบื้อง (แกรนิตโต้ 24x24 และเซรามิค 12x12) ให้เต็มร่องและสะอาด","hint":null,"media":null,"na":false,"sort":111},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานสถาปัตยกรรมและความสวยงาม (Architectural Finishes)","no":"8.15","label":"ตรวจสอบงานซิลิโคนตามขอบกระจกและรอยต่ออลูมิเนียม ต้องสม่ำเสมอและกันน้ำได้จริง","hint":null,"media":null,"na":false,"sort":112},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานสถาปัตยกรรมและความสวยงาม (Architectural Finishes)","no":"8.16","label":"ตรวจสอบความแข็งแรงของราวจับ, ชั้นวาง และอุปกรณ์ยึดติดผนังทั้งหมด","hint":null,"media":null,"na":false,"sort":113},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ความสะอาดและงานภายนอก (Site Cleaning & External)","no":"8.17","label":"การทำความสะอาดครั้งใหญ่ (Deep Clean): กระจกหน้าบ้าน, พื้นภายใน และป้ายร้าน","hint":null,"media":null,"na":false,"sort":114},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ความสะอาดและงานภายนอก (Site Cleaning & External)","no":"8.18","label":"ตรวจสอบลานจอดรถและทางเชื่อม: พื้นต้องไม่มีรอยร้าวรุนแรง และระดับสโลปไม่ให้น้ำขังขวางทางเข้า","hint":null,"media":null,"na":false,"sort":115},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ความสะอาดและงานภายนอก (Site Cleaning & External)","no":"8.19","label":"ตรวจสอบความเรียบร้อยของป้ายโลโก้ CJX (ความแน่นหนาและไฟส่องสว่าง)","hint":null,"media":null,"na":false,"sort":116},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ตรวจงานเฟอร์นิเจอร์","no":"8.20","label":"ความแข็งแรง","hint":null,"media":null,"na":false,"sort":117},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"ตรวจงานเฟอร์นิเจอร์","no":"8.21","label":"ติดตั้งถูกต้องตามตำแหน่ง","hint":null,"media":null,"na":false,"sort":118},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานตรวจประตู","no":"8.22","label":"ประตูห้องน้ำ","hint":null,"media":null,"na":false,"sort":119},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานตรวจประตู","no":"8.23","label":"ประตูเข้าสต็อก","hint":null,"media":null,"na":false,"sort":120},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานตรวจประตู","no":"8.24","label":"ประตูห้องผู้จัดการ","hint":null,"media":null,"na":false,"sort":121},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานตรวจประตู","no":"8.25","label":"ประตู Cold Room","hint":null,"media":null,"na":false,"sort":122},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"งานตรวจประตู","no":"8.26","label":"ประตูม้วน","hint":null,"media":null,"na":false,"sort":123},{"phase":8,"phase_name":"ครั้งที่ 8 · ทดสอบระบบ/เก็บงานก่อนส่งมอบ","group_title":"พัดลมห้องผู้จัดการ","no":"8.27","label":"เทสความเย็น","hint":null,"media":"video","na":false,"sort":124}]
+
+let profile=null, myUid=null, stores=[], filter='building', query='', checkpoints=[], pctx=null
+let myStores=new Set(), profileNames={}, _tab='home', contractors=[]
+const HEAD_ROLES=['head_cm','head_construction','admin']
+const isHead=()=>HEAD_ROLES.includes(profile&&profile.role)
+const canApprove=()=>isHead()
+const nameOf=uid=>uid&&profileNames[uid]?profileNames[uid]:'—'
+
+// ---- construction status from opening date ----
+function cs(open){
+  if(!open) return {key:'unknown',label:'ไม่ระบุวันเปิด',cls:'s-idle',days:null}
+  const od=new Date(open+'T00:00:00'), now=new Date(); now.setHours(0,0,0,0)
+  const days=Math.round((od-now)/86400000)
+  const start=new Date(od); start.setDate(start.getDate()-CONSTRUCTION_DAYS)
+  if(now>od) return {key:'opened',label:'เปิดแล้ว',cls:'s-pass',days}
+  if(now>=start) return {key:'building',label:'กำลังก่อสร้าง',cls:'s-build',days}
+  return {key:'notyet',label:'ยังไม่ก่อสร้าง',cls:'s-idle',days}
+}
+
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession()
+  if(session) await enterApp(); else showAuth()
+}
+function hideAllViews(){ ['viewAuth','viewHome','viewLanding','viewSite','viewPhase','viewDash','viewPick','viewReport','viewAdmin','viewProfile'].forEach(v=>show($(v),false)) }
+function showTabbar(on){ show($('tabbar'),on); document.body.classList.toggle('hastab',on) }
+function markTab(t){ _tab=t; $('tabbar').querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.dataset.tab===t)) }
+function switchTab(t){
+  if(t==='home'){ hideAllViews(); show($('viewLanding'),true); showTabbar(true); markTab('home'); window.scrollTo(0,0); renderLanding() }
+  else if(t==='inspect'){ hideAllViews(); show($('viewHome'),true); showTabbar(true); markTab('inspect'); window.scrollTo(0,0); renderHome() }
+  else if(t==='dash'){ openDash() }
+  else if(t==='profile'){ openProfile() }
+}
+function openProfile(){
+  hideAllViews(); show($('viewProfile'),true); showTabbar(true); markTab('profile'); window.scrollTo(0,0)
+  const nm=(profile&&profile.name)||''; const em=(profile&&profile.email)||''
+  $('pfName').textContent = nm||em||'—'
+  $('pfEmail').textContent = em
+  $('pfAvatar').textContent = (nm||em||'?').trim().charAt(0).toUpperCase()
+  const rc=ROLE_COLOR[profile.role]||'#9AA7B2'
+  const rp=$('pfRole'); rp.textContent=ROLE_TH[profile.role]||profile.role; rp.style.color=rc; rp.style.background=rc+'22'
+}
+$('who').onclick = openProfile
+$('profBack').onclick = ()=>switchTab('home')
+$('tabbar').querySelectorAll('a').forEach(a=> a.onclick=()=>switchTab(a.dataset.tab))
+function showAuth(){ hideAllViews(); showTabbar(false); show($('viewAuth'),true); show($('who'),false) }
+
+async function enterApp(){
+  const { data:{ user } } = await sb.auth.getUser()
+  myUid = user.id
+  const { data:prof } = await sb.from('profiles').select('*').eq('id',user.id).single()
+  profile = prof || { name:user.email, role:'cm' }
+  if(!profile.email) profile.email = user.email
+  const dispName=profile.name||user.email
+  $('who').innerHTML = `<span class="wav">${esc((dispName||'?').trim().charAt(0).toUpperCase())}</span><span class="wtx"><b>${esc(dispName)}</b><span class="role">${ROLE_TH[profile.role]||profile.role}</span></span><span class="wcv">▾</span>`
+  show($('who'),true); show($('viewAuth'),false)
+  $('homeActs').innerHTML=''
+  await loadNames(); await loadContractors()
+  await loadStores(); await loadMine(); switchTab('home')
+}
+function renderHomeActs(){ $('homeActs').innerHTML='' }
+function openAdmin(){ hideAllViews(); showTabbar(false); show($('viewAdmin'),true); show($('adminMenu'),true); show($('adminSec'),false); window.scrollTo(0,0) }
+function openAdminSec(sec){
+  show($('adminMenu'),false); show($('adminSec'),true)
+  ;['store','checklist','users','contractor'].forEach(k=> show($('sec'+k.charAt(0).toUpperCase()+k.slice(1)), k===sec))
+  if(sec==='contractor') renderCtrList()
+  window.scrollTo(0,0)
+}
+async function renderCtrList(){
+  await loadContractors()
+  const box=$('ctrList')
+  box.innerHTML = contractors.length
+    ? contractors.map(n=>`<div class="urow"><div class="un"><b>${esc(n)}</b></div><button class="btn gho sm ctrDel" data-n="${esc(n)}" style="width:auto;color:var(--fail)">ลบ</button></div>`).join('')
+    : '<div class="uhint">ยังไม่มีรายชื่อ — เพิ่มด้านบน</div>'
+  box.querySelectorAll('.ctrDel').forEach(b=> b.onclick=async()=>{ const n=b.dataset.n
+    if(!confirm('ลบ "'+n+'" ออกจากรายชื่อ?')) return
+    const { error } = await sb.from('contractors').delete().eq('name',n)
+    if(error) return alert('ลบไม่สำเร็จ: '+error.message)
+    toast('ลบแล้ว'); renderCtrList() })
+}
+$('btnCtrAdd').onclick = async ()=>{
+  const nm=($('ctrNew').value||'').trim(); if(!nm) return
+  const { error } = await sb.from('contractors').insert({ name:nm })
+  if(error){ alert(/duplicate|unique/i.test(error.message)?'มีชื่อนี้อยู่แล้ว':'เพิ่มไม่สำเร็จ: '+error.message); return }
+  $('ctrNew').value=''; toast('เพิ่มบริษัทแล้ว'); renderCtrList()
+}
+$('adminBack').onclick = ()=>switchTab('home')
+$('adminSecBack').onclick = ()=>{ show($('adminSec'),false); show($('adminMenu'),true); window.scrollTo(0,0) }
+document.querySelectorAll('#adminMenu .aitem').forEach(el=> el.onclick=()=>openAdminSec(el.dataset.sec))
+async function loadNames(){
+  const { data } = await sb.from('profiles').select('id,name,email')
+  profileNames={}; (data||[]).forEach(p=>profileNames[p.id]=p.name||p.email)
+}
+async function loadContractors(){
+  const { data } = await sb.from('contractors').select('name').order('name')
+  contractors=(data||[]).map(c=>c.name)
+}
+async function loadMine(){
+  myStores=new Set()
+  const { data:ev } = await sb.from('check_events').select('inspection_id').eq('by',myUid)
+  const ids=[...new Set((ev||[]).map(e=>e.inspection_id))]
+  if(!ids.length){ renderTabs(); return }
+  const { data:insp } = await sb.from('inspections').select('store_code').in('id',ids)
+  ;(insp||[]).forEach(i=>myStores.add(i.store_code)); renderTabs()
+}
+function goHome(){ switchTab(_tab||'home') }
+function greetWord(){ const h=new Date().getHours(); return h<12?'สวัสดีตอนเช้า':h<17?'สวัสดีตอนบ่าย':'สวัสดีตอนเย็น' }
+const _ic={check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  dash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v6c0 4-3 7-7 10-4-3-7-6-7-10V6z"/></svg>'}
+async function renderLanding(){
+  const nm=profile.name||profile.email||'', admin=profile.role==='admin'
+  $('landBody').innerHTML = `
+   <div class="lgreet"><div class="hi">${greetWord()}<b>${esc(nm)}</b></div><div class="av" id="lav">${esc((nm||'?').trim().charAt(0).toUpperCase())}</div></div>
+   <div class="lsum"><div class="slb">${isHead()?'ภาพรวมงาน':'งานของฉัน'}</div><div class="s3" id="lsum3"><div style="flex:1;color:var(--faint);font-size:11px;text-align:center;padding:8px">กำลังโหลด…</div></div></div>
+   <div class="lcta" id="lcta"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> เลือกสาขาเริ่มตรวจ</div>
+   <div class="lgrid">
+     <div class="lfi" data-go="inspect"><div class="ic">${_ic.check}</div><span>งานของฉัน</span></div>
+     <div class="lfi" data-go="dash"><div class="ic">${_ic.dash}</div><span>แดชบอร์ด</span></div>
+     ${admin?`<div class="lfi" data-go="admin"><div class="ic">${_ic.shield}</div><span>ผู้ดูแล</span></div>`:''}
+   </div>
+   <div class="dlab" style="margin:2px 2px 10px">ล่าสุด</div>
+   <div id="lrecent"><div class="spin">—</div></div>`
+  $('lav').onclick=()=>switchTab('profile')
+  $('lcta').onclick=()=>switchTab('inspect')
+  $('landBody').querySelectorAll('.lfi').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; g==='admin'?openAdmin():switchTab(g) })
+  await loadDashData()
+  const prog=_dashRows.filter(r=>dstt(r)==='progress').length
+  $('lsum3').innerHTML = `
+    <div class="b" data-f="progress"><div class="v" style="color:var(--build)">${prog}</div><div class="k">กำลังตรวจ</div></div>
+    <div class="b" data-f="fail"><div class="v" style="color:var(--fail)">${_dashKpi.failStores}</div><div class="k">ไม่ผ่าน</div></div>
+    <div class="b" data-f="done"><div class="v" style="color:var(--pass)">${_dashKpi.done100}</div><div class="k">เสร็จ</div></div>`
+  $('lsum3').querySelectorAll('.b').forEach(b=> b.onclick=()=>openDash(b.dataset.f))
+  const rec=[..._dashRows].filter(r=>r.last&&r.last.at).sort((a,b)=>(b.last.at||'').localeCompare(a.last.at||'')).slice(0,4)
+  $('lrecent').innerHTML = rec.length ? rec.map(r=>{const st=dstt(r);return `<div data-code="${esc(r.code)}" style="display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid #202024;cursor:pointer">
+    <span style="width:8px;height:8px;border-radius:50%;background:${DCOL[st]};flex:0 0 auto"></span>
+    <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+    <div style="font-size:10px;color:var(--faint)">${r.fail?r.fail+' ไม่ผ่าน · ':''}${r.pct}% · งวด ${r.phase||'-'}</div></div>
+    <span class="mono" style="font-weight:800;font-size:12px;color:${DCOL[st]}">${r.pct}%</span></div>`}).join('') : '<div style="font-size:12px;color:var(--faint);padding:6px 2px">ยังไม่มีงานล่าสุด — แตะ “เลือกสาขาเริ่มตรวจ”</div>'
+  $('lrecent').querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
+}
+function renderHome(){
+  const head=isHead()
+  show($('tabs'), head)
+  if(head){
+    const building=stores.filter(s=>s.cs.key==='building').length
+    $('statBuild').textContent=building
+    $('statLabel').textContent='สาขากำลังก่อสร้าง · ต้องเข้าตรวจ'
+    $('cmBar').innerHTML=''
+    if(!['mine','building','notyet','opened','all'].includes(filter)) filter='building'
+  } else {
+    $('statBuild').textContent=myStores.size
+    $('statLabel').textContent='งานของฉัน · สาขาที่คุณตรวจ'
+    filter='mine'
+    $('cmBar').innerHTML='<button class="btn pri" id="btnPick" style="margin-bottom:14px">＋ เลือกสาขาเพื่อเริ่มตรวจ</button>'
+    $('btnPick').onclick=openPick
+  }
+  renderTabs(); renderPool()
+}
+let pickQuery=''
+function openPick(){
+  hideAllViews(); showTabbar(false); show($('viewPick'),true); window.scrollTo(0,0)
+  renderPick()
+}
+function renderPick(){
+  const q=pickQuery.trim().toLowerCase()
+  const list=stores.filter(s=> s.cs.key==='building' && (!q || [s.name,s.code,s.province].some(v=>(v||'').toLowerCase().includes(q))))
+  const el=$('pickList')
+  if(!list.length){ el.innerHTML=`<div class="spin">${stores.length?'ไม่พบสาขาที่กำลังก่อสร้าง':'ยังไม่มีสาขาในระบบ'}</div>`; return }
+  el.innerHTML=list.map(s=>{ const mine=myStores.has(s.code)
+    return `<div class="sc" data-code="${esc(s.code)}"><div class="tp"><div><div class="nm">${esc(s.name||s.code)}</div>
+      <div class="mt"><span class="code">${esc(s.code)}</span>${s.province?' · '+esc(s.province):''}</div></div>
+      ${mine?'<span class="dotlab s-pass"><i></i>งานของฉัน</span>':'<span class="dotlab s-build"><i></i>เริ่มตรวจ ›</span>'}</div></div>`
+  }).join('')
+  el.querySelectorAll('.sc').forEach(c=> c.onclick=()=>openSite(c.dataset.code))
+}
+$('pq').oninput = e=>{ pickQuery=e.target.value; renderPick() }
+$('pickBack').onclick = goHome
+
+// ---- auth ----
+$('btnLogin').onclick = async ()=>{
+  const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('pass').value })
+  if(error) return msg($('authMsg'),'เข้าสู่ระบบไม่สำเร็จ: '+error.message,'err')
+  await enterApp()
+}
+$('btnSignup').onclick = async ()=>{
+  const { data, error } = await sb.auth.signUp({ email:$('email').value.trim(), password:$('pass').value })
+  if(error) return msg($('authMsg'),'สมัครไม่สำเร็จ: '+error.message,'err')
+  if(data.session) return enterApp()
+  msg($('authMsg'),'สมัครสำเร็จ! ถ้ายังเข้าไม่ได้ = ต้องยืนยันอีเมล → ปิด Confirm email ใน Supabase','ok')
+}
+$('btnLogout').onclick = async ()=>{ await sb.auth.signOut(); showAuth() }
+$('btnForgot').onclick = async ()=>{
+  const em=($('email').value.trim())||prompt('กรอกอีเมลที่ใช้ล็อกอิน')||''
+  if(!em) return
+  const { error } = await sb.auth.resetPasswordForEmail(em.trim(), { redirectTo: location.href.split('#')[0] })
+  if(error) return msg($('authMsg'),'ส่งไม่สำเร็จ: '+error.message,'err')
+  msg($('authMsg'),'ส่งลิงก์รีเซ็ตรหัสไปที่อีเมลแล้ว — เปิดลิงก์ในอีเมลเพื่อตั้งรหัสใหม่','ok')
+}
+sb.auth.onAuthStateChange(async (event)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    const p1=prompt('ตั้งรหัสผ่านใหม่ (อย่างน้อย 6 ตัว)')
+    if(p1 && p1.length>=6){ const { error }=await sb.auth.updateUser({ password:p1 }); alert(error?('ไม่สำเร็จ: '+error.message):'ตั้งรหัสผ่านใหม่เรียบร้อย เข้าสู่ระบบได้เลย') }
+  }
+})
+$('btnPwd').onclick = async ()=>{
+  const p1=prompt('รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)'); if(!p1) return
+  if(p1.length<6) return alert('รหัสผ่านสั้นเกินไป (อย่างน้อย 6 ตัว)')
+  const p2=prompt('พิมพ์รหัสผ่านใหม่อีกครั้ง'); if(p2!==p1) return alert('รหัสผ่านไม่ตรงกัน')
+  const { error } = await sb.auth.updateUser({ password:p1 })
+  if(error) return alert('เปลี่ยนไม่สำเร็จ: '+error.message)
+  toast('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว')
+}
+$('btnEmail').onclick = async ()=>{
+  const em=prompt('อีเมลใหม่', profile.email||''); if(!em) return
+  if(!/^\S+@\S+\.\S+$/.test(em.trim())) return alert('รูปแบบอีเมลไม่ถูกต้อง')
+  const { error } = await sb.auth.updateUser({ email:em.trim() })
+  if(error) return alert('เปลี่ยนอีเมลไม่สำเร็จ: '+error.message)
+  toast('ส่งลิงก์ยืนยันไปที่อีเมลใหม่แล้ว — เปิดยืนยันก่อนถึงจะเปลี่ยน')
+}
+
+// ---- stores ----
+async function loadStores(){
+  const { data, error } = await sb.from('stores').select('code,name,province,building_type,opening_date,contractor').order('opening_date')
+  if(error){ $('poolList').innerHTML=`<div class="spin">โหลดไม่สำเร็จ: ${esc(error.message)}</div>`; return }
+  stores = (data||[]).map(s=>({ ...s, cs:cs(s.opening_date) }))
+  const building = stores.filter(s=>s.cs.key==='building').length
+  $('statBuild').textContent = building
+  renderTabs(); renderPool()
+}
+function renderTabs(){
+  const defs=[['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`],['building','กำลังก่อสร้าง'],['notyet','ยังไม่ก่อสร้าง'],['opened','เปิดแล้ว'],['all','ทั้งหมด']]
+  $('tabs').innerHTML = defs.map(([k,l])=>`<b class="${filter===k?'on':''}" data-k="${k}">${l}</b>`).join('')
+  $('tabs').querySelectorAll('b').forEach(b=> b.onclick=()=>{ filter=b.dataset.k; renderTabs(); renderPool() })
+}
+function renderPool(){
+  const q=query.trim().toLowerCase()
+  let list=stores.filter(s=>{
+    if(q && ![s.name,s.code,s.province].some(v=>(v||'').toLowerCase().includes(q))) return false
+    if(filter==='mine') return myStores.has(s.code)
+    if(filter==='all') return true
+    return s.cs.key===filter
+  })
+  const el=$('poolList')
+  if(!list.length){ const emp = filter==='mine'?'ยังไม่มีงานที่คุณลงตรวจ — เปิดสาขาแล้วเริ่มตรวจได้เลย':(stores.length?'ไม่มีสาขาในกลุ่มนี้':'ยังไม่มีสาขา — '+(profile.role==='admin'?'อัป CSV ด้านบน':'รอผู้ดูแลเพิ่ม'))
+    el.innerHTML=`<div class="spin">${emp}</div>`; return }
+  el.innerHTML = list.map(s=>{
+    let foot = s.cs.key==='building'&&s.cs.days!=null ? `เปิดในอีก ${s.cs.days} วัน`
+      : s.cs.key==='notyet'&&s.cs.days!=null ? `ยังไม่ถึงช่วงตรวจ · เปิดในอีก ${s.cs.days} วัน`
+      : s.cs.key==='opened' ? 'เปิดแล้ว' : ''
+    return `<div class="sc" data-code="${esc(s.code)}">
+      <div class="tp"><div><div class="nm">${esc(s.name||s.code)}</div>
+        <div class="mt"><span class="code">${esc(s.code)}</span>${s.province?' · '+esc(s.province):''}</div></div>
+        <span class="dotlab ${s.cs.cls}"><i></i>${s.cs.label}</span></div>
+      ${foot?`<div class="foot">${foot}</div>`:''}</div>`
+  }).join('')
+  el.querySelectorAll('.sc').forEach(c=> c.onclick=()=>openSite(c.dataset.code))
+}
+$('q').oninput = e=>{ query=e.target.value; renderPool() }
+
+// ---- site detail (8 phases · real status) ----
+async function loadChecklist(){ if(checkpoints.length) return; const {data}=await sb.from('checkpoints').select('*').order('sort'); checkpoints=data||[] }
+async function openSite(code){
+  const s=stores.find(x=>x.code===code); if(!s) return
+  if(!isHead()) myStores.add(code)   // CM: เลือก/เปิดสาขา = กลายเป็นงานของฉัน (ยืนยันถาวรเมื่อเริ่ม stamp)
+  await loadChecklist()
+  const { data:insps } = await sb.from('inspections').select('id,phase').eq('store_code',code)
+  const inspByPhase={}; (insps||[]).forEach(i=>inspByPhase[i.phase]=i)
+  const ids=(insps||[]).map(i=>i.id); let events=[]
+  if(ids.length){ const {data}=await sb.from('check_events').select('inspection_id,checkpoint,round,status').in('inspection_id',ids); events=data||[] }
+  const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at').eq('store_code',code)
+  const signoffs=sg||[]
+  const c=s.cs
+  const cstxt = c.key==='building'&&c.days!=null?`กำลังก่อสร้าง · เปิดในอีก ${c.days} วัน`
+    : c.key==='opened'?'เปิดแล้ว' : c.key==='notyet'&&c.days!=null?`ยังไม่ก่อสร้าง · เปิดในอีก ${c.days} วัน`:''
+  const handover=signoffs.find(x=>x.scope==='store'&&x.kind==='handover')
+  let html = `<div class="heroC"><div class="t">${esc(s.name||s.code)}</div>
+    <div class="r"><span>${esc(s.code)}</span>${s.province?`<span>${esc(s.province)}</span>`:''}${s.building_type?`<span>${esc(s.building_type)}</span>`:''}${cstxt?`<em>${cstxt}</em>`:''}</div></div>`
+  if(handover) html += `<div class="appv">✓ รับมอบงานแล้ว · ${esc(nameOf(handover.by))} · ${fmtDate(handover.created_at)}</div>`
+  html += `<div class="ctr"><div style="flex:1;min-width:0"><div class="ctrl">บริษัทผู้รับเหมา (ผรม.)</div>
+    <select id="ctrSel" class="ctrsel">${ctrOptions(s.contractor)}</select></div></div>`
+  html += `<div class="sec">ครั้งที่ตรวจ</div>`
+  let nPass=0
+  html += PHASES.map(([n,name])=>{ const st=phaseStatus(n, inspByPhase[n], events)
+    if(st.key==='pass') nPass++
+    const appr=signoffs.find(x=>String(x.scope)===String(n)&&x.kind==='approve')
+    return `<div class="step" data-phase="${n}"><div class="n">${n}</div>
+      <div style="flex:1"><div class="snm">${esc(name)}</div><div class="st" style="color:${st.color}">${st.label}${appr?' · <span style="color:var(--pass)">อนุมัติงวดแล้ว ✓</span>':''}</div></div><span class="chev">›</span></div>` }).join('')
+  const allPass = nPass===PHASES.length
+  html += `<div class="actbtn" style="margin-top:16px">
+    <button class="btn gho" id="btnReport">🧾 ออกรายงานรวมทั้งสาขา</button>
+    ${canApprove()&&allPass&&!handover?`<button class="btn pri" id="btnHandover">✓ รับมอบงาน (ปิดงาน)</button>`:''}
+  </div>
+  ${!allPass?`<div class="hint">รับมอบงานได้เมื่อครบทั้ง 8 เฟส และผ่าน 100% (ตอนนี้ผ่าน ${nPass}/8 เฟส)</div>`:''}`
+  $('siteBody').innerHTML = html
+  $('siteBody').querySelectorAll('.step').forEach(el=> el.onclick=()=>openPhase(code, +el.dataset.phase))
+  $('btnReport').onclick=()=>generateReport(code)
+  $('ctrSel').onchange=()=>onPickContractor(code)
+  const bh=$('btnHandover'); if(bh) bh.onclick=()=>doSignoff(code,'store','handover',()=>openSite(code))
+  hideAllViews(); showTabbar(false); show($('viewSite'),true); window.scrollTo(0,0)
+}
+function ctrOptions(cur){
+  let list=contractors.slice(); if(cur && !list.includes(cur)) list.unshift(cur)
+  let o=`<option value="">— ยังไม่ระบุ —</option>`
+  o+=list.map(n=>`<option value="${esc(n)}" ${n===cur?'selected':''}>${esc(n)}</option>`).join('')
+  if(profile.role==='admin') o+=`<option value="__new__">＋ เพิ่มบริษัทใหม่…</option>`
+  return o
+}
+async function onPickContractor(code){
+  const sel=$('ctrSel'); let v=sel.value; const s=stores.find(x=>x.code===code)
+  if(v==='__new__'){
+    const nm=(prompt('ชื่อบริษัท ผรม. ใหม่ (จะเพิ่มเข้ารายชื่อกลาง)')||'').trim()
+    if(!nm){ openSite(code); return }
+    const { error:e1 } = await sb.from('contractors').insert({ name:nm })
+    if(e1 && !/duplicate|unique/i.test(e1.message)){ alert('เพิ่มไม่สำเร็จ: '+e1.message); openSite(code); return }
+    await loadContractors(); v=nm
+  }
+  const { error } = await sb.from('stores').update({ contractor: v||null }).eq('code',code)
+  if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
+  s.contractor = v||null; toast('บันทึก ผรม. แล้ว'); openSite(code)
+}
+function phaseStatus(phase, insp, events){
+  const total=checkpoints.filter(c=>c.phase===phase).length
+  if(!insp) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
+  const evs=events.filter(e=>e.inspection_id===insp.id), cur={}
+  evs.forEach(e=>{ if(!cur[e.checkpoint]||e.round>cur[e.checkpoint].round) cur[e.checkpoint]=e })
+  const ids=checkpoints.filter(c=>c.phase===phase).map(c=>String(c.id))
+  const done=ids.filter(id=>cur[id]).length
+  if(!done) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
+  if(done<total) return {key:'progress',label:`กำลังตรวจ ${done}/${total}`,color:'var(--build)',done,total}
+  return ids.some(id=>cur[id]&&cur[id].status==='fail') ? {key:'fail',label:'มีรายการไม่ผ่าน',color:'var(--fail)',done,total} : {key:'pass',label:'ผ่านทั้งหมด ✓',color:'var(--pass)',done,total}
+}
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso), p=n=>String(n).padStart(2,'0')
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543} ${p(d.getHours())}:${p(d.getMinutes())}` }
+async function doSignoff(code, scope, kind, after){
+  if(!confirm(kind==='handover'?'ยืนยันรับมอบงาน/ปิดงานสาขานี้?':'ยืนยันอนุมัติงวดงานนี้?')) return
+  const note=kind==='handover'?prompt('หมายเหตุ (ถ้ามี)')||null:null
+  const { error } = await sb.from('signoffs').insert({ store_code:code, scope:String(scope), kind, note })
+  if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
+  if(after) after()
+}
+$('siteBack').onclick = goHome
+
+// ---- inspect (tick pass/fail/na → save check_events, append-only) ----
+async function openPhase(code, phase){
+  const s=stores.find(x=>x.code===code); await loadChecklist()
+  const cps=checkpoints.filter(c=>c.phase===phase).sort((a,b)=>a.sort-b.sort)
+  const { data:insp } = await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).maybeSingle()
+  let inspId=insp?insp.id:null, events=[]
+  let media=[]
+  if(inspId){ const {data}=await sb.from('check_events').select('checkpoint,round,status,note,by,created_at').eq('inspection_id',inspId); events=data||[]
+    const {data:m}=await sb.from('media').select('checkpoint,path,kind,thumb_path').eq('inspection_id',inspId); media=m||[]
+    if(media.length){
+      const {data:fu}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600)
+      const {data:tu}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.thumb_path||x.path),3600)
+      media.forEach((x,i)=>{ x.url=(fu&&fu[i]&&fu[i].signedUrl)||''; x.turl=(tu&&tu[i]&&tu[i].signedUrl)||x.url }) } }
+  const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code).eq('scope',String(phase))
+  pctx={ code, phase, inspId, cps, events, media, signoffs:sg||[], storeName:s?(s.name||code):code }
+  renderPhase(); hideAllViews(); showTabbar(false); show($('viewPhase'),true); window.scrollTo(0,0)
+}
+function latestEvent(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); return es.length? es.reduce((a,b)=>b.round>a.round?b:a) : null }
+function curStatus(id){ const e=latestEvent(id); return e?e.status:null }
+function curNote(id){ const e=latestEvent(id); return e?(e.note||''):'' }
+function maxRound(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); return es.length?Math.max(...es.map(e=>e.round)):0 }
+function mediaOf(id){ return pctx.media.filter(m=>m.checkpoint===String(id)) }
+function byOf(id){ const e=latestEvent(id); return e?e.by:null }
+function whenOf(id){ const e=latestEvent(id); return e?e.created_at:null }
+function latestSignoff(kind){ const a=pctx.signoffs.filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
+async function reloadSignoffs(){ const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',pctx.code).eq('scope',String(pctx.phase)); pctx.signoffs=data||[] }
+async function saveSignature(kind, img){
+  const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:String(pctx.phase), kind, image:img })
+  if(error) return alert('บันทึกลายเซ็นไม่สำเร็จ: '+error.message)
+  await reloadSignoffs(); renderPhase(); toast('บันทึกลายเซ็นแล้ว')
+}
+function renderPhase(){
+  const {cps, phase, storeName}=pctx
+  const total=cps.length, done=cps.filter(c=>curStatus(c.id)).length, pct=total?Math.round(done/total*100):0
+  const failN=cps.filter(c=>curStatus(c.id)==='fail').length
+  const passN=cps.filter(c=>curStatus(c.id)==='pass').length
+  const allPass = total>0 && done===total && failN===0
+  const approved = pctx.signoffs.find(x=>x.kind==='approve')
+  const phaseName=(cps[0]&&cps[0].phase_name)||('ครั้งที่ '+phase)
+  let html=`<div class="heroC"><div class="t">${esc(phaseName)}</div><div class="r"><span>${esc(storeName)}</span></div></div>`
+  if(approved) html+=`<div class="appv">✓ อนุมัติงวดแล้ว · ${esc(nameOf(approved.by))} · ${fmtDate(approved.created_at)}</div>`
+  html+=`<div class="pgbar"><div class="tk"><i style="width:${pct}%"></i></div><b>${done}/${total}</b></div>`
+  let lastGrp='__none__', first=true
+  cps.forEach(c=>{
+    if(c.group_title!==lastGrp){ if(c.group_title) html+=`<div class="grp${first?' first':''}">${esc(c.group_title)}</div>`; lastGrp=c.group_title; first=false }
+    const cur=curStatus(c.id), cls=cur==='pass'?'pass':cur==='fail'?'fail':cur==='na'?'na':''
+    const ph=mediaOf(c.id), rnd=maxRound(c.id)
+    const stamp = cur ? `<div class="stamp">ตรวจโดย ${esc(nameOf(byOf(c.id)))} · ${fmtDate(whenOf(c.id))}</div>` : ''
+    html+=`<div class="cp ${cls}">${c.no?`<div class="cno">${esc(c.no)}${rnd>1?`<span class="rnd">รอบ ${rnd}</span>`:''}</div>`:(rnd>1?`<div class="cno"><span class="rnd">รอบ ${rnd}</span></div>`:'')}
+      <div class="clb">${esc(c.label)}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}
+      <div class="photos">${ph.map(m=>`<img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">`).join('')}<span class="addph" data-cp="${c.id}">📷 ถ่ายรูป</span></div>
+      <div class="reqph ${ph.length?'ok':''}">${ph.length?('✓ มีรูป '+ph.length+' รูป'):'ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'}</div>
+      <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
+      <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(curNote(c.id))}">${stamp}</div>`
+  })
+  // ---- summary + actions ----
+  const scls = allPass?'ok':failN?'bad':'mid'
+  let sub, big
+  if(done<total){ big=`ตรวจแล้ว ${done}/${total} รายการ`; sub=`ผ่าน ${passN} · ไม่ผ่าน ${failN} · ยังไม่ตรวจ ${total-done}` }
+  else if(failN){ big=`มี ${failN} รายการไม่ผ่าน — ต้องแก้และตรวจซ้ำ`; sub=`ผรม.แก้แล้ว กดผ่าน/ไม่ผ่านใหม่ได้เลย (ระบบเก็บเป็นรอบใหม่ ไม่ทับของเดิม)` }
+  else { big=`ผ่านครบ 100% (${passN} รายการ) ✓`; sub=`งวดนี้พร้อมเบิกงาน — ออกใบตรวจรับได้` }
+  html+=`<div class="summary ${scls}"><div class="big">${big}</div><div class="sub">${sub}</div>`
+  if(failN){ html+=`<div class="punch">`+cps.filter(c=>curStatus(c.id)==='fail').map(c=>`<div class="pi"><b>${esc(c.no||'•')}</b> ${esc(c.label)}</div>`).join('')+`</div>` }
+  html+=`</div>`
+  if(allPass){
+    const sc=latestSignoff('sign_cm'), sco=latestSignoff('sign_contractor')
+    html+=`<div class="apanel sigwrap" style="margin-top:16px"><div class="ap-t">ลายเซ็นรับรองงวดงาน</div>
+      <div class="ap-d">แตะช่องเพื่อให้ผู้ตรวจและผู้รับเหมาเซ็นด้วยนิ้ว — ลายเซ็นจะแสดงในใบตรวจรับ</div>
+      <div class="sigrow">
+        <div class="sigslot ${sc?'signed':''}" data-sig="sign_cm">${sc&&sc.image?`<img src="${sc.image}">`:'<span>แตะเพื่อเซ็น</span>'}<b>ผู้ตรวจ (CM)</b>${sc?`<i>${esc(nameOf(sc.by))}</i>`:''}</div>
+        <div class="sigslot ${sco?'signed':''}" data-sig="sign_contractor">${sco&&sco.image?`<img src="${sco.image}">`:'<span>แตะเพื่อเซ็น</span>'}<b>ผู้รับเหมา (ผรม.)</b></div>
+      </div></div>`
+    html+=`<div class="actbtn" style="margin-top:14px"><button class="btn gho" id="btnPhReport">🧾 ออกใบตรวจรับงวดนี้</button>`
+    if(canApprove()&&!approved) html+=`<button class="btn pri" id="btnApprove">✓ อนุมัติงวดงาน</button>`
+    html+=`</div>`
+    html+=`<div class="hint">🧾 <b>ออกใบตรวจรับ</b> = สร้างเอกสาร PDF (รูป+รายละเอียด) ไว้แนบเบิกเงินงวดนี้ · ใครก็ออกได้`
+      + (canApprove()? (approved?'<br>✓ งวดนี้ <b>อนุมัติแล้ว</b>':'<br>✓ <b>อนุมัติงวดงาน</b> = คุณ (หัวหน้า) รับรองงวดนี้อย่างเป็นทางการ ประทับชื่อผู้อนุมัติ') : '<br>การอนุมัติงวดอย่างเป็นทางการ รอหัวหน้า/Head กด')
+      + `</div>`
+  }
+  $('phaseBody').innerHTML=html
+  $('phaseBody').querySelectorAll('.seg3').forEach(seg=>{ const cp=+seg.dataset.cp
+    seg.querySelectorAll('b').forEach(b=> b.onclick=()=>saveTick(cp, b.dataset.s)) })
+  $('phaseBody').querySelectorAll('.addph').forEach(el=> el.onclick=()=>capturePhoto(+el.dataset.cp))
+  const _ths=[...$('phaseBody').querySelectorAll('.th')]
+  const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
+  _ths.forEach((im,idx)=> im.onclick=()=>openLightbox(_urls, idx))
+  $('phaseBody').querySelectorAll('.cmt').forEach(inp=>{ const cp=+inp.dataset.cp
+    inp.onblur=()=>{ const cur=curStatus(cp); if(cur && inp.value.trim()!==curNote(cp)) saveTick(cp, cur) } })
+  $('phaseBody').querySelectorAll('.sigslot').forEach(el=> el.onclick=()=>{ const kind=el.dataset.sig
+    openSigPad(kind==='sign_cm'?'ลายเซ็นผู้ตรวจ (CM)':'ลายเซ็นผู้รับเหมา (ผรม.)', img=>saveSignature(kind,img)) })
+  const br=$('btnPhReport'); if(br) br.onclick=()=>generateReport(pctx.code, phase)
+  const ba=$('btnApprove'); if(ba) ba.onclick=()=>openSigPad('ลายเซ็นผู้อนุมัติงวดงาน', async(img)=>{
+    const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:String(phase), kind:'approve', image:img })
+    if(error) return alert('อนุมัติไม่สำเร็จ: '+error.message)
+    await reloadSignoffs(); renderPhase(); toast('อนุมัติงวดงานแล้ว ✓')
+  })
+}
+async function saveTick(cpId, status){
+  if((status==='pass'||status==='fail') && !mediaOf(cpId).length){ alert('ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'); return }
+  if(!pctx.inspId){
+    const { data, error } = await sb.from('inspections').insert({ store_code:pctx.code, phase:pctx.phase }).select('id').single()
+    if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
+    pctx.inspId=data.id
+  }
+  const inp=$('phaseBody').querySelector(`.cmt[data-cp="${cpId}"]`)
+  const note = inp && inp.value.trim() ? inp.value.trim() : null
+  const round=maxRound(cpId)+1
+  const { data:ins, error } = await sb.from('check_events').insert({ inspection_id:pctx.inspId, checkpoint:String(cpId), round, status, note }).select('by,created_at').single()
+  if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
+  pctx.events.push({ checkpoint:String(cpId), round, status, note, by:(ins&&ins.by)||myUid, created_at:(ins&&ins.created_at)||null })
+  myStores.add(pctx.code); renderPhase()
+}
+// ---- photo: capture → watermark → upload storage ----
+function getGPS(){ return new Promise(res=>{ if(!navigator.geolocation) return res(null)
+  navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),()=>res(null),{enableHighAccuracy:true,timeout:15000,maximumAge:60000}) }) }
+async function reverseGeo(lat,lng){
+  try{ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),6000)
+    const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=th`,{signal:ctrl.signal})
+    clearTimeout(t); const j=await r.json()
+    const parts=[j.locality,j.city,j.principalSubdivision].filter(Boolean)
+    const seen=new Set(), out=[]; parts.forEach(p=>{ if(!seen.has(p)){seen.add(p);out.push(p)} })
+    return out.join(' · ')||null
+  }catch(e){ return null }
+}
+async function makeThumb(srcBlob){ const img=await loadImage(srcBlob); let w=img.naturalWidth,h=img.naturalHeight
+  const s=Math.min(1,400/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h)
+  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('t')),'image/jpeg',0.55)) }
+function capturePhoto(cpId){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='environment'
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) handlePhoto(cpId,f) }; inp.click() }
+async function handlePhoto(cpId, file){
+  if(!pctx.inspId){ const {data,error}=await sb.from('inspections').insert({store_code:pctx.code,phase:pctx.phase}).select('id').single()
+    if(error) return alert('บันทึกไม่สำเร็จ: '+error.message); pctx.inspId=data.id }
+  toast('กำลังอ่านพิกัด GPS…'); const loc=await getGPS(); const cp=pctx.cps.find(c=>c.id===cpId)
+  if(loc) loc.place=await reverseGeo(loc.lat,loc.lng)
+  let blob; try{ blob=await watermark(file, loc, cp) }catch(e){ blob=file }
+  let tblob=null; try{ tblob=await makeThumb(blob) }catch(e){}
+  const ts=Date.now(), path=`${pctx.inspId}/${cpId}/${ts}.jpg`, tpath=`${pctx.inspId}/${cpId}/${ts}_t.jpg`
+  const { error:up } = await sb.storage.from('media').upload(path, blob, {contentType:'image/jpeg'})
+  if(up) return alert('อัปรูปไม่สำเร็จ: '+up.message)
+  let thumbOk=false
+  if(tblob){ const { error:up2 } = await sb.storage.from('media').upload(tpath, tblob, {contentType:'image/jpeg'}); thumbOk=!up2 }
+  const gps = loc? `${loc.lat.toFixed(6)},${loc.lng.toFixed(6)}` : null
+  const round = maxRound(cpId)||1
+  const { error } = await sb.from('media').insert({inspection_id:pctx.inspId, checkpoint:String(cpId), round, kind:'image', path, gps, thumb_path:(thumbOk?tpath:null)})
+  if(error) return alert('บันทึกรูปไม่สำเร็จ: '+error.message)
+  const {data:u}=await sb.storage.from('media').createSignedUrl(path,3600)
+  let turl=u?u.signedUrl:''
+  if(thumbOk){ const {data:tu}=await sb.storage.from('media').createSignedUrl(tpath,3600); if(tu&&tu.signedUrl) turl=tu.signedUrl }
+  pctx.media.push({checkpoint:String(cpId), path, kind:'image', url:(u?u.signedUrl:''), turl}); renderPhase()
+  toast(loc? 'แนบรูปแล้ว ✓ (มีพิกัด GPS)' : 'แนบรูปแล้ว — แต่ไม่ได้พิกัด GPS · เปิด Location ให้เบราว์เซอร์แล้วถ่ายใหม่', loc?'ok':'err')
+}
+function loadImage(file){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image()
+  img.onload=()=>{URL.revokeObjectURL(url);res(img)}; img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))}; img.src=url }) }
+async function watermark(file, loc, cp){
+  const img=await loadImage(file); let w=img.naturalWidth,h=img.naturalHeight
+  const s=Math.min(1,2000/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0,w,h)
+  const d=new Date(), p2=n=>String(n).padStart(2,'0')
+  const lines=[]
+  lines.push({t:`${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()+543}  ${p2(d.getHours())}:${p2(d.getMinutes())} น.`, c:'#ffffff', wt:700, sc:1})
+  if(loc && loc.place) lines.push({t:'📍 '+loc.place.slice(0,52), c:'#FFE08A', wt:700, sc:.92})
+  lines.push({t: loc? `Lat ${loc.lat.toFixed(6)}, Long ${loc.lng.toFixed(6)} (±${Math.round(loc.acc)}m)` : 'ไม่มีพิกัด GPS', c: loc?'#DCE0E6':'#FF9B9B', wt:600, sc:.86})
+  const cpt=((cp&&cp.no?cp.no+' ':'')+(cp?cp.label:'')).trim(); if(cpt) lines.push({t:cpt.slice(0,70), c:'#B9C0C9', wt:600, sc:.86})
+  const fs=Math.max(13,Math.round(w*0.027)), pad=Math.round(fs*0.65), lh=Math.round(fs*1.42), barH=Math.round(lh*lines.length+pad*1.6)
+  const g=ctx.createLinearGradient(0,h-barH,0,h); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.5)')
+  ctx.fillStyle=g; ctx.fillRect(0,h-barH,w,barH)
+  ctx.textBaseline='top'; ctx.textAlign='left'
+  ctx.shadowColor='rgba(0,0,0,.9)'; ctx.shadowBlur=Math.round(fs*0.55); ctx.shadowOffsetX=0; ctx.shadowOffsetY=1
+  let y=h-barH+pad+Math.round(fs*0.3)
+  lines.forEach(ln=>{ ctx.font=`${ln.wt} ${Math.round(fs*ln.sc)}px sans-serif`; ctx.fillStyle=ln.c; ctx.fillText(ln.t, pad, y); y+=lh })
+  ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0
+  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('encode')),'image/jpeg',0.82))
+}
+$('phaseBack').onclick = ()=> openSite(pctx.code)
+
+// ---- CSV import (admin) ----
+$('csv').onchange = ()=>{ const f=$('csv').files[0]; const el=$('csvName')
+  el.textContent = f? f.name : 'ยังไม่ได้เลือกไฟล์'; el.classList.toggle('has', !!f) }
+$('btnTpl').onclick = ()=>{
+  const rows=[['Store Code','Store Name','Province','Building Type','Opening Date','Contractor'],
+    ['CJX999','ซีเจ ตัวอย่าง (โคกหม้อ)','กรุงเทพฯ','Standalone','31/12/2568','บจก. ตัวอย่างก่อสร้าง']]
+  const csv='﻿'+rows.map(r=>r.map(c=>/[",\n]/.test(c)?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\r\n')
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
+  a.download='cjx_stores_template.csv'; a.click(); URL.revokeObjectURL(a.href)
+  toast('ดาวน์โหลด template แล้ว')
+}
+$('btnImport').onclick = async ()=>{
+  const f=$('csv').files[0]; if(!f) return msg($('importMsg'),'เลือกไฟล์ CSV ก่อน','err')
+  msg($('importMsg'),'กำลังอ่านไฟล์…','ok')
+  const rows=parseCSV(await f.text()); if(!rows.length) return msg($('importMsg'),'ไฟล์ว่าง','err')
+  const head=rows[0].map(h=>h.trim().toLowerCase()), col=n=>head.findIndex(h=>h===n.toLowerCase())
+  const iC=col('Store Code'),iN=col('Store Name'),iP=col('Province'),iB=col('Building Type'),iO=col('Opening Date'),iR=col('Contractor')
+  if(iC<0||iN<0) return msg($('importMsg'),'ไม่พบคอลัมน์ Store Code / Store Name','err')
+  const recs=[]
+  for(let r=1;r<rows.length;r++){ const c=rows[r]; const code=(c[iC]||'').trim().toUpperCase(); if(!code) continue
+    recs.push({ code, name:(c[iN]||'').trim(), province:iP>=0?(c[iP]||'').trim():null,
+      building_type:iB>=0?(c[iB]||'').trim():null, opening_date:iO>=0?toISO(c[iO]):null,
+      ...(iR>=0?{contractor:(c[iR]||'').trim()||null}:{}) }) }
+  if(!recs.length) return msg($('importMsg'),'ไม่พบข้อมูลสาขา','err')
+  msg($('importMsg'),`กำลังบันทึก ${recs.length} สาขา…`,'ok')
+  const { error } = await sb.from('stores').upsert(recs,{ onConflict:'code' })
+  if(error) return msg($('importMsg'),'บันทึกไม่สำเร็จ: '+error.message,'err')
+  msg($('importMsg'),`สำเร็จ! อัปเดต ${recs.length} สาขาแล้ว`,'ok'); toast(`อัปสาขาสำเร็จ ${recs.length} รายการ`); await loadStores()
+}
+// ---- seed checklist (admin, one-time) ----
+$('btnSeedCl').onclick = async ()=>{
+  const { count } = await sb.from('checkpoints').select('id',{count:'exact',head:true})
+  if(count>0 && !confirm(`มี checklist อยู่แล้ว ${count} ข้อ — โหลดเพิ่มซ้ำ?`)) return
+  msg($('clMsg'),'กำลังโหลด checklist…','ok')
+  const { error } = await sb.from('checkpoints').insert(CHECKLIST_SEED)
+  if(error) return msg($('clMsg'),'ไม่สำเร็จ: '+error.message,'err')
+  msg($('clMsg'),`สำเร็จ! โหลด ${CHECKLIST_SEED.length} ข้อเข้าระบบแล้ว`,'ok'); toast(`โหลด checklist ${CHECKLIST_SEED.length} ข้อแล้ว`)
+}
+function toISO(v){ if(!v) return null; v=v.trim()
+  let m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m){ let y=+m[3]; if(y>2400)y-=543; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` }
+  m=v.match(/^(\d{4})-(\d{2})-(\d{2})/); return m?m[0]:null }
+function parseCSV(text){ const rows=[]; let row=[],cur='',q=false
+  for(let i=0;i<text.length;i++){ const ch=text[i]
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++} else q=false } else cur+=ch }
+    else if(ch==='"') q=true
+    else if(ch===','){ row.push(cur); cur='' }
+    else if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur='' }
+    else if(ch!=='\r') cur+=ch }
+  if(cur.length||row.length){ row.push(cur); rows.push(row) }
+  return rows.filter(r=>r.some(c=>c.trim()!=='')) }
+
+// ========== C · DASHBOARD (head roles + admin) ==========
+function phKey(cur, phase){
+  const ids=checkpoints.filter(c=>c.phase===phase).map(c=>String(c.id))
+  if(!ids.length) return 'none'
+  const done=ids.filter(id=>cur[id]).length
+  if(!done) return 'none'
+  if(done<ids.length) return 'progress'
+  return ids.some(id=>cur[id].status==='fail')?'fail':'pass'
+}
+let _dashRows=[], _dashView='urgent', _dashKpi={}, _dashScope='ทุกสาขา', _dashFilter='all'
+const dstt=r=> r.fail>0?'fail':(r.done>=r.total?'done':r.done>0?'progress':'idle')
+function drows(){ return _dashFilter==='all'?_dashRows : _dashRows.filter(r=> _dashFilter==='near'?(r.days!=null&&r.days<=7):dstt(r)===_dashFilter) }
+const DCOL={fail:'var(--fail)',done:'var(--pass)',progress:'var(--build)',idle:'#5a5a55'}
+async function openDash(filter){
+  hideAllViews(); show($('viewDash'),true); showTabbar(true); markTab('dash'); window.scrollTo(0,0)
+  $('dashBody').innerHTML='<div class="spin">กำลังโหลด…</div>'
+  await loadDashData(); _dashFilter=filter||'all'; renderDash()
+}
+async function loadDashData(){
+  await loadChecklist()
+  const totalCP=checkpoints.length||1
+  const cpPhase={}; checkpoints.forEach(c=>cpPhase[String(c.id)]=c.phase)
+  const { data:insps } = await sb.from('inspections').select('id,store_code')
+  const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
+  const { data:evAll } = await sb.from('check_events').select('inspection_id,checkpoint,round,status,by,created_at')
+  const { data:sgAll } = await sb.from('signoffs').select('store_code,kind')
+  const agg={}
+  ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
+    const code=ins.store_code, a=agg[code]||(agg[code]={cur:{},last:null})
+    const k=e.checkpoint; if(!a.cur[k]||e.round>a.cur[k].round) a.cur[k]=e
+    if(!a.last || (e.created_at&&e.created_at>a.last.at)) a.last={at:e.created_at,by:e.by} })
+  const handovered=new Set((sgAll||[]).filter(x=>x.kind==='handover').map(x=>x.store_code))
+  const head=isHead()
+  const scoped = stores.filter(s=> head ? (s.cs.key==='building'||agg[s.code]) : myStores.has(s.code))
+  _dashRows = scoped.map(s=>{
+    const a=agg[s.code]||{cur:{},last:null}, vals=Object.values(a.cur)
+    let phase=0; Object.keys(a.cur).forEach(k=>{ const p=cpPhase[k]; if(p&&p>phase) phase=p })
+    return { code:s.code, name:s.name||s.code, prov:s.province||'', days:(s.cs&&s.cs.days!=null)?s.cs.days:null,
+      done:vals.length, pass:vals.filter(e=>e.status==='pass').length, fail:vals.filter(e=>e.status==='fail').length,
+      phase, pct:Math.round(vals.length/totalCP*100), last:a.last, closed:handovered.has(s.code), total:totalCP }
+  })
+  _dashKpi={ build:scoped.filter(s=>s.cs.key==='building').length,
+    fails:_dashRows.reduce((n,r)=>n+r.fail,0), failStores:_dashRows.filter(r=>r.fail>0).length,
+    done100:_dashRows.filter(r=>r.done>=totalCP&&r.fail===0).length }
+  _dashScope = head ? 'ทุกสาขา' : 'งานของฉัน'
+}
+function renderDash(){
+  const head=`<div class="heroC"><div class="t">แดชบอร์ด${_dashScope==='งานของฉัน'?'งานของฉัน':'ภาพรวม'}</div><div class="r"><span>${_dashScope} · ${ROLE_TH[profile.role]}</span></div></div>`
+  const tabs=[['urgent','ด่วน'],['opening','วันเปิด']]
+  if(isHead()) tabs.push(['feed','เคลื่อนไหว'])   // ฟีดทีม เฉพาะหัวหน้า (CM เห็นแต่ตัวเอง ไม่ต้องมี)
+  if(!tabs.some(t=>t[0]===_dashView)) _dashView='urgent'
+  const seg=`<div class="dseg">${tabs.map(([k,l])=>`<b class="${_dashView===k?'on':''}" data-v="${k}">${l}</b>`).join('')}</div>`
+  const body = !_dashRows.length ? `<div class="spin">${isHead()?'ยังไม่มีสาขา':'ยังไม่มีงาน — เลือกสาขาเริ่มตรวจก่อน'}</div>`
+    : _dashView==='opening'?dvOpening() : _dashView==='feed'?dvFeed() : dvUrgent()
+  const flab={all:'',fail:'เฉพาะที่มีปัญหา',near:'ใกล้เปิด ≤7 วัน',done:'เสร็จ 100%',progress:'กำลังตรวจ',idle:'ยังไม่เริ่ม'}[_dashFilter]||''
+  const label = flab ? `รายสาขา · <span style="color:var(--yellow)">${flab} ✕ ล้างตัวกรอง</span>` : 'รายสาขา'
+  const detail = _dashRows.length ? `<div class="dlab" id="dfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div>`+seg+body : body
+  $('dashBody').innerHTML = head + dSummary() + detail
+  $('dashBody').querySelectorAll('.dseg b').forEach(b=> b.onclick=()=>{ _dashView=b.dataset.v; renderDash() })
+  $('dashBody').querySelectorAll('.tf').forEach(t=> t.onclick=()=>{ const f=t.dataset.f; _dashFilter=(_dashFilter===f?'all':f); renderDash() })
+  const dfl=$('dfl'); if(dfl&&flab) dfl.onclick=()=>{ _dashFilter='all'; renderDash() }
+  $('dashBody').querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
+}
+function dSummary(){ const k=_dashKpi
+  const near=_dashRows.filter(r=>r.days!=null&&r.days<=7).length
+  const cnt={idle:0,progress:0,fail:0,done:0}; _dashRows.forEach(r=>cnt[dstt(r)]++)
+  const tot=_dashRows.length||1
+  const bar=['done','progress','fail','idle'].map(kk=> cnt[kk]?`<i style="width:${cnt[kk]/tot*100}%;background:${DCOL[kk]}"></i>`:'').join('')
+  const lg=[['done','เสร็จ'],['progress','กำลังตรวจ'],['fail','มีปัญหา'],['idle','ยังไม่เริ่ม']].map(([kk,l])=>cnt[kk]?`<span><i style="background:${DCOL[kk]}"></i>${l} ${cnt[kk]}</span>`:'').join('')
+  const on=f=>_dashFilter===f?' on':''
+  return `<div class="dgrid">
+    <div class="dt2 tf${on('all')}" data-f="all"><div class="v" style="color:var(--build)">${k.build}</div><div class="k">กำลังก่อสร้าง</div></div>
+    <div class="dt2 tf${on('fail')}" data-f="fail"><div class="v" style="color:var(--fail)">${k.failStores}</div><div class="k">สาขาต้องแก้${k.fails?' · '+k.fails+' จุด':''}</div></div>
+    <div class="dt2 tf${on('near')}" data-f="near"><div class="v" style="color:var(--build)">${near}</div><div class="k">ใกล้เปิด ≤7 วัน</div></div>
+    <div class="dt2 tf${on('done')}" data-f="done"><div class="v" style="color:var(--pass)">${k.done100}</div><div class="k">เสร็จ 100%</div></div>
+  </div>
+  <div class="statusbar">${bar}</div>
+  <div class="statuslg">${lg}</div>`
+}
+function dvUrgent(){ const list=[...drows()].sort((a,b)=>(b.fail-a.fail)||((a.days==null?999:a.days)-(b.days==null?999:b.days)))
+  if(!list.length) return '<div class="spin">ไม่มีสาขาในกลุ่มนี้</div>'
+  let h=`<div class="dlab">เรียงตามความเร่งด่วน</div>`
+  h+=list.map(r=>{const st=dstt(r);return `<div class="urow2" data-code="${esc(r.code)}"><span class="dot" style="width:9px;height:9px;border-radius:50%;background:${DCOL[st]};flex:0 0 auto"></span>
+    <div class="um"><div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+    <div style="font-size:10px;color:var(--faint)">${r.fail?r.fail+' ไม่ผ่าน · ':''}${r.days!=null?'เปิดใน '+r.days+' วัน':'ไม่ระบุวันเปิด'}</div></div>
+    <div class="mono" style="font-size:14px;font-weight:800;color:${DCOL[st]}">${r.pct}%</div></div>`}).join('')
+  return h
+}
+function dvOpening(){ const buckets=[['≤ 7 วัน',r=>r.days!=null&&r.days<=7],['8–14 วัน',r=>r.days!=null&&r.days>7&&r.days<=14],['15–30 วัน',r=>r.days!=null&&r.days>14&&r.days<=30],['มากกว่า 30 วัน / ไม่ระบุ',r=>r.days==null||r.days>30]]
+  let h=''
+  buckets.forEach(([l,f])=>{ const items=drows().filter(f).sort((a,b)=>(a.days==null?999:a.days)-(b.days==null?999:b.days)); if(!items.length) return
+    h+=`<div class="dlab" style="color:var(--yellow);margin:16px 2px 9px">${l}</div>`
+    h+=items.map(r=>{const st=dstt(r);return `<div class="cd" data-code="${esc(r.code)}">
+      <div class="cdn"><b style="color:${r.days!=null&&r.days<=7?'var(--fail)':'var(--build)'}">${r.days!=null?r.days:'–'}</b><span>วัน</span></div>
+      <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+        <div class="barwrap" style="margin:7px 0 3px"><i style="width:${r.pct}%;background:${DCOL[st]}"></i></div>
+        <div style="font-size:9.5px;color:var(--faint)">${r.pct}% · ${r.fail?'<span style="color:var(--fail)">'+r.fail+' ไม่ผ่าน</span>':(r.done>=r.total?'เสร็จ 100%':r.done>0?'กำลังตรวจ':'ยังไม่เริ่ม')}</div></div></div>`}).join('')
+  })
+  return h||'<div class="spin">ยังไม่มีสาขา</div>'
+}
+function dvFeed(){ const acts=drows().filter(r=>r.last&&r.last.at).sort((a,b)=>(b.last.at||'').localeCompare(a.last.at||''))
+  if(!acts.length) return '<div class="spin">ยังไม่มีความเคลื่อนไหว</div>'
+  let h=`<div class="dlab">ใครทำอะไรล่าสุด</div><div class="tl">`+acts.map(r=>{const st=dstt(r);return `<div class="tlitem" data-code="${esc(r.code)}"><span class="tld" style="background:${DCOL[st]}"></span>
+    <div style="font-size:11px;color:var(--muted)"><b style="color:var(--yellow)">${esc(nameOf(r.last.by))}</b> · ${fmtDate(r.last.at)}</div>
+    <div style="font-size:12px;font-weight:600;margin-top:2px;line-height:1.4">ตรวจ${esc(r.name)} · ผ่าน ${r.pass}/${r.done}${r.fail?' · <span style="color:var(--fail)">'+r.fail+' ไม่ผ่าน</span>':''}</div></div>`}).join('')+`</div>`
+  return h
+}
+$('dashBack').onclick = ()=>switchTab('home')
+
+// ========== A · USER MANAGEMENT (admin) ==========
+let _users=[], _userQ=''
+$('btnUsers').onclick = async ()=>{
+  $('usersBox').innerHTML='<div class="spin" style="padding:8px 0">กำลังโหลด…</div>'
+  const { data, error } = await sb.from('profiles').select('id,name,email,role').order('email')
+  if(error){ $('usersBox').innerHTML=`<div class="msg err">โหลดไม่สำเร็จ: ${esc(error.message)}</div>`; return }
+  _users=data||[]; drawUsers()
+}
+function drawUsers(){
+  if(!_users.length){ $('usersBox').innerHTML='<div class="uhint">ยังไม่มีผู้ใช้ — สร้างที่ Supabase → Authentication → Users แล้วกลับมาโหลดใหม่</div>'; return }
+  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['admin','Admin']]
+  const q=_userQ.trim().toLowerCase()
+  const list=_users.filter(u=>!q||[u.name,u.email].some(v=>(v||'').toLowerCase().includes(q)))
+  const rows = list.map(u=>{ const rc=ROLE_COLOR[u.role]||'#9AA7B2'; const self=u.id===myUid
+    return `<div class="urow">
+      <div class="un"><b>${esc(u.name||u.email)}${self?' <span class="umeTag">คุณ</span>':''}</b><span class="uem">${esc(u.email||'')}</span>
+        <span class="rpill" data-pill="${u.id}" style="color:${rc};background:${rc}22">${esc(ROLE_TH[u.role]||u.role)}</span></div>
+      ${self?'<span class="uself">เปลี่ยนสิทธิ์ตัวเองไม่ได้</span>':`<span class="usave" data-save="${u.id}">✓ บันทึกแล้ว</span>`}
+      <select data-id="${u.id}" ${self?'disabled':''}>${roles.map(([k,l])=>`<option value="${k}" ${u.role===k?'selected':''}>${l}</option>`).join('')}</select>
+    </div>`}).join('') || '<div class="uhint">ไม่พบผู้ใช้ที่ค้นหา</div>'
+  $('usersBox').innerHTML =
+    `<div class="search" style="margin-bottom:10px"><span style="color:var(--faint)">⌕</span><input id="userSearch" placeholder="ค้นหาชื่อ / อีเมล" value="${esc(_userQ)}"></div>
+     <div class="uhint">แสดง ${list.length}/${_users.length} คน</div>` + rows
+  const si=$('userSearch'); si.oninput=e=>{ _userQ=e.target.value; drawUsers(); const n=$('userSearch'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length) } }
+  $('usersBox').querySelectorAll('select').forEach(sel=> sel.onchange=async()=>{
+    const id=sel.dataset.id, role=sel.value, label=ROLE_TH[role]||role
+    const u=_users.find(x=>x.id===id)||{}, nm=u.name||u.email||''
+    sel.disabled=true
+    const { error } = await sb.from('profiles').update({role}).eq('id',id)
+    sel.disabled=false
+    if(error){ toast('เปลี่ยนสิทธิ์ไม่สำเร็จ: '+error.message,'err'); return }
+    u.role=role
+    const pill=$('usersBox').querySelector(`.rpill[data-pill="${id}"]`)
+    if(pill){ const rc=ROLE_COLOR[role]||'#9AA7B2'; pill.textContent=label; pill.style.color=rc; pill.style.background=rc+'22' }
+    const sv=$('usersBox').querySelector(`.usave[data-save="${id}"]`)
+    if(sv){ sv.classList.add('on'); setTimeout(()=>sv.classList.remove('on'),2000) }
+    toast(`ตั้ง ${nm} เป็น “${label}” แล้ว`,'ok')
+    await loadNames()
+    if(id===myUid){ profile.role=role; renderHomeActs() }
+  })
+}
+
+// ========== B · REPORT / CERTIFICATE (print → PDF) ==========
+function statusTxt(s){ return s==='pass'?'ผ่าน':s==='fail'?'ไม่ผ่าน':s==='na'?'ไม่มีงานนี้':'ยังไม่ตรวจ' }
+function statusColor(s){ return s==='pass'?'#137a43':s==='fail'?'#c0392b':s==='na'?'#777':'#999' }
+let _reportReturn=null
+$('reportBack').onclick = ()=>{ if(_reportReturn) _reportReturn(); else goHome() }
+$('reportPrint').onclick = ()=>{ const f=$('reportFrame'); try{ f.contentWindow.focus(); f.contentWindow.print() }catch(e){ window.print() } }
+async function generateReport(code, phase){
+  const s=stores.find(x=>x.code===code)||{code}
+  await loadChecklist()
+  hideAllViews(); showTabbar(false); show($('viewReport'),true); window.scrollTo(0,0)
+  _reportReturn = phase ? ()=>openPhase(code,+phase) : ()=>openSite(code)
+  const frame=$('reportFrame')
+  frame.removeAttribute('style'); frame.srcdoc='<!doctype html><meta charset=utf-8><body style="font-family:sans-serif;padding:24px;color:#555">กำลังสร้างรายงาน…</body>'
+  let q=sb.from('inspections').select('id,phase').eq('store_code',code)
+  if(phase) q=q.eq('phase',phase)
+  const { data:insps } = await q
+  const ids=(insps||[]).map(i=>i.id)
+  let events=[], media=[]
+  if(ids.length){
+    const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
+    const {data:m}=await sb.from('media').select('checkpoint,path').in('inspection_id',ids); media=m||[]
+    for(const x of media){ const {data:u}=await sb.storage.from('media').createSignedUrl(x.path,3600); x.url=u?u.signedUrl:'' }
+  }
+  const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
+  const pickSig=(kind,scopeVal)=>{ const a=(sg||[]).filter(x=>x.kind===kind && (scopeVal==null||String(x.scope)===String(scopeVal))); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
+  const phases = phase?[+phase]:PHASES.map(p=>p[0])
+  const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543}`
+  let totIn=0,totPass=0,totFail=0, body=''
+  phases.forEach(pn=>{
+    const cps=checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort)
+    const inspected=cps.filter(c=>cur[String(c.id)]).length
+    if(!inspected && !phase) return
+    const pName=(cps[0]&&cps[0].phase_name)||('ครั้งที่ '+pn)
+    let lastGrp='__x__', rows=''
+    cps.forEach(c=>{ const e=cur[String(c.id)]
+      if(e){ totIn++; if(e.status==='pass')totPass++; else if(e.status==='fail')totFail++ }
+      if(c.group_title && c.group_title!==lastGrp){ rows+=`<tr><td colspan="5" class="grp">${esc(c.group_title)}</td></tr>`; lastGrp=c.group_title }
+      const ims=(mediaByCp[String(c.id)]||[])
+      rows+=`<tr>
+        <td class="no">${esc(c.no||'')}</td>
+        <td>${esc(c.label)}${e&&e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td>
+        <td class="st" style="color:${statusColor(e&&e.status)}">${statusTxt(e&&e.status)}${e&&e.round>1?`<br><small>รอบ ${e.round}</small>`:''}</td>
+        <td class="mt">${e?esc(nameOf(e.by))+'<br><small>'+fmtDate(e.created_at)+'</small>':'—'}</td>
+        <td class="im">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'—'}</td>
+      </tr>`
+    })
+    const appr=sg.find(x=>String(x.scope)===String(pn)&&x.kind==='approve')
+    body+=`<h2>${esc(pName)}${appr?` <span class="okpill">อนุมัติงวดแล้ว · ${esc(nameOf(appr.by))}</span>`:''}</h2>
+      <table><thead><tr><th>ข้อ</th><th>รายการตรวจ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
+  })
+  const scopeTxt = phase?`งวดที่ ${phase} — ${esc((checkpoints.find(c=>c.phase===+phase)||{}).phase_name||'')}`:'รายงานตรวจงานทั้งโครงการ (8 งวด)'
+  const passAll = totIn>0 && totFail===0
+  const handover=(sg||[]).find(x=>x.scope==='store'&&x.kind==='handover')
+  const scopeArg = phase? +phase : null
+  const cmSig=pickSig('sign_cm',scopeArg), conSig=pickSig('sign_contractor',scopeArg)
+  const apprSig = phase? pickSig('approve',phase) : (pickSig('handover','store')||pickSig('approve',null))
+  const sigCell=(s,label,who)=>{
+    const nm = (who!==undefined) ? who : (s?nameOf(s.by):'')
+    const dt = s? '<br>'+fmtDate(s.created_at) : ''
+    const info = (nm||dt) ? `<div class="sby">${esc(nm)}${dt}</div>` : ''
+    return `<div>${s&&s.image?`<img src="${s.image}">`:'<div class="sigsp"></div>'}<div class="slab">${label}</div>${info}</div>`
+  }
+  const signHtml=`<div class="sign">${sigCell(cmSig,'ผู้ตรวจ (CM)')}${sigCell(conSig,'ผู้รับเหมา (ผรม.)', s.contractor||'')}${sigCell(apprSig, phase?'ผู้อนุมัติ (Head Construction)':'ผู้รับมอบงาน (Head)')}</div>`
+  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>รายงานตรวจงาน ${esc(s.name||code)}</title><style>
+  *{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
+  .cert{border:2px solid #F5C518;border-radius:14px;padding:22px 24px;margin-bottom:22px}
+  .brand{font-weight:800;font-size:15px;letter-spacing:1px;color:#111}.brand b{color:#E0A800}
+  h1{font-size:21px;margin:6px 0 12px}
+  .site{font-size:18px;font-weight:800}.site span{color:#888;font-weight:600;font-size:14px}
+  .scope{color:#555;margin:2px 0 14px}
+  .verdict{display:inline-block;font-weight:800;font-size:15px;padding:9px 16px;border-radius:10px}
+  .verdict.p{background:#e6f7ee;color:#137a43;border:1px solid #9ad9b8}.verdict.f{background:#fdeeee;color:#c0392b;border:1px solid #e6b0b0}
+  .issued{color:#777;font-size:12px;margin-top:14px}
+  .stmt{margin-top:12px;padding:12px 14px;background:#fffdf3;border:1px solid #f0e2a8;border-radius:10px;font-size:12.5px;color:#7a6410}
+  h2{font-size:15px;margin:26px 0 8px;padding-bottom:6px;border-bottom:2px solid #eee;page-break-after:avoid}
+  .okpill{font-size:11px;font-weight:700;color:#137a43;background:#e6f7ee;border-radius:99px;padding:2px 9px;vertical-align:middle}
+  table{width:100%;border-collapse:collapse;margin-bottom:8px}
+  th{background:#f4f4f4;text-align:left;font-size:11px;color:#555;padding:7px 8px;border:1px solid #e2e2e2}
+  td{padding:7px 8px;border:1px solid #e8e8e8;vertical-align:top;font-size:12px}
+  td.no{font-family:monospace;font-weight:700;color:#888;white-space:nowrap;width:40px}
+  td.st{font-weight:800;white-space:nowrap;width:70px}td.mt{color:#666;font-size:11px;width:120px}
+  td.im{width:170px}td.im img{width:76px;height:76px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #ddd}
+  .grp{background:#fafafa;font-weight:800;color:#444;font-size:11.5px}
+  .nt{color:#b06a00;font-size:11px;margin-top:3px}
+  .sign{display:flex;gap:24px;margin-top:40px;page-break-inside:avoid}
+  .sign>div{flex:1;text-align:center;font-size:12px;color:#555}
+  .sign img{max-height:60px;max-width:92%;object-fit:contain;display:block;margin:0 auto 2px}
+  .sign .sigsp{height:48px}
+  .sign .slab{border-top:1px solid #999;padding-top:6px;margin:0 8px;font-weight:700;color:#333}
+  .sign .sby{font-size:10px;color:#888;margin-top:4px;line-height:1.4}
+  .noprint button{background:#F5C518;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
+  @media print{.noprint{display:none}body{padding:0}}
+  </style></head><body>
+  <div class="cert">
+    <div class="brand">CJ<b>X</b> INSPECT</div>
+    <h1>ใบรับรองการตรวจรับงานก่อสร้าง</h1>
+    <div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
+    <div class="scope">${scopeTxt}${s.province?' · '+esc(s.province):''}</div>
+    ${s.contractor?`<div class="scope" style="margin-top:2px"><b style="color:#333">ผู้รับเหมา (ผรม.):</b> ${esc(s.contractor)}</div>`:''}
+    <div class="verdict ${passAll?'p':'f'}">${passAll?`✓ ตรวจผ่าน 100% (${totPass}/${totIn} รายการ)`:`ยังไม่ผ่านครบ — ผ่าน ${totPass} · ไม่ผ่าน ${totFail} · ตรวจแล้ว ${totIn}`}</div>
+    <div class="issued">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}${handover?` · รับมอบงานแล้ว ${fmtDate(handover.created_at)}`:''}</div>
+    ${passAll?'<div class="stmt">ขอรับรองว่างานก่อสร้างในขอบเขตนี้ได้รับการตรวจสอบและผ่านเกณฑ์ครบถ้วน 100% พร้อมประกอบการเบิกจ่ายงวดงาน</div>':''}
+  </div>
+  ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจในขอบเขตนี้</p>'}
+  ${signHtml}
+  </body></html>`
+  frame.srcdoc=html
+  frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
+}
+
+boot()
+</script>
+</body>
+</html>
