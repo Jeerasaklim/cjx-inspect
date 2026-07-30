@@ -345,7 +345,7 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
       </div>
       <div class="amenu">
         <div class="aitem" data-sec="store"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></div><div class="at"><b>รายชื่อสาขา</b><span>อัป CSV เพิ่ม/อัปเดตสาขา</span></div><span class="chev">›</span></div>
-        <div class="aitem" data-sec="checklist"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="at"><b>Checklist (8 เฟส)</b><span>โหลดรายการตรวจมาตรฐาน</span></div><span class="chev">›</span></div>
+        <div class="aitem" data-sec="checklist"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="at"><b>Checklist (Pre-Con + 9 งวด)</b><span>โหลดรายการตรวจมาตรฐาน 170 ข้อ</span></div><span class="chev">›</span></div>
         <div class="aitem" data-sec="users"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="at"><b>ผู้ใช้ &amp; สิทธิ์</b><span>กำหนด Role รายคน</span></div><span class="chev">›</span></div>
         <div class="aitem" data-sec="contractor"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg></div><div class="at"><b>ผู้รับเหมา (ผรม.)</b><span>รายชื่อบริษัทผู้รับเหมา</span></div><span class="chev">›</span></div>
       </div>
@@ -369,8 +369,8 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
       </div>
       <div id="secChecklist" class="asec hide">
         <div class="apanel">
-          <div class="ap-t">Checklist (8 เฟส)</div>
-          <div class="ap-d">โหลดรายการตรวจมาตรฐาน 8 เฟส เข้าระบบ (ทำครั้งเดียวตอนตั้งระบบ)</div>
+          <div class="ap-t">Checklist (Pre-Con + 9 งวด)</div>
+          <div class="ap-d">โหลดรายการตรวจมาตรฐาน 170 ข้อ (Pre-Con 4 ด่าน + ก่อสร้าง 9 งวด) เข้าระบบ · ทำครั้งเดียวตอนตั้งระบบ (ถ้ามีอยู่แล้วจะเตือนก่อน)</div>
           <button class="btn gho sm" id="btnSeedCl">โหลด checklist เริ่มต้น</button>
           <div id="clMsg"></div>
         </div>
@@ -1103,7 +1103,7 @@ function renderPhase(){
   const passN=cps.filter(c=>curStatus(c.id)==='pass').length
   const allPass = total>0 && done===total && failN===0
   const approved = pctx.signoffs.find(x=>x.kind==='approve')
-  const phaseName=(cps[0]&&cps[0].phase_name)||('ครั้งที่ '+phase)
+  const phaseName=(cps[0]&&cps[0].phase_name)||(phase>100?('Pre-Con '+(phase-100)):('ครั้งที่ '+phase))
   let html=`<div class="heroC"><div class="t">${esc(phaseName)}</div><div class="r"><span>${esc(storeName)}</span></div></div>`
   if(approved) html+=`<div class="appv">✓ อนุมัติงวดแล้ว · ${esc(nameOf(approved.by))} · ${fmtDate(approved.created_at)}</div>`
   html+=`<div class="pgbar"><div class="tk"><i style="width:${pct}%"></i></div><b>${done}/${total}</b></div>`
@@ -1121,9 +1121,10 @@ function renderPhase(){
       <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(curNote(c.id))}">${stamp}</div>`
   })
   // ---- summary + actions ----
-  const scls = allPass?'ok':failN?'bad':'mid'
+  const scls = total===0?'mid':allPass?'ok':failN?'bad':'mid'
   let sub, big
-  if(done<total){ big=`ตรวจแล้ว ${done}/${total} รายการ`; sub=`ผ่าน ${passN} · ไม่ผ่าน ${failN} · ยังไม่ตรวจ ${total-done}` }
+  if(total===0){ big=`ยังไม่มีรายการตรวจในงวดนี้`; sub=`ผู้ดูแล (Admin) ต้องกด “โหลด checklist” ในหน้า Admin ก่อน — งวดนี้จึงจะมีข้อให้ตรวจ` }
+  else if(done<total){ big=`ตรวจแล้ว ${done}/${total} รายการ`; sub=`ผ่าน ${passN} · ไม่ผ่าน ${failN} · ยังไม่ตรวจ ${total-done}` }
   else if(failN){ big=`มี ${failN} รายการไม่ผ่าน — ต้องแก้และตรวจซ้ำ`; sub=`ผรม.แก้แล้ว กดผ่าน/ไม่ผ่านใหม่ได้เลย (ระบบเก็บเป็นรอบใหม่ ไม่ทับของเดิม)` }
   else { big=`ผ่านครบ 100% (${passN} รายการ) ✓`; sub=`งวดนี้พร้อมเบิกงาน — ออกใบตรวจรับได้` }
   html+=`<div class="summary ${scls}"><div class="big">${big}</div><div class="sub">${sub}</div>`
