@@ -511,9 +511,9 @@ document.addEventListener('keydown',e=>{ if($('lightbox').classList.contains('hi
 let _lbSx=0
 $('lightbox').addEventListener('touchstart',e=>_lbSx=e.touches[0].clientX,{passive:true})
 $('lightbox').addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-_lbSx; if(Math.abs(dx)>45) lbStep(dx<0?1:-1) },{passive:true})
-const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', setup:'Set-Up (NSA)', admin:'Admin'}
-const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', setup:'#37D98B', admin:'#37D98B'}
-const isSetup=()=>profile&&profile.role==='setup'
+const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', setup:'Set-Up (NSA)', head_setup:'หัวหน้า Set-Up', admin:'Admin'}
+const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', setup:'#37D98B', head_setup:'#4FD1B5', admin:'#37D98B'}
+const isSetup=()=>profile&&(profile.role==='setup'||profile.role==='head_setup')
 const PHASES = [[1,'นัดวางผัง'],[2,'ตอกเสาเข็ม'],[3,'งานโครงสร้างพื้น'],[4,'งานโครงเหล็ก'],
   [5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
 const PRECON = [[101,'สำรวจพื้นที่'],[102,'เข้าพื้นที่พร้อม ผรม.'],[103,'ติดตามงาน Pre-Con'],[104,'ตรวจรับ Pre-Con']]
@@ -989,7 +989,7 @@ const SETUP_SEED = (function(){
 
 let profile=null, myUid=null, stores=[], filter='building', query='', checkpoints=[], pctx=null
 let myStores=new Set(), profileNames={}, _tab='home', contractors=[]
-const HEAD_ROLES=['head_cm','head_construction','admin']
+const HEAD_ROLES=['head_cm','head_construction','head_setup','admin']
 const isHead=()=>HEAD_ROLES.includes(profile&&profile.role)
 const canApprove=()=>isHead()
 const nameOf=uid=>uid&&profileNames[uid]?profileNames[uid]:'—'
@@ -1255,7 +1255,7 @@ async function openSite(code){
   const inspByPhase={}; (insps||[]).forEach(i=>inspByPhase[i.phase]=i)
   const ids=(insps||[]).map(i=>i.id); let events=[]
   if(ids.length){ const {data}=await sb.from('check_events').select('inspection_id,checkpoint,round,status').in('inspection_id',ids); events=data||[] }
-  const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at').eq('store_code',code)
+  const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const signoffs=sg||[]
   const c=s.cs
   const cstxt = c.key==='building'&&c.days!=null?`กำลังก่อสร้าง · เปิดในอีก ${c.days} วัน`
@@ -1298,6 +1298,16 @@ async function openSite(code){
         const sec=sc.sections.find(x=>x.phase===n)||{earned:0}
         return `<div class="step" data-phase="${n}"><div class="n suN">${n-200}</div>
           <div style="flex:1"><div class="snm">${esc(name)}</div><div class="st" style="color:${st.color}">${st.label} · <span class="scpill" style="color:var(--setup)">${sec.earned.toFixed(1)}/${w}</span></div></div><span class="chev">›</span></div>` }).join('')
+      const suLatest=(k)=>{ const a=signoffs.filter(x=>x.scope==='setup'&&x.kind===k); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
+      const nsaS=suLatest('setup_nsa'), suCmS=suLatest('setup_cm')
+      html += `<div class="apanel sigwrap" style="margin-top:14px"><div class="ap-t">ลายเซ็นใบตรวจรับร้าน</div>
+        <div class="ap-d">Set-Up (NSA) และทีมก่อสร้าง (CM) เซ็นร่วมกัน — ใช้แนบจ่ายงวดสุดท้ายคู่กับเอกสาร Check Point</div>
+        <div class="sigrow">
+          <div class="sigslot ${nsaS?'signed':''}" data-susig="setup_nsa">${nsaS&&nsaS.image?`<img src="${nsaS.image}">`:'<span>แตะเพื่อเซ็น</span>'}<b>ผู้ตรวจรับ (Set-Up/NSA)</b>${nsaS?`<i>${esc(nameOf(nsaS.by))}</i>`:''}</div>
+          <div class="sigslot ${suCmS?'signed':''}" data-susig="setup_cm">${suCmS&&suCmS.image?`<img src="${suCmS.image}">`:'<span>แตะเพื่อเซ็น</span>'}<b>ทีมก่อสร้าง (CM)</b>${suCmS?`<i>${esc(nameOf(suCmS.by))}</i>`:''}</div>
+        </div></div>`
+      html += `<div class="actbtn" style="margin-top:12px"><button class="btn pri" id="btnSetupReport">🧾 ออกใบตรวจรับร้าน (Set-Up)</button></div>`
+      html += `<div class="hint">ใบตรวจรับ = คะแนน/เกรด + รายการ 8 หมวด + ลายเซ็น 2 ฝ่าย · ${sc.allDone&&!sc.failItems?'<b style="color:var(--pass)">ครบ 100% พร้อมออกใบ ✓</b>':'ควรตรวจครบ 100% ไม่มีข้อไม่ผ่าน ก่อนออกใบจริง'}</div>`
     } else if(profile.role==='admin'){
       html += `<div class="sec">ตรวจรับร้าน (Set-Up)</div><div class="hint">ยังไม่ได้โหลด checklist ตรวจรับ — ไปที่ Admin › Checklist กด “โหลด checklist ตรวจรับ (Set-Up)”</div>`
     }
@@ -1307,6 +1317,9 @@ async function openSite(code){
   $('btnReport').onclick=()=>generateReport(code)
   $('ctrSel').onchange=()=>onPickContractor(code)
   const bh=$('btnHandover'); if(bh) bh.onclick=()=>doSignoff(code,'store','handover',()=>openSite(code))
+  $('siteBody').querySelectorAll('.sigslot[data-susig]').forEach(el=> el.onclick=()=>{ const kind=el.dataset.susig
+    openSigPad(kind==='setup_nsa'?'ลายเซ็นผู้ตรวจรับ (Set-Up/NSA)':'ลายเซ็นทีมก่อสร้าง (CM)', img=>saveSetupSig(code,kind,img)) })
+  const bsr=$('btnSetupReport'); if(bsr) bsr.onclick=()=>generateSetupReport(code)
   hideAllViews(); showTabbar(false); show($('viewSite'),true); window.scrollTo(0,0)
 }
 function ctrOptions(cur){
@@ -1742,7 +1755,7 @@ $('btnUsers').onclick = async ()=>{
 }
 function drawUsers(){
   if(!_users.length){ $('usersBox').innerHTML='<div class="uhint">ยังไม่มีผู้ใช้ — สร้างที่ Supabase → Authentication → Users แล้วกลับมาโหลดใหม่</div>'; return }
-  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['admin','Admin']]
+  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['admin','Admin']]
   const q=_userQ.trim().toLowerCase()
   const list=_users.filter(u=>!q||[u.name,u.email].some(v=>(v||'').toLowerCase().includes(q)))
   const rows = list.map(u=>{ const rc=ROLE_COLOR[u.role]||'#9AA7B2'; const self=u.id===myUid
@@ -1884,6 +1897,111 @@ async function generateReport(code, phase){
   </div>
   ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจในขอบเขตนี้</p>'}
   ${signHtml}
+  </body></html>`
+  frame.srcdoc=html
+  frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
+}
+async function saveSetupSig(code, kind, img){
+  const { error } = await sb.from('signoffs').insert({ store_code:code, scope:'setup', kind, image:img })
+  if(error) return alert('บันทึกลายเซ็นไม่สำเร็จ: '+error.message)
+  toast('บันทึกลายเซ็นแล้ว'); openSite(code)
+}
+async function generateSetupReport(code){
+  const s=stores.find(x=>x.code===code)||{code}
+  await loadChecklist()
+  hideAllViews(); showTabbar(false); show($('viewReport'),true); window.scrollTo(0,0)
+  _reportReturn = ()=>openSite(code)
+  const frame=$('reportFrame')
+  frame.removeAttribute('style'); frame.srcdoc='<!doctype html><meta charset=utf-8><body style="font-family:sans-serif;padding:24px;color:#555">กำลังสร้างใบตรวจรับ…</body>'
+  const { data:insps } = await sb.from('inspections').select('id,phase').eq('store_code',code).gte('phase',201).lte('phase',208)
+  const ids=(insps||[]).map(i=>i.id)
+  let events=[], media=[]
+  if(ids.length){
+    const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
+    const {data:m}=await sb.from('media').select('checkpoint,path').in('inspection_id',ids); media=m||[]
+    for(const x of media){ const {data:u}=await sb.storage.from('media').createSignedUrl(x.path,3600); x.url=u?u.signedUrl:'' }
+  }
+  const { data:sg } = await sb.from('signoffs').select('kind,by,created_at,image').eq('store_code',code).eq('scope','setup')
+  const pickSig=(kind)=>{ const a=(sg||[]).filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
+  const sc=computeSetupScore(events)
+  const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543}`
+  let body='', brk=''
+  SETUP_SECTIONS.forEach(([pn,name,weight])=>{
+    const cps=checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort)
+    const ss=sc.sections.find(x=>x.phase===pn)||{earned:0,done:0,fail:0,total:cps.length}
+    brk+=`<tr><td>${esc(name)}</td><td class="c">${ss.earned.toFixed(1)} / ${weight}</td><td class="c">${ss.done}/${ss.total}</td><td class="c" style="color:${ss.fail?'#c0392b':'#999'}">${ss.fail||'—'}</td></tr>`
+    let lastGrp='__x__', rows=''
+    cps.forEach(c=>{ const e=cur[String(c.id)]
+      if(c.group_title && c.group_title!==lastGrp){ rows+=`<tr><td colspan="4" class="grp">${esc(c.group_title)}</td></tr>`; lastGrp=c.group_title }
+      const ims=(mediaByCp[String(c.id)]||[])
+      const sup=c.supplier==='ซัพย่อย'?'<span class="sup y">ย่อย</span>':(c.supplier?'<span class="sup m">หลัก</span>':'')
+      rows+=`<tr><td>${esc(c.label)}${sup}${e&&e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td>
+        <td class="st" style="color:${statusColor(e&&e.status)}">${statusTxt(e&&e.status)}${e&&e.round>1?`<br><small>รอบ ${e.round}</small>`:''}</td>
+        <td class="mt">${e?esc(nameOf(e.by))+'<br><small>'+fmtDate(e.created_at)+'</small>':'—'}</td>
+        <td class="im">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'—'}</td></tr>`
+    })
+    body+=`<h2>${esc(name)} <span class="okpill">${ss.earned.toFixed(1)}/${weight}</span></h2>
+      <table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
+  })
+  const passAll = sc.allDone && sc.failItems===0
+  const nsaSig=pickSig('setup_nsa'), cmSig=pickSig('setup_cm')
+  const sigCell=(sig,label)=>`<div>${sig&&sig.image?`<img src="${sig.image}">`:'<div class="sigsp"></div>'}<div class="slab">${label}</div>${sig?`<div class="sby">${esc(nameOf(sig.by))}<br>${fmtDate(sig.created_at)}</div>`:''}</div>`
+  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ใบตรวจรับร้าน ${esc(s.name||code)}</title><style>
+  *{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
+  .cert{border:2px solid #37A06B;border-radius:14px;padding:22px 24px;margin-bottom:22px}
+  .brand{font-weight:800;font-size:15px;letter-spacing:1px;color:#111}.brand b{color:#E0A800}
+  h1{font-size:21px;margin:6px 0 12px}
+  .site{font-size:18px;font-weight:800}.site span{color:#888;font-weight:600;font-size:14px}
+  .scope{color:#555;margin:2px 0 14px}
+  .scorebox{display:flex;align-items:center;gap:20px;background:#f2fbf6;border:1px solid #bfe6d0;border-radius:12px;padding:16px 20px;margin:10px 0 6px}
+  .scorebox .g{font-size:46px;font-weight:800;color:#137a43;line-height:1;min-width:56px;text-align:center}
+  .scorebox .num{font-size:20px;font-weight:800}.scorebox .sub{color:#555;font-size:12.5px;margin-top:2px}
+  .scorebox.f .g{color:#c0392b}
+  .split{display:flex;gap:10px;margin:10px 0}
+  .split div{flex:1;border-radius:9px;padding:9px 12px;font-size:12.5px;font-weight:700}
+  .split .m{background:#eef4ff;border:1px solid #cdddff;color:#2d5bb8}.split .y{background:#fff6e8;border:1px solid #f0dcae;color:#a5701a}
+  .issued{color:#777;font-size:12px;margin-top:12px}
+  .stmt{margin-top:12px;padding:12px 14px;background:#f2fbf6;border:1px solid #bfe6d0;border-radius:10px;font-size:12.5px;color:#1c6b45}
+  h2{font-size:15px;margin:24px 0 8px;padding-bottom:6px;border-bottom:2px solid #eee;page-break-after:avoid}
+  .okpill{font-size:11px;font-weight:700;color:#137a43;background:#e6f7ee;border-radius:99px;padding:2px 9px;vertical-align:middle;float:right}
+  table{width:100%;border-collapse:collapse;margin-bottom:8px}
+  th{background:#f4f4f4;text-align:left;font-size:11px;color:#555;padding:7px 8px;border:1px solid #e2e2e2}
+  td{padding:7px 8px;border:1px solid #e8e8e8;vertical-align:top;font-size:12px}
+  td.c{text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.st{font-weight:800;white-space:nowrap;width:64px}td.mt{color:#666;font-size:11px;width:120px}
+  td.im{width:150px}td.im img{width:68px;height:68px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #ddd}
+  .grp{background:#fafafa;font-weight:800;color:#444;font-size:11.5px}
+  .nt{color:#b06a00;font-size:11px;margin-top:3px}
+  .sup{font-size:10px;font-weight:800;padding:1px 6px;border-radius:5px;margin-left:6px}
+  .sup.m{color:#2d5bb8;background:#eef4ff}.sup.y{color:#a5701a;background:#fff6e8}
+  .brkT td.c{font-weight:700}
+  .sign{display:flex;gap:24px;margin-top:40px;page-break-inside:avoid}
+  .sign>div{flex:1;text-align:center;font-size:12px;color:#555}
+  .sign img{max-height:60px;max-width:92%;object-fit:contain;display:block;margin:0 auto 2px}
+  .sign .sigsp{height:48px}
+  .sign .slab{border-top:1px solid #999;padding-top:6px;margin:0 8px;font-weight:700;color:#333}
+  .sign .sby{font-size:10px;color:#888;margin-top:4px;line-height:1.4}
+  .noprint button{background:#37A06B;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
+  @media print{.noprint{display:none}body{padding:0}}
+  </style></head><body>
+  <div class="cert">
+    <div class="brand">CJ<b>X</b> INSPECT</div>
+    <h1>ใบตรวจรับร้าน (Set-Up · NSA)</h1>
+    <div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
+    <div class="scope">การตรวจรับอาคารจากทีมก่อสร้าง · ให้คะแนน 8 หมวด (100 คะแนน)${s.province?' · '+esc(s.province):''}</div>
+    <div class="scorebox ${passAll?'':'f'}"><div class="g">${sc.doneItems?sc.grade:'—'}</div>
+      <div><div class="num">${sc.total.toFixed(0)} / 100 คะแนน</div>
+      <div class="sub">${passAll?'✓ ตรวจรับผ่าน 100% พร้อมรับร้าน':`ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?' · '+sc.failItems+' รายการไม่ผ่าน':''}`}</div></div></div>
+    <div class="split"><div class="m">ซัพหลัก ${sc.main.pct.toFixed(0)}%</div><div class="y">ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div>
+    <table class="brkT"><thead><tr><th>หมวด</th><th class="c">คะแนน</th><th class="c">ตรวจ</th><th class="c">ไม่ผ่าน</th></tr></thead><tbody>${brk}</tbody></table>
+    <div class="issued">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}</div>
+    ${passAll?'<div class="stmt">ขอรับรองว่าร้านนี้ผ่านการตรวจรับจากทีม Set-Up (NSA) ครบถ้วน 100% — ใช้แนบประกอบการจ่ายงวดสุดท้าย คู่กับเอกสารตรวจ Check Point งานก่อสร้าง</div>':''}
+  </div>
+  ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจรับ</p>'}
+  <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${sigCell(cmSig,'ทีมก่อสร้าง (CM)')}</div>
   </body></html>`
   frame.srcdoc=html
   frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
