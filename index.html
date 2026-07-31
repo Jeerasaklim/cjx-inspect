@@ -198,6 +198,16 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
 .scoresel b.on{color:var(--yellow)}
 .scoresel .scnow{margin-left:8px;font-size:12px;color:var(--muted);font-weight:600}
 .scpill{color:var(--yellow);font-weight:700}
+.suN{background:#0f2a1e!important;color:#37D98B!important}
+.suScore{display:flex;align-items:center;gap:15px;background:linear-gradient(160deg,#12271b,#0e1a13);border:1px solid #1e4634;border-radius:15px;padding:15px 17px;margin-bottom:12px}
+.suScore .suGrade{font-size:44px;font-weight:800;color:#37D98B;line-height:1;min-width:52px;text-align:center}
+.suScore.g-B .suGrade{color:#8FD14F} .suScore.g-C .suGrade{color:#F5C518} .suScore.g-D .suGrade{color:#FF6B6B}
+.suMeta{flex:1;min-width:0}
+.suNum{font-family:ui-monospace,monospace;font-size:22px;font-weight:800}.suNum span{font-size:13px;color:var(--muted);font-weight:600}
+.suSub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.suSup{font-size:11px;color:var(--faint);margin-top:3px}
+.supchip{font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;margin-left:7px;vertical-align:middle;white-space:nowrap}
+.supchip.main{color:#8FB4FF;background:#16283f}.supchip.sub{color:#F5A524;background:#2a1e06}
 .amenu{display:flex;flex-direction:column;gap:10px}
 .aitem{display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;cursor:pointer}
 .aitem:active{transform:scale(.996)}
@@ -373,6 +383,11 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
           <div class="ap-d">โหลดรายการตรวจมาตรฐาน 170 ข้อ (Pre-Con 4 ด่าน + ก่อสร้าง 9 งวด) เข้าระบบ · ทำครั้งเดียวตอนตั้งระบบ (ถ้ามีอยู่แล้วจะเตือนก่อน)</div>
           <button class="btn gho sm" id="btnSeedCl">โหลด checklist เริ่มต้น</button>
           <div id="clMsg"></div>
+          <div style="border-top:1px solid var(--line);margin:14px 0 12px"></div>
+          <div class="ap-t">Checklist ตรวจรับร้าน (Set-Up)</div>
+          <div class="ap-d">โหลดรายการตรวจรับร้าน 175 ข้อ 8 หมวด (ทีม NSA · ให้คะแนน) เข้าระบบ · ทำครั้งเดียว (ถ้ามีอยู่แล้วจะเตือนก่อน)</div>
+          <button class="btn gho sm" id="btnSeedSetup">โหลด checklist ตรวจรับ (Set-Up)</button>
+          <div id="clMsgS"></div>
         </div>
       </div>
       <div id="secUsers" class="asec hide">
@@ -496,8 +511,9 @@ document.addEventListener('keydown',e=>{ if($('lightbox').classList.contains('hi
 let _lbSx=0
 $('lightbox').addEventListener('touchstart',e=>_lbSx=e.touches[0].clientX,{passive:true})
 $('lightbox').addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-_lbSx; if(Math.abs(dx)>45) lbStep(dx<0?1:-1) },{passive:true})
-const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', admin:'Admin'}
-const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', admin:'#37D98B'}
+const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', setup:'Set-Up (NSA)', admin:'Admin'}
+const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', setup:'#37D98B', admin:'#37D98B'}
+const isSetup=()=>profile&&profile.role==='setup'
 const PHASES = [[1,'นัดวางผัง'],[2,'ตอกเสาเข็ม'],[3,'งานโครงสร้างพื้น'],[4,'งานโครงเหล็ก'],
   [5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
 const PRECON = [[101,'สำรวจพื้นที่'],[102,'เข้าพื้นที่พร้อม ผรม.'],[103,'ติดตามงาน Pre-Con'],[104,'ตรวจรับ Pre-Con']]
@@ -712,6 +728,262 @@ const CHECKLIST_SEED = (function(){
     {n:'9.39',l:'พื้นสโลปน้ำไม่ขัง กระเบื้องแน่น ยาแนวเต็มร่อง / ก๊อก+ปั๊มน้ำใช้ได้ + คู่มือ / สะอาด'},
     {G:'Section 8 · ประปาและสุขาภิบาล'},
     {n:'9.40',l:'ท่อน้ำทิ้งคาเฟ่ถ่ายเทสะดวก / บ่อดักครบแยกน้ำ-กาก / ถังเก็บน้ำมีบายพาสลงท่อ'} ])
+  return rows
+})()
+
+// ===== Set-Up (NSA) ตรวจรับร้าน · ให้คะแนน 8 หมวด =====
+const SETUP_SECTIONS = [
+  [201,'หมวด 1 · ป้ายไฟ / Tower Sign',5],
+  [202,'หมวด 2 · ภายนอกร้าน',10],
+  [203,'หมวด 3 · พื้นที่ขาย',30],
+  [204,'หมวด 4 · พื้นที่สต๊อก',30],
+  [205,'หมวด 5 · ห้องผู้จัดการ',5],
+  [206,'หมวด 6 · ห้องน้ำ',10],
+  [207,'หมวด 7 · จุดซักล้าง',5],
+  [208,'หมวด 8 · ประปา/สุขาภิบาล',5]
+]
+const SETUP_SEED = (function(){
+  const rows=[]; let sort=0
+  function S(phase,phase_name,items){ let g=null
+    items.forEach(function(it){ if(it.G!==undefined){ g=it.G; return }
+      rows.push({phase:phase,phase_name:phase_name,group_title:g,no:'',label:it.l,hint:null,media:null,na:false,sort:sort++,points:it.p,supplier:it.s}) }) }
+  S(201,'ตรวจรับ · หมวด 1 · ป้ายไฟ / Tower Sign',[
+    {G:'เสาป้าย Tower'},
+    {l:'ป้ายติดตั้งตามแบบ ตัวหนังสือสะกดถูกต้อง',p:1,s:'ซัพย่อย'},
+    {l:'เสาและป้ายแข็งแรง ติดตังตามแบบ ไม่เอียง',p:1,s:'ซัพย่อย'},
+    {l:'ป้ายไฟ CJX',p:1,s:'ซัพย่อย'},
+    {l:'ป้ายไฟ NINE Beauty',p:1,s:'ซัพย่อย'},
+    {l:'ป้ายไฟ BAO Café',p:1,s:'ซัพย่อย'},
+    {G:'ป้ายหน้าผากอาคาร (ป้ายไฟ CJX,NINE Beauty,BAO Café)'},
+    {l:'ป้ายติดตั้งตามแบบ ตัวหนังสือสะกดถูกต้อง',p:1,s:'ซัพย่อย'},
+    {l:'เว้นวรรค ตามแบบ สะกดถูกต้อง',p:1,s:'ซัพย่อย'},
+    {l:'หน้าป้ายสมบูรณ์ ไม่มีรอย บุบ / ขีดข่วน ระบบไฟใช้งานได้ปกติ(ถ้ามี)',p:1,s:'ซัพย่อย'}
+  ])
+  S(202,'ตรวจรับ · หมวด 2 · ภายนอกร้าน',[
+    {G:'Layout ลานจอดรถ'},
+    {l:'ตรงตามแบบที่กำหนด',p:2,s:'ซัพหลัก'},
+    {G:'ลานจอดรถ'},
+    {l:'พื้นไม่แตกราว',p:1,s:'ซัพหลัก'},
+    {l:'สีช่องจราจร ชัดเจน / ไม่ร่อน',p:1,s:'ซัพหลัก'},
+    {l:'พื้นที่ ราบ/สโลป ตามแบบ น้ำไม่ขัง',p:1,s:'ซัพหลัก'},
+    {l:'ไม่มีสิ่งกีดขวาง เช่น เสาไฟ สายไฟ ถังขยะ',p:1,s:'ซัพหลัก'},
+    {l:'รอยต่อคอนกรีตหน้าสาขา และพื้นที่ลานจอดเทยองมะตอยเต็มร่อง',p:1,s:'ซัพหลัก'},
+    {G:'ฟุตบาทหน้าร้าน (Terrace)'},
+    {l:'พื้นไม่แตกราว',p:1,s:'ซัพหลัก'},
+    {l:'พื้นที่ ราบ/สโลป ตามแบบ ไม่เป็นคลื่น น้ำไม่ขัง',p:1,s:'ซัพหลัก'},
+    {l:'พื้นผิวเรียบ ขัดมัน ไม่เป็นฝุ่น',p:1,s:'ซัพหลัก'},
+    {l:'ทาสีชมพูฝั่ง Nine ถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'ราวกั้นรถเข็นติดตั้งตามแบบที่กำหนด',p:1,s:'ซัพหลัก'},
+    {G:'สโลปทางเข้าร้าน'},
+    {l:'พื้นไม่แตกราว',p:1,s:'ซัพหลัก'},
+    {l:'ระยะสโลปได้ระดับ',p:1,s:'ซัพหลัก'},
+    {l:'ทาสี ชัดเจน / ไม่ร่อน',p:1,s:'ซัพหลัก'},
+    {l:'เซาะร่องกันลื่นถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {G:'กันสาดหน้าร้าน'},
+    {l:'แผ่นหลังคาไม่มีรอยบุบ',p:1,s:'ซัพหลัก'},
+    {l:'สีเหลืองโทนเดียวกันทั้งหมด',p:1,s:'ซัพหลัก'},
+    {G:'โครงสร้างกระจกหน้าร้าน'},
+    {l:'กระจกไม่มีรอยแตกร้าว',p:1,s:'ซัพหลัก'},
+    {l:'ซิลิโคนยาแนวกระจกเป็นแนวเสมอ เมื่อฉีดน้ำใส่แล้วน้ำไม่รั่ว หรือ ซึมเข้าตัวร้าน',p:1,s:'ซัพหลัก'},
+    {l:'กระจกสะอาดไม่มีคราบ',p:1,s:'ซัพหลัก'},
+    {l:'กรอบอลูมิเนียมอยู่ในสภาพดี ไม่ยุบ บิ่น หรือไม่มีรอยขีดข่วน',p:1,s:'ซัพหลัก'},
+    {l:'ติดฟิมล์กันแดดถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'ติดฟิมล์ขุ่นฝั่งเคาน์เตอร์ถุกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'ติดตั้งกรอบสำหรับใส่สื่อครบถ้วนถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {G:'สติ๊กเกอร์'},
+    {l:'สติ๊กเกอร์ CJx คาดเขียว ถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'ช่องกระจกบน ติดตั้งตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'สติ๊กเกอร์รหัสและชื่อสาขา ถูกต้องและติดตามจุดที่กำหนด',p:1,s:'ซัพย่อย'},
+    {l:'ผนังภายนอกเรียบร้อยไม่มีรอยบุบ',p:1,s:'ซัพหลัก'},
+    {l:'ยาแนวซิลิโคนรอยต่อเป็นแนวเสมอ',p:1,s:'ซัพหลัก'},
+    {l:'สะอาดไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {G:'ท่อไฟฟ้า ภายนอกอาคาร'},
+    {l:'ยิง ซิลิโคน รูเจาะท่อเรียบร้อย',p:1,s:'ซัพหลัก'},
+    {l:'ท่อโซล่าเชลล์ สีเหลือง ไม่ต้องทาสี',p:1,s:'ซัพหลัก'},
+    {G:'ความสะอาด'},
+    {l:'พื้นที่โดยรวม สะอาด ไม่มีฝุ่น ไม่มีอุปกรณ์ก่อสร้าง',p:1,s:'ซัพหลัก'}
+  ])
+  S(203,'ตรวจรับ · หมวด 3 · พื้นที่ขาย',[
+    {G:'ขนาดและอุปกณณ์พื้นที่'},
+    {l:'ระยะความกว้าง x ยาว x ลึก พื้นที่ขาย ถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {l:'ระยะ Cashier ตู้ COS ถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'ราวสแตนเลสกันกระแทก ติดตั้งบริเวณประตูเลื่อนตามแบบ',p:1,s:'ซัพย่อย'},
+    {G:'ระบบเสียงและอินเตอร์เน็ต'},
+    {l:'ติดตั้งเรียบร้อยมีสัญญาณอินเตอร์เน็ตครับ และฟรี Wi-Fi ใช้งานได้',p:1,s:'ซัพหลัก'},
+    {l:'กริ่งสัญญาณและลำโพง 4 จุด พื้นที่ขายดังปกติ',p:1,s:'ซัพหลัก'},
+    {G:'ประตู ออโต้ดอร์'},
+    {l:'กุญแจรีโมทครบ 2 ดอก',p:1,s:'ซัพย่อย'},
+    {l:'กุญแจล็อคหน้าร้านครบ 3 ดอก',p:1,s:'ซัพย่อย'},
+    {l:'ความเร็วในการเปิดปิดประตู ไม่ช้าหรือ เร็วจนเกินไป',p:1,s:'ซัพย่อย'},
+    {G:'เคาน์เตอร์ Cashier, เครื่อง POS, คาเฟ่'},
+    {l:'ระบบท่อน้ำซิงค์ เป็นไปตามแบบและระยะถูกต้อง ติดตั้ง Stop Valve ทุกจุด',p:1,s:'ซัพหลัก'},
+    {l:'เคาน์เตอร์ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'อุปกรณ์เคาน์เตอร์ครบถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'เคาน์เตอร์สภาพสมบูรณ์ไม่มีรอยขีดข่วน แตกร้าว',p:1,s:'ซัพย่อย'},
+    {l:'เคาร์เตอร์ซิงค์ไม่พบน้ำรั่วซึม ก๊อกน้ำใช้งานได้ แรงดันน้ำปกติ',p:1,s:'ซัพย่อย'},
+    {l:'สติ๊กเกอร์ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'สติ๊๊กเกอร์ติดตั้งเรียบสนิท',p:1,s:'ซัพย่อย'},
+    {l:'Wall paper คาเฟ่ ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพย่อย'},
+    {l:'ชุดขาแขวนเสาติดทีวี มีปลั๊กไฟสำหรับเสียบปลั๊กทีวี',p:1,s:'ซัพย่อย'},
+    {G:'ตู้แช่หน้าเปิด , Coldroom , ตู้ Frozen'},
+    {l:'ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'แผ่นชั้นติดตั้งถูกต้องตาม POG',p:1,s:'ซัพย่อย'},
+    {l:'ตู้แช่สภาพสมบูรณ์ สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพย่อย'},
+    {l:'ยาแนวซิลิโคน รอยต่อเป็นแนวเสมอ',p:1,s:'ซัพย่อย'},
+    {l:'อุณหภูมิตู้ ตามเกณฑ์ที่กำหนด',p:1,s:'ซัพย่อย'},
+    {l:'อุปกรณ์ที่เหลือถูกจัดเก็บในจุดที่กำหนด',p:1,s:'ซัพย่อย'},
+    {l:'ท่อน้ำทิ้ง ต้องต่อท่อเดรนน้ำทิ้งและปิดฝาเรียบร้อย',p:1,s:'ซัพย่อย'},
+    {G:'ผนัง isowall ภายในอาคาร'},
+    {l:'ผนังภายนอกเรียบร้อยไม่มีรอยบุบ',p:1,s:'ซัพหลัก'},
+    {l:'ยาแนวซิลิโคนรอยต่อเป็นแนวเสมอ เมื่อฉีดน้ำใส่แล้วน้ำไม่รั่ว หรือ ซึมเข้าตัวร้าน',p:1,s:'ซัพหลัก'},
+    {l:'สะอาดไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'ติดตั้งผนังได้ตั้งฉาก 90 องศา',p:1,s:'ซัพหลัก'},
+    {G:'ตู้ Nine'},
+    {l:'ตู้ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'ลิ้นชักใช้งานได้สะดวก',p:1,s:'ซัพย่อย'},
+    {l:'ตู้สภาพสมบูรณ์',p:1,s:'ซัพย่อย'},
+    {l:'สติ๊กเกอร์ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'ระบบไฟส่องสว่างใช้งานได้ปกติ',p:1,s:'ซัพย่อย'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพย่อย'},
+    {G:'พื้นกระเบื้อง'},
+    {l:'กระเบื้องสภาพสมบูรณ์ ไม่มีคราบสกปรก',p:3,s:'ซัพหลัก'},
+    {l:'ยาแนวปูนเต็มร่อง',p:3,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มี ฝุ่น คราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'การยึดเกาะ เคาะแล้วเสียงต้องแน่น ไม่โปร่ง',p:1,s:'ซัพหลัก'},
+    {G:'ฝ้าเพดาน'},
+    {l:'ฝ้าปิดเรียบสนิท',p:1,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'ระยะความสูงฝ้าติดตั้งได้ตามแบบ',p:1,s:'ซัพหลัก'},
+    {G:'ประตูระหว่างพื้นที่ขายและสต๊อค'},
+    {l:'ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {l:'ใช้งานได้สะดวก / ล็อกได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'มีลูกกุญแจครบ 3 ดอก',p:1,s:'ซัพหลัก'},
+    {l:'อุปกรณ์มือจับแข็งแรง ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'ติดตั้งสแตนเลสกันรอยถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {l:'ติดตั้งตัวเบรคบานประตู ถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {G:'ระบบไฟฟ้า'},
+    {l:'ไฟแสงสว่างติดตั้งตามแบบ / ใช้งานได้ปกติ',p:4,s:'ซัพหลัก'},
+    {l:'ไฟฉุกเฉินใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'แอร์ติดตั้งตามแบบ / ใช้งานได้ปกติ',p:5,s:'ซัพย่อย'},
+    {l:'ปลั๊กไฟติดตั้งตรงตามแบบและใช้งานได้',p:5,s:'ซัพหลัก'},
+    {G:'Gate สัญญาณกันขโมย'},
+    {l:'เสาสัญญาณกันขโมยติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพย่อย'}
+  ])
+  S(204,'ตรวจรับ · หมวด 4 · พื้นที่สต๊อก',[
+    {G:'พื้น'},
+    {l:'พื้นผิวเรียบ ขัดมัน ไม่เป็นฝุ่น',p:2,s:'ซัพหลัก'},
+    {l:'พื้นไม่แตกร้าว',p:1,s:'ซัพหลัก'},
+    {G:'ผนัง'},
+    {l:'ผนังเรียบร้อยไม่มีรอยบุบ',p:1,s:'ซัพหลัก'},
+    {l:'ยาแนวซิลิโคนรอยต่อเป็นแนวเสมอ เมื่อฉีดน้ำใส่แล้วน้ำไม่รั่ว หรือ ซึมเข้าตัวร้าน',p:1,s:'ซัพหลัก'},
+    {l:'สะอาดไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'ติดตั้งผนังได้ตั้งฉาก 90 องศา',p:1,s:'ซัพหลัก'},
+    {G:'ฝ้าเพดาน'},
+    {l:'ฝ้าปิดเรียบสนิท',p:1,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'ระยะความสูงฝ้าติดตั้งได้ตามแบบ',p:1,s:'ซัพหลัก'},
+    {G:'ประตูรับสินค้า'},
+    {l:'ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {l:'เปิด - ปิด ใช้งานได้สะดวก',p:1,s:'ซัพหลัก'},
+    {l:'กุญแจครบ 3 ดอก',p:1,s:'ซัพหลัก'},
+    {l:'อุปกรณ์ดึงประตู 1 อัน',p:1,s:'ซัพหลัก'},
+    {l:'ล็อคแม่กุญแจใช้งานได้สะดวก',p:1,s:'ซัพหลัก'},
+    {l:'ยางกันน้ำประตูแนบสนิทพื้น',p:1,s:'ซัพหลัก'},
+    {l:'พื้นมีขอบกันน้ำ',p:1,s:'ซัพหลัก'},
+    {G:'ระบบไฟฟ้า'},
+    {l:'แผงควบคุมไฟ ติดตั้งถุกต้องตามแบบ',p:2,s:'ซัพหลัก'},
+    {l:'แผงควบคุุมไฟ มีลาเบลบอกจุดการใช้งาน',p:2,s:'ซัพหลัก'},
+    {l:'แผงควบคุมไฟหน้าร้าน Timer เซตเวลาตามที่กำหนด 18.00 - 22.00',p:1,s:'ซัพหลัก'},
+    {l:'ไฟแสงสว่างช่องทางเดิน ติดตั้งตามแบบ / ใช้งานได้ปกติ',p:2,s:'ซัพหลัก'},
+    {l:'ไฟฉุกเฉินใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'พัดลมโคจร ติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'พัดลมระบายอากาศ ติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'กริ่งสัญญาณ ติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'ปลั๊กไฟ ติดตั้งตามจุดที่ต้องใช้งาน',p:4,s:'ซัพหลัก'},
+    {G:'ระบบ โซล่าเชลล์'},
+    {l:'ระบบโซล่าเชลล์ ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพย่อย'},
+    {l:'ท่อระบบโซล่าเชลล์ ไม่ต้องทาสี',p:1,s:'ซัพย่อย'}
+  ])
+  S(205,'ตรวจรับ · หมวด 5 · ห้องผู้จัดการ',[
+    {G:'พื้น'},
+    {l:'พื้นผิวเรียบไม่เป็นฝุ่น',p:1,s:'ซัพหลัก'},
+    {l:'พื้นไม่แตกร้าว',p:1,s:'ซัพหลัก'},
+    {G:'ผนัง'},
+    {l:'ผนังเรียบร้อยไม่มีรอยบุบ',p:1,s:'ซัพหลัก'},
+    {l:'ยาแนวซิลิโคนรอยต่อเป็นแนวเสมอ',p:1,s:'ซัพหลัก'},
+    {l:'สะอาดไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'ติดตั้งผนังได้ตั้งฉาก 90 องศา',p:1,s:'ซัพหลัก'},
+    {G:'ฝ้าเพดาน'},
+    {l:'ฝ้าปิดเรียบสนิท',p:1,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'ระยะความสูงฝ้าติดตั้งได้ตามแบบ',p:1,s:'ซัพหลัก'},
+    {G:'ประตู'},
+    {l:'ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {l:'เปิด - ปิด ใช้งานได้สะดวก',p:1,s:'ซัพหลัก'},
+    {l:'กุญแจครบ 3 ดอก',p:1,s:'ซัพหลัก'},
+    {l:'กระจกอยุ่ในสภาพสมบูรณ์',p:1,s:'ซัพหลัก'},
+    {l:'ติดตั้งตัวเบรคบานประตู ถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {G:'ระบบไฟฟ้า'},
+    {l:'พัดลมระบายอากาศ ติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'ไฟแสงสว่างติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'ปลั๊กไฟ ติดตั้งตามจุดที่ต้องใช้งาน และระยะความสูงเหมาะสมกับการใช้งาน',p:1,s:'ซัพหลัก'},
+    {G:'ตู้แลคดำ'},
+    {l:'ติดตั้งตามแบบ มีครบ 3 ตู้',p:1,s:'ซัพหลัก'}
+  ])
+  S(206,'ตรวจรับ · หมวด 6 · ห้องน้ำ',[
+    {G:'พื้น'},
+    {l:'พื้นสโลปน้ำไม่ขัง',p:1,s:'ซัพหลัก'},
+    {l:'กระเบื้องสภาพสมบูรณ์',p:1,s:'ซัพหลัก'},
+    {l:'ยาแนวปูนเต็มร่อง',p:1,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'การยึดเกาะ เคาะแล้วเสียงต้องแน่น ไม่โปร่ง',p:1,s:'ซัพหลัก'},
+    {G:'ผนัง'},
+    {l:'ผนังเรียบร้อยไม่มีรอยบุบ',p:1,s:'ซัพหลัก'},
+    {l:'ยาแนวซิลิโคนรอยต่อเป็นแนวเสมอ เมื่อฉีดน้ำใส่แล้วน้ำไม่รั่ว หรือ ซึมเข้าตัวร้าน',p:1,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'ติดตั้งผนังได้ตั้งฉาก 90 องศา',p:1,s:'ซัพหลัก'},
+    {G:'ฝ้าเพดาน'},
+    {l:'ฝ้าปิดเรียบสนิท',p:1,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'ระยะความสูงฝ้าติดตั้งได้ตามแบบ',p:1,s:'ซัพหลัก'},
+    {G:'ประตู'},
+    {l:'ติดตั้งถูกต้องตามแบบ',p:1,s:'ซัพหลัก'},
+    {l:'เปิด - ปิด ใช้งานได้สะดวก',p:1,s:'ซัพหลัก'},
+    {l:'กลอนล็อคประตู ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {G:'สุขภัณฑ์ (กระจก, อ่างล้างหน้า ,ชั้นวางของ, ชักโครก, สายชำระ, ก็อกน้ำ)'},
+    {l:'ติดตั้งถูกต้องตามแบบ  ระยะการติดตั้งสะดวกและเหมาะสมกับการใช้งาน',p:1,s:'ซัพหลัก'},
+    {l:'ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'สะอาดไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {G:'ระบบไฟฟ้า'},
+    {l:'ไฟแสงสว่างติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'พัดลมระบายอากาศ ติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'}
+  ])
+  S(207,'ตรวจรับ · หมวด 7 · จุดซักล้าง',[
+    {G:'จุดซักล้าง'},
+    {l:'พื้นสโลปน้ำไม่ขัง',p:1,s:'ซัพหลัก'},
+    {l:'กระเบื้องสภาพสมบูรณ์ ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'},
+    {l:'การยึดเกาะ เคาะแล้วเสียงต้องแน่น ไม่โปร่ง',p:1,s:'ซัพหลัก'},
+    {l:'ยาแนวปูนเต็มร่อง',p:1,s:'ซัพหลัก'},
+    {l:'ก็อกน้ำติดตั้งตามแบบ / ใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'ปั๊มน้ำใช้งานได้ปกติ',p:1,s:'ซัพหลัก'},
+    {l:'คู่มือการใช้ปั๊มน้ำติดตามจุดที่กำหนด',p:1,s:'ซัพหลัก'},
+    {l:'สะอาด ไม่มีคราบสกปรก',p:1,s:'ซัพหลัก'}
+  ])
+  S(208,'ตรวจรับ · หมวด 8 · ประปา/สุขาภิบาล',[
+    {G:'ท่อน้ำทิ้งคาเฟ่'},
+    {l:'ระบบน้ำทิ้งจาก Sink ถ่ายเทสะดวก',p:2,s:'ซัพหลัก'},
+    {l:'ท่อน้ำทิ้ง ระบบแอร์ต่อลงท่อเรียบร้อย',p:2,s:'ซัพหลัก'},
+    {G:'ท่อน้ำดี'},
+    {l:'ระบบน้ำดี ต่อเรียบร้อยใช้งานได้ ท่อน้ำดีภายนอกไม่ต้องทาสี',p:2,s:'ซัพหลัก'},
+    {G:'ระบบบ่อดัก'},
+    {l:'มีอุปกรณ์ครบ',p:1,s:'ซัพหลัก'},
+    {l:'ระบบมีการแยก น้ำและกาก',p:1,s:'ซัพหลัก'},
+    {l:'ท่อระบายน้ำทิ้ง ถ่ายเทสะดวก',p:1,s:'ซัพหลัก'},
+    {G:'ถังเก็บน้ำ'},
+    {l:'มีระบบบายพาสน้ำทิ้งลงท่อน้ำทิ้งให้เรียบร้อย',p:1,s:'ซัพหลัก'}
+  ])
   return rows
 })()
 
@@ -1011,6 +1283,25 @@ async function openSite(code){
     ${canApprove()&&allPass&&!handover?`<button class="btn pri" id="btnHandover">✓ รับมอบงาน (ปิดงาน)</button>`:''}
   </div>
   ${!allPass?`<div class="hint">รับมอบงานได้เมื่อครบทั้ง ${PHASES.length} งวดก่อสร้าง และผ่าน 100% (ตอนนี้ผ่าน ${nPass}/${PHASES.length} งวด)</div>`:''}`
+  // ---- Set-Up (NSA) track: ตรวจรับร้าน + คะแนน (เห็นได้: setup / หัวหน้า / admin) ----
+  if(isSetup()||isHead()){
+    const setupExists = checkpoints.some(c=>c.phase>=201&&c.phase<=208)
+    if(setupExists){
+      const sc=computeSetupScore(events)
+      html += `<div class="sec">ตรวจรับร้าน (Set-Up · NSA)</div>`
+      html += `<div class="suScore g-${sc.grade}">
+        <div class="suGrade">${sc.doneItems?sc.grade:'—'}</div>
+        <div class="suMeta"><div class="suNum">${sc.total.toFixed(0)}<span>/100</span></div>
+          <div class="suSub">ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?` · <b style="color:var(--fail)">${sc.failItems} ไม่ผ่าน</b>`:''}</div>
+          <div class="suSup">ซัพหลัก ${sc.main.pct.toFixed(0)}% · ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div></div>`
+      html += SETUP_SECTIONS.map(([n,name,w])=>{ const st=phaseStatus(n, inspByPhase[n], events)
+        const sec=sc.sections.find(x=>x.phase===n)||{earned:0}
+        return `<div class="step" data-phase="${n}"><div class="n suN">${n-200}</div>
+          <div style="flex:1"><div class="snm">${esc(name)}</div><div class="st" style="color:${st.color}">${st.label} · <span class="scpill" style="color:var(--setup)">${sec.earned.toFixed(1)}/${w}</span></div></div><span class="chev">›</span></div>` }).join('')
+    } else if(profile.role==='admin'){
+      html += `<div class="sec">ตรวจรับร้าน (Set-Up)</div><div class="hint">ยังไม่ได้โหลด checklist ตรวจรับ — ไปที่ Admin › Checklist กด “โหลด checklist ตรวจรับ (Set-Up)”</div>`
+    }
+  }
   $('siteBody').innerHTML = html
   $('siteBody').querySelectorAll('.step').forEach(el=> el.onclick=()=>openPhase(code, +el.dataset.phase))
   $('btnReport').onclick=()=>generateReport(code)
@@ -1048,6 +1339,30 @@ function phaseStatus(phase, insp, events){
   if(!done) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
   if(done<total) return {key:'progress',label:`กำลังตรวจ ${done}/${total}`,color:'var(--build)',done,total}
   return ids.some(id=>cur[id]&&cur[id].status==='fail') ? {key:'fail',label:'มีรายการไม่ผ่าน',color:'var(--fail)',done,total} : {key:'pass',label:'ผ่านทั้งหมด ✓',color:'var(--pass)',done,total}
+}
+// ---- Set-Up scoring (ถ่วงน้ำหนัก 8 หมวด = 100 → เกรด + แยกซัพหลัก/ย่อย) ----
+function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
+function computeSetupScore(events){
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  let total=0, gotMain=0,maxMain=0,gotSub=0,maxSub=0, doneItems=0,failItems=0,totalItems=0
+  const sections=SETUP_SECTIONS.map(([ph,name,weight])=>{
+    const items=checkpoints.filter(c=>c.phase===ph)
+    const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1
+    let earned=0,done=0,fail=0
+    items.forEach(c=>{ const w=(+c.points||1)/raw*weight, isSub=c.supplier==='ซัพย่อย'
+      if(isSub) maxSub+=w; else maxMain+=w
+      totalItems++
+      const e=cur[String(c.id)]
+      if(e){ done++; doneItems++
+        if(e.status==='fail'){ fail++; failItems++ }
+        if(e.status==='pass'){ earned+=w; if(isSub) gotSub+=w; else gotMain+=w } } })
+    total+=earned
+    return {phase:ph,name,weight,earned,done,fail,total:items.length}
+  })
+  return {total,grade:setupGrade(total),sections,doneItems,totalItems,failItems,
+    main:{got:gotMain,max:maxMain,pct:maxMain?gotMain/maxMain*100:0},
+    sub:{got:gotSub,max:maxSub,pct:maxSub?gotSub/maxSub*100:0},
+    allDone:doneItems===totalItems&&totalItems>0}
 }
 function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso), p=n=>String(n).padStart(2,'0')
   return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543} ${p(d.getHours())}:${p(d.getMinutes())}` }
@@ -1114,7 +1429,7 @@ function renderPhase(){
     const ph=mediaOf(c.id), rnd=maxRound(c.id)
     const stamp = cur ? `<div class="stamp">ตรวจโดย ${esc(nameOf(byOf(c.id)))} · ${fmtDate(whenOf(c.id))}</div>` : ''
     html+=`<div class="cp ${cls}">${c.no?`<div class="cno">${esc(c.no)}${rnd>1?`<span class="rnd">รอบ ${rnd}</span>`:''}</div>`:(rnd>1?`<div class="cno"><span class="rnd">รอบ ${rnd}</span></div>`:'')}
-      <div class="clb">${esc(c.label)}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}
+      <div class="clb">${esc(c.label)}${c.supplier?`<span class="supchip ${c.supplier==='ซัพย่อย'?'sub':'main'}">${c.supplier==='ซัพย่อย'?'ย่อย':'หลัก'}</span>`:''}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}
       <div class="photos">${ph.map(m=>`<img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">`).join('')}<span class="addph" data-cp="${c.id}">📷 ถ่ายรูป</span></div>
       <div class="reqph ${ph.length?'ok':''}">${ph.length?('✓ มีรูป '+ph.length+' รูป'):'ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'}</div>
       <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
@@ -1286,6 +1601,14 @@ $('btnSeedCl').onclick = async ()=>{
   if(error) return msg($('clMsg'),'ไม่สำเร็จ: '+error.message,'err')
   msg($('clMsg'),`สำเร็จ! โหลด ${CHECKLIST_SEED.length} ข้อเข้าระบบแล้ว`,'ok'); toast(`โหลด checklist ${CHECKLIST_SEED.length} ข้อแล้ว`)
 }
+$('btnSeedSetup').onclick = async ()=>{
+  const { count } = await sb.from('checkpoints').select('id',{count:'exact',head:true}).gte('phase',201).lte('phase',208)
+  if(count>0 && !confirm(`มี checklist ตรวจรับอยู่แล้ว ${count} ข้อ — โหลดเพิ่มซ้ำ?`)) return
+  msg($('clMsgS'),'กำลังโหลด checklist ตรวจรับ…','ok')
+  const { error } = await sb.from('checkpoints').insert(SETUP_SEED)
+  if(error) return msg($('clMsgS'),'ไม่สำเร็จ: '+error.message,'err')
+  msg($('clMsgS'),`สำเร็จ! โหลด ${SETUP_SEED.length} ข้อตรวจรับเข้าระบบแล้ว`,'ok'); toast(`โหลด checklist ตรวจรับ ${SETUP_SEED.length} ข้อแล้ว`)
+}
 function toISO(v){ if(!v) return null; v=v.trim()
   let m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m){ let y=+m[3]; if(y>2400)y-=543; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` }
   m=v.match(/^(\d{4})-(\d{2})-(\d{2})/); return m?m[0]:null }
@@ -1319,7 +1642,7 @@ async function openDash(filter){
 }
 async function loadDashData(){
   await loadChecklist()
-  const totalCP=checkpoints.length||1
+  const totalCP=checkpoints.filter(c=>c.phase<200).length||1   // แดชบอร์ด = งานก่อสร้าง (ไม่รวมข้อ Set-Up 201-208)
   const cpPhase={}; checkpoints.forEach(c=>cpPhase[String(c.id)]=c.phase)
   const { data:insps } = await sb.from('inspections').select('id,store_code')
   const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
@@ -1327,6 +1650,7 @@ async function loadDashData(){
   const { data:sgAll } = await sb.from('signoffs').select('store_code,kind')
   const agg={}
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
+    if(cpPhase[e.checkpoint]>=200) return   // ข้าม event ของ Set-Up ในแดชบอร์ดก่อสร้าง
     const code=ins.store_code, a=agg[code]||(agg[code]={cur:{},last:null})
     const k=e.checkpoint; if(!a.cur[k]||e.round>a.cur[k].round) a.cur[k]=e
     if(!a.last || (e.created_at&&e.created_at>a.last.at)) a.last={at:e.created_at,by:e.by} })
@@ -1418,7 +1742,7 @@ $('btnUsers').onclick = async ()=>{
 }
 function drawUsers(){
   if(!_users.length){ $('usersBox').innerHTML='<div class="uhint">ยังไม่มีผู้ใช้ — สร้างที่ Supabase → Authentication → Users แล้วกลับมาโหลดใหม่</div>'; return }
-  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['admin','Admin']]
+  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['admin','Admin']]
   const q=_userQ.trim().toLowerCase()
   const list=_users.filter(u=>!q||[u.name,u.email].some(v=>(v||'').toLowerCase().includes(q)))
   const rows = list.map(u=>{ const rc=ROLE_COLOR[u.role]||'#9AA7B2'; const self=u.id===myUid
