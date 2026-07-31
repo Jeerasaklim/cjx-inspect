@@ -1656,10 +1656,14 @@ async function openDash(filter){
   hideAllViews(); show($('viewDash'),true); showTabbar(true); markTab('dash'); window.scrollTo(0,0)
   $('dashBody').innerHTML='<div class="spin">กำลังโหลด…</div>'
   if(isSetup()){ await loadSetupDash(); renderSetupDash(); return }   // ทีม Set-Up = แดชบอร์ดตรวจรับ
+  if(profile.role==='admin' && _dashMode==='setup'){ await loadSetupDash(); renderSetupDash(); return }   // Admin สลับดูตรวจรับได้
   await loadDashData(); _dashFilter=filter||'all'; renderDash()
 }
-let _suRows=[], _suScope='ทุกสาขา'
+let _suRows=[], _suScope='ทุกสาขา', _dashMode='con'
 function gradeColor(g){ return g==='A'?'#37D98B':g==='B'?'#8FD14F':g==='C'?'#F5C518':'#FF6B6B' }
+function adminDashToggle(){ if(!profile||profile.role!=='admin') return ''
+  return `<div class="dseg dmtoggle" style="margin:0 0 12px"><b class="${_dashMode!=='setup'?'on':''}" data-dm="con">ก่อสร้าง</b><b class="${_dashMode==='setup'?'on':''}" data-dm="setup">ตรวจรับ (Set-Up)</b></div>` }
+function wireDashToggle(){ document.querySelectorAll('#dashBody [data-dm]').forEach(b=> b.onclick=()=>{ _dashMode=b.dataset.dm; openDash() }) }
 async function loadSetupDash(){
   await loadChecklist()
   const setupIds=new Set(checkpoints.filter(c=>c.phase>=201&&c.phase<=208).map(c=>String(c.id)))
@@ -1701,8 +1705,9 @@ function renderSetupDash(){
         <div class="um"><div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
           <div style="font-size:10px;color:var(--faint)">${r.done?r.score.toFixed(0)+'/100 · ตรวจ '+r.done+'/'+r.total:'ยังไม่เริ่มตรวจรับ'}${r.fail?' · <span style="color:var(--fail)">'+r.fail+' ไม่ผ่าน</span>':''}${r.signed?' · <span style="color:var(--pass)">เซ็นแล้ว ✓</span>':''}</div></div>
         <div style="font-size:10px;color:var(--faint);text-align:right;white-space:nowrap">${r.days!=null?'เปิดใน '+r.days+' วัน':''}</div></div>` }).join('')
-  $('dashBody').innerHTML = head+kpi+body
+  $('dashBody').innerHTML = head+adminDashToggle()+kpi+body
   $('dashBody').querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
+  wireDashToggle()
 }
 async function loadDashData(){
   await loadChecklist()
@@ -1744,11 +1749,12 @@ function renderDash(){
   const flab={all:'',fail:'เฉพาะที่มีปัญหา',near:'ใกล้เปิด ≤7 วัน',done:'เสร็จ 100%',progress:'กำลังตรวจ',idle:'ยังไม่เริ่ม'}[_dashFilter]||''
   const label = flab ? `รายสาขา · <span style="color:var(--yellow)">${flab} ✕ ล้างตัวกรอง</span>` : 'รายสาขา'
   const detail = _dashRows.length ? `<div class="dlab" id="dfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div>`+seg+body : body
-  $('dashBody').innerHTML = head + dSummary() + detail
-  $('dashBody').querySelectorAll('.dseg b').forEach(b=> b.onclick=()=>{ _dashView=b.dataset.v; renderDash() })
+  $('dashBody').innerHTML = head + adminDashToggle() + dSummary() + detail
+  $('dashBody').querySelectorAll('.dseg:not(.dmtoggle) b').forEach(b=> b.onclick=()=>{ _dashView=b.dataset.v; renderDash() })
   $('dashBody').querySelectorAll('.tf').forEach(t=> t.onclick=()=>{ const f=t.dataset.f; _dashFilter=(_dashFilter===f?'all':f); renderDash() })
   const dfl=$('dfl'); if(dfl&&flab) dfl.onclick=()=>{ _dashFilter='all'; renderDash() }
   $('dashBody').querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
+  wireDashToggle()
 }
 function dSummary(){ const k=_dashKpi
   const near=_dashRows.filter(r=>r.days!=null&&r.days<=7).length
