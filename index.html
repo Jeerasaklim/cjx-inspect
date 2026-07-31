@@ -1263,26 +1263,29 @@ async function openSite(code){
   const handover=signoffs.find(x=>x.scope==='store'&&x.kind==='handover')
   let html = `<div class="heroC"><div class="t">${esc(s.name||s.code)}</div>
     <div class="r"><span>${esc(s.code)}</span>${s.province?`<span>${esc(s.province)}</span>`:''}${s.building_type?`<span>${esc(s.building_type)}</span>`:''}${cstxt?`<em>${cstxt}</em>`:''}</div></div>`
-  if(handover) html += `<div class="appv">✓ รับมอบงานแล้ว · ${esc(nameOf(handover.by))} · ${fmtDate(handover.created_at)}</div>`
-  html += `<div class="ctr"><div style="flex:1;min-width:0"><div class="ctrl">บริษัทผู้รับเหมา (ผรม.)</div>
-    <select id="ctrSel" class="ctrsel">${ctrOptions(s.contractor)}</select></div></div>`
-  const scoreOf=n=>{ const a=signoffs.filter(x=>String(x.scope)===String(n)&&x.kind==='score'); if(!a.length) return null
-    const sg2=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)); return (+sg2.note)||null }
-  const stepRow=(n,name)=>{ const st=phaseStatus(n, inspByPhase[n], events)
-    const appr=signoffs.find(x=>String(x.scope)===String(n)&&x.kind==='approve'); const sc=scoreOf(n)
-    return `<div class="step" data-phase="${n}"><div class="n">${n>100?'P'+(n-100):n}</div>
-      <div style="flex:1"><div class="snm">${esc(name)}</div><div class="st" style="color:${st.color}">${st.label}${appr?' · <span style="color:var(--pass)">อนุมัติแล้ว ✓</span>':''}${sc?` · <span class="scpill">★${sc}/5</span>`:''}</div></div><span class="chev">›</span></div>` }
-  html += `<div class="sec">Pre-Con (ก่อนก่อสร้าง)</div>`
-  html += PRECON.map(([n,name])=>stepRow(n,name)).join('')
-  html += `<div class="sec">ครั้งที่ตรวจ (ก่อสร้าง · 9 งวด)</div>`
-  let nPass=0
-  html += PHASES.map(([n,name])=>{ const st=phaseStatus(n, inspByPhase[n], events); if(st.key==='pass') nPass++; return stepRow(n,name) }).join('')
-  const allPass = nPass===PHASES.length
-  html += `<div class="actbtn" style="margin-top:16px">
-    <button class="btn gho" id="btnReport">🧾 ออกรายงานรวมทั้งสาขา</button>
-    ${canApprove()&&allPass&&!handover?`<button class="btn pri" id="btnHandover">✓ รับมอบงาน (ปิดงาน)</button>`:''}
-  </div>
-  ${!allPass?`<div class="hint">รับมอบงานได้เมื่อครบทั้ง ${PHASES.length} งวดก่อสร้าง และผ่าน 100% (ตอนนี้ผ่าน ${nPass}/${PHASES.length} งวด)</div>`:''}`
+  // ---- งานก่อสร้าง (Pre-Con + 9 งวด): ทีม Set-Up ไม่เห็น ----
+  if(!isSetup()){
+    if(handover) html += `<div class="appv">✓ รับมอบงานแล้ว · ${esc(nameOf(handover.by))} · ${fmtDate(handover.created_at)}</div>`
+    html += `<div class="ctr"><div style="flex:1;min-width:0"><div class="ctrl">บริษัทผู้รับเหมา (ผรม.)</div>
+      <select id="ctrSel" class="ctrsel">${ctrOptions(s.contractor)}</select></div></div>`
+    const scoreOf=n=>{ const a=signoffs.filter(x=>String(x.scope)===String(n)&&x.kind==='score'); if(!a.length) return null
+      const sg2=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)); return (+sg2.note)||null }
+    const stepRow=(n,name)=>{ const st=phaseStatus(n, inspByPhase[n], events)
+      const appr=signoffs.find(x=>String(x.scope)===String(n)&&x.kind==='approve'); const sc=scoreOf(n)
+      return `<div class="step" data-phase="${n}"><div class="n">${n>100?'P'+(n-100):n}</div>
+        <div style="flex:1"><div class="snm">${esc(name)}</div><div class="st" style="color:${st.color}">${st.label}${appr?' · <span style="color:var(--pass)">อนุมัติแล้ว ✓</span>':''}${sc?` · <span class="scpill">★${sc}/5</span>`:''}</div></div><span class="chev">›</span></div>` }
+    html += `<div class="sec">Pre-Con (ก่อนก่อสร้าง)</div>`
+    html += PRECON.map(([n,name])=>stepRow(n,name)).join('')
+    html += `<div class="sec">ครั้งที่ตรวจ (ก่อสร้าง · 9 งวด)</div>`
+    let nPass=0
+    html += PHASES.map(([n,name])=>{ const st=phaseStatus(n, inspByPhase[n], events); if(st.key==='pass') nPass++; return stepRow(n,name) }).join('')
+    const allPass = nPass===PHASES.length
+    html += `<div class="actbtn" style="margin-top:16px">
+      <button class="btn gho" id="btnReport">🧾 ออกรายงานรวมทั้งสาขา</button>
+      ${canApprove()&&allPass&&!handover?`<button class="btn pri" id="btnHandover">✓ รับมอบงาน (ปิดงาน)</button>`:''}
+    </div>
+    ${!allPass?`<div class="hint">รับมอบงานได้เมื่อครบทั้ง ${PHASES.length} งวดก่อสร้าง และผ่าน 100% (ตอนนี้ผ่าน ${nPass}/${PHASES.length} งวด)</div>`:''}`
+  }
   // ---- Set-Up (NSA) track: ตรวจรับร้าน + คะแนน (เห็นได้: setup / หัวหน้า / admin) ----
   if(isSetup()||isHead()){
     const setupExists = checkpoints.some(c=>c.phase>=201&&c.phase<=208)
@@ -1314,8 +1317,8 @@ async function openSite(code){
   }
   $('siteBody').innerHTML = html
   $('siteBody').querySelectorAll('.step').forEach(el=> el.onclick=()=>openPhase(code, +el.dataset.phase))
-  $('btnReport').onclick=()=>generateReport(code)
-  $('ctrSel').onchange=()=>onPickContractor(code)
+  const brA=$('btnReport'); if(brA) brA.onclick=()=>generateReport(code)
+  const csA=$('ctrSel'); if(csA) csA.onchange=()=>onPickContractor(code)
   const bh=$('btnHandover'); if(bh) bh.onclick=()=>doSignoff(code,'store','handover',()=>openSite(code))
   $('siteBody').querySelectorAll('.sigslot[data-susig]').forEach(el=> el.onclick=()=>{ const kind=el.dataset.susig
     openSigPad(kind==='setup_nsa'?'ลายเซ็นผู้ตรวจรับ (Set-Up/NSA)':'ลายเซ็นทีมก่อสร้าง (CM)', img=>saveSetupSig(code,kind,img)) })
