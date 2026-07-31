@@ -1673,7 +1673,7 @@ async function loadSetupDash(){
   const { data:sgAll } = await sb.from('signoffs').select('store_code,kind,scope')
   const signed=new Set((sgAll||[]).filter(x=>x.scope==='setup'&&x.kind==='setup_nsa').map(x=>x.store_code))
   const head=isHead()
-  const scoped = stores.filter(s=> head ? (byStore[s.code]||s.cs.key==='building'||s.cs.key==='opened') : myStores.has(s.code))
+  const scoped = stores.filter(s=> head ? (byStore[s.code]||s.cs.key==='building') : myStores.has(s.code))   // กำลังก่อสร้าง หรือมีการตรวจรับแล้วเท่านั้น (ไม่เอาสาขาที่เปิดไปแล้ว)
   _suRows = scoped.map(s=>{ const ev=byStore[s.code]||[]; const sc=computeSetupScore(ev)
     return {code:s.code,name:s.name||s.code,days:(s.cs&&s.cs.days!=null)?s.cs.days:null,
       score:sc.total,grade:sc.grade,done:sc.doneItems,total:sc.totalItems,fail:sc.failItems,allDone:sc.allDone,
