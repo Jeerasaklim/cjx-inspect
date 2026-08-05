@@ -102,6 +102,14 @@ a.link{color:var(--yellow);text-decoration:none}
 .cp .cmt:focus{outline:1px solid var(--yellow);border-color:var(--yellow)}
 .photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;align-items:center}
 .photos .th{width:60px;height:60px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:#222}
+.photos .thw{position:relative;display:inline-block;line-height:0}
+.photos .thw.pend .th{opacity:.5}
+.photos .thw.err .th{outline:2px solid var(--fail);outline-offset:-2px}
+.photos .pbadge{position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+.photos .pbadge.eb{background:var(--fail)}
+.photos .thw.pend .pbadge{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.addph small{display:block;font-size:8px;color:var(--faint);font-weight:600;margin-top:1px}
 .addph{display:inline-flex;align-items:center;gap:6px;background:#232327;color:var(--yellow);border:1px dashed #4a4632;border-radius:8px;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer}
 .reqph{font-size:10.5px;font-weight:700;color:var(--fail);margin-top:8px}.reqph.ok{color:var(--pass)}
 /* nav / dashboard / users / summary / approve */
@@ -1447,8 +1455,8 @@ function renderPhase(){
     const stamp = cur ? `<div class="stamp">ตรวจโดย ${esc(nameOf(byOf(c.id)))} · ${fmtDate(whenOf(c.id))}</div>` : ''
     html+=`<div class="cp ${cls}">${c.no?`<div class="cno">${esc(c.no)}${rnd>1?`<span class="rnd">รอบ ${rnd}</span>`:''}</div>`:(rnd>1?`<div class="cno"><span class="rnd">รอบ ${rnd}</span></div>`:'')}
       <div class="clb">${esc(c.label)}${c.supplier?`<span class="supchip ${c.supplier==='ซัพย่อย'?'sub':'main'}">${c.supplier==='ซัพย่อย'?'ย่อย':'หลัก'}</span>`:''}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}
-      <div class="photos">${ph.map(m=>`<img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">`).join('')}<span class="addph" data-cp="${c.id}">📷 ถ่ายรูป</span></div>
-      <div class="reqph ${ph.length?'ok':''}">${ph.length?('✓ มีรูป '+ph.length+' รูป'):'ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'}</div>
+      <div class="photos">${ph.map(m=>`<span class="thw${m.pending?' pend':''}${m.err?' err':''}"><img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">${m.pending?'<i class="pbadge">⟳</i>':''}${m.err?'<i class="pbadge eb">!</i>':''}</span>`).join('')}<span class="addph" data-cp="${c.id}">📷 ถ่าย/แนบรูป<small>หลายรูปได้</small></span></div>
+      <div class="reqph ${ph.length?'ok':''}">${ph.length?('✓ มีรูป '+ph.length+' รูป'+(ph.some(m=>m.pending)?' · กำลังอัปเบื้องหลัง':(ph.some(m=>m.err)?' · บางรูปอัปไม่ขึ้น':''))):'ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'}</div>
       <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
       <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(curNote(c.id))}">${stamp}</div>`
   })
@@ -1532,35 +1540,42 @@ async function makeThumb(srcBlob){ const img=await loadImage(srcBlob); let w=img
   const s=Math.min(1,400/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h)
   return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('t')),'image/jpeg',0.55)) }
-function capturePhoto(cpId){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='environment'
-  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) handlePhoto(cpId,f) }; inp.click() }
-async function handlePhoto(cpId, file){
-  if(!pctx.inspId){ const {data,error}=await sb.from('inspections').insert({store_code:pctx.code,phase:pctx.phase}).select('id').single()
-    if(error) return alert('บันทึกไม่สำเร็จ: '+error.message); pctx.inspId=data.id }
-  toast('กำลังอ่านพิกัด GPS…'); const loc=await getGPS(); const cp=pctx.cps.find(c=>c.id===cpId)
-  if(loc) loc.place=await reverseGeo(loc.lat,loc.lng)
-  let blob; try{ blob=await watermark(file, loc, cp) }catch(e){ blob=file }
-  let tblob=null; try{ tblob=await makeThumb(blob) }catch(e){}
-  const ts=Date.now(), path=`${pctx.inspId}/${cpId}/${ts}.jpg`, tpath=`${pctx.inspId}/${cpId}/${ts}_t.jpg`
-  const { error:up } = await sb.storage.from('media').upload(path, blob, {contentType:'image/jpeg'})
-  if(up) return alert('อัปรูปไม่สำเร็จ: '+up.message)
-  let thumbOk=false
-  if(tblob){ const { error:up2 } = await sb.storage.from('media').upload(tpath, tblob, {contentType:'image/jpeg'}); thumbOk=!up2 }
+function capturePhoto(cpId){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.multiple=true
+  inp.onchange=()=>{ const fs=[...(inp.files||[])]; if(fs.length) handlePhotos(cpId, fs) }; inp.click() }
+// ถ่าย/เลือกได้หลายรูปทีเดียว · โชว์ทันที (optimistic) แล้วอัปเบื้องหลัง · อ่าน GPS ครั้งเดียวต่อชุด
+async function handlePhotos(cpId, files){
+  const P=pctx
+  if(!P.inspId){ const {data,error}=await sb.from('inspections').insert({store_code:P.code,phase:P.phase}).select('id').single()
+    if(error) return alert('บันทึกไม่สำเร็จ: '+error.message); P.inspId=data.id }
+  toast('กำลังอ่านพิกัด GPS…'); const loc=await getGPS()
+  if(loc){ try{ loc.place=await reverseGeo(loc.lat,loc.lng) }catch(e){} }
+  const cp=P.cps.find(c=>c.id===cpId), round=maxRound(cpId)||1
   const gps = loc? `${loc.lat.toFixed(6)},${loc.lng.toFixed(6)}` : null
-  const round = maxRound(cpId)||1
-  const { error } = await sb.from('media').insert({inspection_id:pctx.inspId, checkpoint:String(cpId), round, kind:'image', path, gps, thumb_path:(thumbOk?tpath:null)})
-  if(error) return alert('บันทึกรูปไม่สำเร็จ: '+error.message)
-  const {data:u}=await sb.storage.from('media').createSignedUrl(path,3600)
-  let turl=u?u.signedUrl:''
-  if(thumbOk){ const {data:tu}=await sb.storage.from('media').createSignedUrl(tpath,3600); if(tu&&tu.signedUrl) turl=tu.signedUrl }
-  pctx.media.push({checkpoint:String(cpId), path, kind:'image', url:(u?u.signedUrl:''), turl}); renderPhase()
-  toast(loc? 'แนบรูปแล้ว ✓ (มีพิกัด GPS)' : 'แนบรูปแล้ว — แต่ไม่ได้พิกัด GPS · เปิด Location ให้เบราว์เซอร์แล้วถ่ายใหม่', loc?'ok':'err')
+  const rr=()=>{ if(pctx===P) renderPhase() }
+  myStores.add(P.code)
+  toast(`กำลังแนบ ${files.length} รูป…`)
+  const tasks=files.map(async(file,idx)=>{
+    let blob; try{ blob=await watermark(file, loc, cp) }catch(e){ blob=file }
+    let tblob=null; try{ tblob=await makeThumb(blob) }catch(e){}
+    const ts=Date.now()+'_'+idx, path=`${P.inspId}/${cpId}/${ts}.jpg`, tpath=`${P.inspId}/${cpId}/${ts}_t.jpg`
+    const rec={checkpoint:String(cpId), path, kind:'image', url:URL.createObjectURL(blob), turl:null, pending:true}
+    rec.turl = tblob?URL.createObjectURL(tblob):rec.url
+    P.media.push(rec); rr()
+    const {error:up}=await sb.storage.from('media').upload(path, blob, {contentType:'image/jpeg'})
+    if(up){ rec.pending=false; rec.err=true; rr(); return }
+    let thumbOk=false; if(tblob){ const {error:up2}=await sb.storage.from('media').upload(tpath, tblob, {contentType:'image/jpeg'}); thumbOk=!up2 }
+    const {error}=await sb.from('media').insert({inspection_id:P.inspId, checkpoint:String(cpId), round, kind:'image', path, gps, thumb_path:(thumbOk?tpath:null)})
+    rec.pending=false; if(error) rec.err=true; rr()
+  })
+  await Promise.allSettled(tasks)
+  const anyErr = P.media.some(m=>m.err)
+  toast(anyErr?`แนบแล้วบางรูปยังอัปไม่ขึ้น (เน็ตไม่เสถียร) — รูปมีขอบแดง ลองถ่ายใหม่` : (loc?`แนบ ${files.length} รูปแล้ว ✓`:`แนบรูปแล้ว — ไม่ได้ GPS · เปิด Location แล้วถ่ายใหม่`), anyErr?'err':(loc?'ok':'err'))
 }
 function loadImage(file){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image()
   img.onload=()=>{URL.revokeObjectURL(url);res(img)}; img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))}; img.src=url }) }
 async function watermark(file, loc, cp){
   const img=await loadImage(file); let w=img.naturalWidth,h=img.naturalHeight
-  const s=Math.min(1,2000/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
+  const s=Math.min(1,1600/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0,w,h)
   const d=new Date(), p2=n=>String(n).padStart(2,'0')
   const lines=[]
@@ -1576,7 +1591,7 @@ async function watermark(file, loc, cp){
   let y=h-barH+pad+Math.round(fs*0.3)
   lines.forEach(ln=>{ ctx.font=`${ln.wt} ${Math.round(fs*ln.sc)}px sans-serif`; ctx.fillStyle=ln.c; ctx.fillText(ln.t, pad, y); y+=lh })
   ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0
-  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('encode')),'image/jpeg',0.82))
+  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('encode')),'image/jpeg',0.8))
 }
 $('phaseBack').onclick = ()=> openSite(pctx.code)
 
