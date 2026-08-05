@@ -1,9 +1,9 @@
 <!doctype html><html lang="th"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CJX Inspect · Dashboard ก่อสร้าง</title>
+<title>CJX Inspect · Dashboard (HQ)</title>
 <style>
   :root{--bg:#0D0D0E;--ink:#F6F6F2;--mut:#9C9C93;--faint:#66665f;--y:#F5C518;--yInk:#1A1500;
-    --line:#26262b;--card:#17181B;--card2:#1c1d21;--pass:#37D98B;--fail:#FF6B6B;--build:#FF9F1C;--idle:#5a5a55}
+    --line:#26262b;--card:#17181B;--card2:#1c1d21;--pass:#37D98B;--fail:#FF6B6B;--build:#FF9F1C;--idle:#5a5a55;--main:#8FB4FF;--sub:#F5A524}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);font-family:"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
   .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums}
@@ -32,6 +32,10 @@
 
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
   @media(max-width:760px){.kpis{grid-template-columns:1fr 1fr}}
+  .modebar{display:inline-flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px;margin-bottom:18px}
+  .modebar b{font-size:13px;font-weight:800;color:var(--mut);padding:9px 18px;border-radius:9px;cursor:pointer}
+  .modebar b.on{background:var(--y);color:var(--yInk)}
+  .gradeb{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;border:1px solid var(--line);font-family:ui-monospace,monospace;font-weight:800;font-size:14px;margin-right:9px;vertical-align:middle}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;cursor:pointer}
   .kpi.on{border-color:var(--y)}
   .kpi .v{font-size:clamp(28px,3.4vw,40px);font-weight:800;line-height:1}
@@ -66,7 +70,7 @@
 <div id="login">
   <div class="lcard">
     <div class="brand">CJ<b>X</b> Inspect</div>
-    <div class="lsub">Dashboard ภาพรวมงานก่อสร้าง · เข้าดูด้วยบัญชีเดิม</div>
+    <div class="lsub">Dashboard สำหรับ HQ · ภาพรวมก่อสร้าง + ตรวจรับ · เข้าดูด้วยบัญชีเดิม</div>
     <form id="lform">
       <label>อีเมล</label><input id="email" type="email" autocomplete="username" placeholder="you@cjmart.co.th">
       <label>รหัสผ่าน</label><input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
@@ -78,7 +82,7 @@
 
 <div id="dash">
   <div class="top">
-    <div class="h">CJ<b>X</b> Inspect · <span style="font-weight:800">ภาพรวมงานก่อสร้าง</span></div>
+    <div class="h">CJ<b>X</b> Inspect · <span style="font-weight:800">แดชบอร์ด HQ</span></div>
     <div class="sp"></div>
     <button class="tbtn" id="autoBtn">⟳ อัปเดตอัตโนมัติ: ปิด</button>
     <button class="tbtn" id="refBtn">รีเฟรช</button>
@@ -97,7 +101,25 @@ const $=id=>document.getElementById(id)
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
 const CONSTRUCTION_DAYS=40
 const DCOL={fail:'var(--fail)',done:'var(--pass)',progress:'var(--build)',idle:'var(--idle)'}
-let _rows=[], _filter='all', _auto=null, _names={}
+let _rows=[], _suRows=[], _filter='all', _mode='con', _auto=null, _names={}
+const SETUP_SECTIONS=[[201,5],[202,10],[203,30],[204,30],[205,5],[206,10],[207,5],[208,5]]
+let _setupCps=[]
+function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
+function gradeColor(g){ return g==='A'?'#37D98B':g==='B'?'#8FD14F':g==='C'?'#F5C518':'#FF6B6B' }
+function computeSetupScore(cur){
+  let total=0,gotMain=0,maxMain=0,gotSub=0,maxSub=0,doneItems=0,failItems=0,totalItems=0
+  SETUP_SECTIONS.forEach(([ph,weight])=>{
+    const items=_setupCps.filter(c=>c.phase===ph)
+    const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1
+    items.forEach(c=>{ const w=(+c.points||1)/raw*weight, isSub=c.supplier==='ซัพย่อย'
+      if(isSub) maxSub+=w; else maxMain+=w; totalItems++
+      const e=cur[String(c.id)]
+      if(e){ doneItems++; if(e.status==='fail') failItems++
+        if(e.status==='pass'){ total+=w; if(isSub) gotSub+=w; else gotMain+=w } } })
+  })
+  return {total,grade:setupGrade(total),doneItems,totalItems,failItems,allDone:doneItems===totalItems&&totalItems>0,
+    mainPct:maxMain?gotMain/maxMain*100:0, subPct:maxSub?gotSub/maxSub*100:0}
+}
 
 function cs(open){ if(!open) return {key:'unknown',days:null}
   const od=new Date(open+'T00:00:00'), now=new Date(); now.setHours(0,0,0,0)
@@ -122,7 +144,7 @@ async function enter(){ show('dash'); await load() }
 async function load(){
   const [{data:stores},{data:cps},{data:insps},{data:evs},{data:sgs},{data:profs}] = await Promise.all([
     sb.from('stores').select('code,name,province,opening_date,contractor'),
-    sb.from('checkpoints').select('id,phase'),
+    sb.from('checkpoints').select('id,phase,points,supplier'),
     sb.from('inspections').select('id,store_code,phase'),
     sb.from('check_events').select('inspection_id,checkpoint,round,status,by,created_at'),
     sb.from('signoffs').select('store_code,kind'),
@@ -145,12 +167,28 @@ async function load(){
     return {code:s.code,name:s.name||s.code,prov:s.province||'',contractor:s.contractor||'',
       days:s.cs.days, done:vals.length, pass:vals.filter(e=>e.status==='pass').length, fail:vals.filter(e=>e.status==='fail').length,
       phase, total:totalCP, pct:Math.round(vals.length/totalCP*100), last:a.last, closed:handover.has(s.code)} })
+  // ---- ฝั่งตรวจรับ Set-Up (phase 201-208) ----
+  _setupCps=(cps||[]).filter(c=>c.phase>=201&&c.phase<=208)
+  const suIds=new Set(_setupCps.map(c=>String(c.id)))
+  const sagg={}
+  ;(evs||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins||!suIds.has(e.checkpoint)) return
+    const a=sagg[ins.store_code]||(sagg[ins.store_code]={cur:{},last:null})
+    const k=e.checkpoint; if(!a.cur[k]||e.round>a.cur[k].round) a.cur[k]=e
+    if(!a.last||(e.created_at&&e.created_at>a.last.at)) a.last={at:e.created_at,by:e.by} })
+  const suSigned=new Set((sgs||[]).filter(x=>x.kind==='setup_nsa').map(x=>x.store_code))
+  const suScoped=(stores||[]).map(s=>({...s,cs:cs(s.opening_date)})).filter(s=>s.cs.key==='building'||sagg[s.code])
+  _suRows=suScoped.map(s=>{ const a=sagg[s.code]||{cur:{},last:null}; const sc=computeSetupScore(a.cur)
+    return {code:s.code,name:s.name||s.code,prov:s.province||'',days:s.cs.days,
+      score:sc.total,grade:sc.grade,done:sc.doneItems,total:sc.totalItems,fail:sc.failItems,allDone:sc.allDone,
+      mainPct:sc.mainPct,subPct:sc.subPct,signed:suSigned.has(s.code),last:a.last} })
   render()
   const d=new Date(),p=n=>String(n).padStart(2,'0')
   $('meta').textContent=`อัปเดตล่าสุด ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} · ${_rows.length} สาขา`
 }
 
 function render(){
+  const toggle=`<div class="modebar"><b class="${_mode==='con'?'on':''}" data-m="con">🏗️ ก่อสร้าง</b><b class="${_mode==='setup'?'on':''}" data-m="setup">🏪 ตรวจรับ (Set-Up)</b></div>`
+  if(_mode==='setup') return renderSetup(toggle)
   const rows=_rows
   const near=rows.filter(r=>r.days!=null&&r.days<=7&&!r.closed).length
   const failStores=rows.filter(r=>r.fail>0).length, fails=rows.reduce((n,r)=>n+r.fail,0)
@@ -183,11 +221,42 @@ function render(){
       <td class="num">${r.fail?`<span class="fail">${r.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
       <td class="hidecol" style="color:var(--mut);font-size:11.5px">${r.last?esc(_names[r.last.by]||'—')+'<br>'+fmtDate(r.last.at):'—'}</td>
     </tr>`}).join('') : '<tr><td colspan="8" class="empty">ไม่มีสาขาในกลุ่มนี้</td></tr>'
-  $('body').innerHTML = kpis + `<div class="statusbar">${bar}</div><div class="lg">${lg}</div>`
+  $('body').innerHTML = toggle + kpis + `<div class="statusbar">${bar}</div><div class="lg">${lg}</div>`
     + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา${_filter!=='all'?' · กรอง':''}</div>${_filter!=='all'?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}</div>
        <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th class="hidecol">ผรม.</th><th>เปิดใน</th><th class="hidecol">งวดล่าสุด</th><th>ความคืบหน้า</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol">อัปเดตล่าสุด</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
   $('body').querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
   const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
+  wireMode()
+}
+function wireMode(){ document.querySelectorAll('.modebar b').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; render() }) }
+function renderSetup(toggle){
+  const rows=_suRows
+  const graded=rows.filter(r=>r.done>0)
+  const inProg=rows.filter(r=>r.done>0&&!(r.allDone&&r.fail===0)).length
+  const failStores=rows.filter(r=>r.fail>0).length
+  const passStores=rows.filter(r=>r.allDone&&r.fail===0&&r.done>0).length
+  const avg=graded.length?Math.round(graded.reduce((n,r)=>n+r.score,0)/graded.length):0
+  const kpis=`<div class="kpis">
+    <div class="kpi"><div class="v" style="color:var(--build)">${inProg}</div><div class="k">กำลังตรวจรับ</div></div>
+    <div class="kpi"><div class="v" style="color:var(--fail)">${failStores}</div><div class="k">มีจุดไม่ผ่าน</div></div>
+    <div class="kpi"><div class="v" style="color:var(--pass)">${passStores}</div><div class="k">ผ่านครบ</div></div>
+    <div class="kpi"><div class="v" style="color:var(--y)">${avg}</div><div class="k">คะแนนเฉลี่ย /100</div></div>
+  </div>`
+  const list=[...rows].sort((a,b)=>(b.fail-a.fail)||((a.days==null?9999:a.days)-(b.days==null?9999:b.days)))
+  const rowsHtml=list.length?list.map(r=>{ const gc=r.done?gradeColor(r.grade):'var(--faint)'
+    return `<tr>
+      <td><span class="gradeb" style="color:${gc};border-color:${gc}55">${r.done?r.grade:'—'}</span><span class="stname">${esc(r.name)}</span><div class="stmeta"><span class="cd">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}</div></td>
+      <td><span class="days" style="color:${r.days!=null&&r.days<=7?'var(--fail)':'var(--build)'}">${r.days!=null?r.days:'–'}</span> <span style="color:var(--faint);font-size:11px">วัน</span></td>
+      <td><span class="pct" style="color:${gc}">${r.done?r.score.toFixed(0):'–'}</span><span style="color:var(--faint);font-size:11px">/100</span></td>
+      <td class="num">${r.done}/${r.total}</td>
+      <td class="num">${r.fail?`<span class="fail">${r.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
+      <td class="hidecol num" style="font-size:11.5px"><span style="color:var(--main)">หลัก ${r.mainPct.toFixed(0)}%</span> · <span style="color:var(--sub)">ย่อย ${r.subPct.toFixed(0)}%</span></td>
+      <td class="hidecol">${r.signed?'<span style="color:var(--pass);font-weight:700">เซ็นแล้ว ✓</span>':'<span style="color:var(--faint)">—</span>'}</td>
+    </tr>`}).join(''):'<tr><td colspan="7" class="empty">ยังไม่มีสาขาตรวจรับ</td></tr>'
+  $('body').innerHTML = toggle + kpis
+    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา · ตรวจรับ (Set-Up)</div></div>
+       <div style="overflow-x:auto"><table><thead><tr><th>สาขา · เกรด</th><th>เปิดใน</th><th>คะแนน</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol num">แยกซัพ</th><th class="hidecol">รับร้าน</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
+  wireMode()
 }
 boot()
 </script>
