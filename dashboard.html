@@ -36,6 +36,20 @@
   .modebar b{font-size:13px;font-weight:800;color:var(--mut);padding:9px 18px;border-radius:9px;cursor:pointer}
   .modebar b.on{background:var(--y);color:var(--yInk)}
   .gradeb{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;border:1px solid var(--line);font-family:ui-monospace,monospace;font-weight:800;font-size:14px;margin-right:9px;vertical-align:middle}
+  tr.clk{cursor:pointer}
+  .detov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+  .detcard{width:100%;max-width:720px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .deth{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:#141519}
+  .detn{font-size:16px;font-weight:800}.detm{font-size:12px;color:var(--mut);margin-top:3px}
+  .detx{font-size:18px;color:var(--mut);cursor:pointer;line-height:1;padding:2px 8px}
+  .detbody{padding:14px 18px 20px;max-height:72vh;overflow-y:auto}
+  .detsec{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px}
+  .detsh{font-size:13px;font-weight:800;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+  .detcnt{font-size:11px;color:var(--mut);font-weight:600}
+  .detfail{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+  .dfl{font-size:12px;color:var(--fail);font-weight:600}
+  .dfph{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .dfph img{width:56px;height:56px;object-fit:cover;border-radius:7px;border:1px solid var(--line)}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;cursor:pointer}
   .kpi.on{border-color:var(--y)}
   .kpi .v{font-size:clamp(28px,3.4vw,40px);font-weight:800;line-height:1}
@@ -102,6 +116,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const CONSTRUCTION_DAYS=40
 const DCOL={fail:'var(--fail)',done:'var(--pass)',progress:'var(--build)',idle:'var(--idle)'}
 let _rows=[], _suRows=[], _filter='all', _mode='con', _auto=null, _names={}
+let _cps=[], _cpMap={}, _storeMap={}, _inspByStore={}, _evsByStore={}
 const SETUP_SECTIONS=[[201,5],[202,10],[203,30],[204,30],[205,5],[206,10],[207,5],[208,5]]
 let _setupCps=[]
 function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
@@ -144,17 +159,22 @@ async function enter(){ show('dash'); await load() }
 async function load(){
   const [{data:stores},{data:cps},{data:insps},{data:evs},{data:sgs},{data:profs}] = await Promise.all([
     sb.from('stores').select('code,name,province,opening_date,contractor'),
-    sb.from('checkpoints').select('id,phase,points,supplier'),
+    sb.from('checkpoints').select('id,phase,no,label,phase_name,points,supplier,sort'),
     sb.from('inspections').select('id,store_code,phase'),
     sb.from('check_events').select('inspection_id,checkpoint,round,status,by,created_at'),
     sb.from('signoffs').select('store_code,kind'),
     sb.from('profiles').select('id,name,email')
   ])
   ;(profs||[]).forEach(p=>_names[p.id]=p.name||p.email||'—')
+  // เก็บไว้ทำหน้ารายละเอียดรายสาขา
+  _cps=cps||[]; _cpMap={}; _cps.forEach(c=>_cpMap[String(c.id)]=c)
+  _storeMap={}; (stores||[]).forEach(s=>_storeMap[s.code]={...s,cs:cs(s.opening_date)})
+  _inspByStore={}; (insps||[]).forEach(i=>{ (_inspByStore[i.store_code]||(_inspByStore[i.store_code]=[])).push(i.id) })
   const conIds=new Set((cps||[]).filter(c=>c.phase<200).map(c=>String(c.id)))   // ก่อสร้าง+Pre-Con (ไม่รวม Set-Up)
   const totalCP=conIds.size||1
   const cpPhase={}; (cps||[]).forEach(c=>cpPhase[String(c.id)]=c.phase)
   const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
+  _evsByStore={}; (evs||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return; (_evsByStore[ins.store_code]||(_evsByStore[ins.store_code]=[])).push(e) })
   const agg={}
   ;(evs||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins||!conIds.has(e.checkpoint)) return
     const a=agg[ins.store_code]||(agg[ins.store_code]={cur:{},last:null})
@@ -211,7 +231,7 @@ function render(){
   else if(_filter==='done') list=list.filter(r=>r.done>=r.total&&r.fail===0)
   list.sort((a,b)=>(b.fail-a.fail)||((a.days==null?9999:a.days)-(b.days==null?9999:b.days)))
   const rowsHtml = list.length ? list.map(r=>{ const st=dstt(r); const c=DCOL[st]
-    return `<tr>
+    return `<tr class="clk" data-code="${esc(r.code)}">
       <td><span class="dot" style="background:${c}"></span><span class="stname">${esc(r.name)}</span><div class="stmeta"><span class="cd">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}</div></td>
       <td class="hidecol">${r.contractor?esc(r.contractor):'<span style="color:var(--faint)">—</span>'}</td>
       <td><span class="days" style="color:${r.days!=null&&r.days<=7?'var(--fail)':'var(--build)'}">${r.days!=null?r.days:'–'}</span> <span style="color:var(--faint);font-size:11px">วัน</span></td>
@@ -228,7 +248,32 @@ function render(){
   const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
   wireMode()
 }
-function wireMode(){ document.querySelectorAll('.modebar b').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; render() }) }
+function wireMode(){ document.querySelectorAll('.modebar b').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; render() })
+  document.querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.code)) }
+async function openDetail(code){
+  const s=_storeMap[code]||{code}; const evsAll=_evsByStore[code]||[]
+  const cur={}; evsAll.forEach(e=>{ if(!cur[e.checkpoint]||e.round>cur[e.checkpoint].round) cur[e.checkpoint]=e })
+  let ov=$('detOv'); if(!ov){ ov=document.createElement('div'); ov.id='detOv'; ov.className='detov'; document.body.appendChild(ov); ov.onclick=e=>{ if(e.target===ov) ov.remove() } }
+  ov.innerHTML=`<div class="detcard"><div class="deth"><div><div class="detn">${esc(s.name||code)}</div><div class="detm">${esc(code)}${s.province?' · '+esc(s.province):''}${s.contractor?' · '+esc(s.contractor):''}</div></div><div class="detx" id="detClose">✕</div></div><div class="detbody" id="detBody"><div class="spin">กำลังโหลด…</div></div></div>`
+  $('detClose').onclick=()=>ov.remove()
+  const ids=_inspByStore[code]||[]; const mByCp={}
+  if(ids.length){ const {data:m}=await sb.from('media').select('checkpoint,path,thumb_path').in('inspection_id',ids)
+    if(m&&m.length){ const {data:u}=await sb.storage.from('media').createSignedUrls(m.map(x=>x.thumb_path||x.path),3600)
+      m.forEach((x,i)=>{ (mByCp[x.checkpoint]||(mByCp[x.checkpoint]=[])).push((u&&u[i]&&u[i].signedUrl)||'') }) } }
+  const phases=[...new Set(_cps.map(c=>c.phase))].sort((a,b)=>a-b)
+  let html=''
+  phases.forEach(ph=>{
+    const items=_cps.filter(c=>c.phase===ph).sort((a,b)=>(a.sort||0)-(b.sort||0))
+    const done=items.filter(c=>cur[String(c.id)]).length; if(!done) return
+    const pass=items.filter(c=>{const e=cur[String(c.id)];return e&&e.status==='pass'}).length
+    const fails=items.filter(c=>{const e=cur[String(c.id)];return e&&e.status==='fail'})
+    const pn=(items[0]&&items[0].phase_name)||('งวด '+ph)
+    html+=`<div class="detsec"><div class="detsh">${esc(pn)}<span class="detcnt">${done}/${items.length} · <b style="color:var(--pass)">ผ่าน ${pass}</b>${fails.length?` · <b style="color:var(--fail)">ไม่ผ่าน ${fails.length}</b>`:''}</span></div>`
+    if(fails.length) html+=fails.map(c=>`<div class="detfail"><div class="dfl">${c.no?esc(c.no)+' ':''}${esc(c.label)}</div><div class="dfph">${(mByCp[String(c.id)]||[]).map(u=>u?`<a href="${u}" target="_blank"><img src="${u}"></a>`:'').join('')}</div></div>`).join('')
+    html+=`</div>`
+  })
+  $('detBody').innerHTML = html||'<div class="spin">ยังไม่มีการตรวจในสาขานี้</div>'
+}
 function renderSetup(toggle){
   const rows=_suRows
   const graded=rows.filter(r=>r.done>0)
@@ -244,7 +289,7 @@ function renderSetup(toggle){
   </div>`
   const list=[...rows].sort((a,b)=>(b.fail-a.fail)||((a.days==null?9999:a.days)-(b.days==null?9999:b.days)))
   const rowsHtml=list.length?list.map(r=>{ const gc=r.done?gradeColor(r.grade):'var(--faint)'
-    return `<tr>
+    return `<tr class="clk" data-code="${esc(r.code)}">
       <td><span class="gradeb" style="color:${gc};border-color:${gc}55">${r.done?r.grade:'—'}</span><span class="stname">${esc(r.name)}</span><div class="stmeta"><span class="cd">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}</div></td>
       <td><span class="days" style="color:${r.days!=null&&r.days<=7?'var(--fail)':'var(--build)'}">${r.days!=null?r.days:'–'}</span> <span style="color:var(--faint);font-size:11px">วัน</span></td>
       <td><span class="pct" style="color:${gc}">${r.done?r.score.toFixed(0):'–'}</span><span style="color:var(--faint);font-size:11px">/100</span></td>
