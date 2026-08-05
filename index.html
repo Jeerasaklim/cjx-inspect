@@ -110,6 +110,8 @@ a.link{color:var(--yellow);text-decoration:none}
 .photos .thw.pend .pbadge{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .addph small{display:block;font-size:8px;color:var(--faint);font-weight:600;margin-top:1px}
+.photos .delph{position:absolute;bottom:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(200,32,32,.94);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;border:1.5px solid #0d0d0e}
+.pendbadge{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 90px);z-index:70;background:#241d05;border:1px solid #4a3d0c;color:var(--yellow);font-size:12px;font-weight:800;padding:8px 15px;border-radius:99px;display:none;align-items:center;gap:6px;cursor:pointer;box-shadow:0 8px 24px -8px #000}
 .addph{display:inline-flex;align-items:center;gap:6px;background:#232327;color:var(--yellow);border:1px dashed #4a4632;border-radius:8px;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer}
 .reqph{font-size:10.5px;font-weight:700;color:var(--fail);margin-top:8px}.reqph.ok{color:var(--pass)}
 /* nav / dashboard / users / summary / approve */
@@ -1053,6 +1055,7 @@ async function enterApp(){
   $('homeActs').innerHTML=''
   await loadNames(); await loadContractors()
   await loadStores(); await loadMine(); switchTab('home')
+  syncQueue()   // ส่งรูปที่ค้างในคิว offline จาก session ก่อน (ถ้ามี)
 }
 function renderHomeActs(){ $('homeActs').innerHTML='' }
 function openAdmin(){ hideAllViews(); showTabbar(false); show($('viewAdmin'),true); show($('adminMenu'),true); show($('adminSec'),false); window.scrollTo(0,0) }
@@ -1135,23 +1138,23 @@ async function renderLanding(){
     <span class="mono" style="font-weight:800;font-size:12px;color:${DCOL[st]}">${r.pct}%</span></div>`}).join('') : '<div style="font-size:12px;color:var(--faint);padding:6px 2px">ยังไม่มีงานล่าสุด — แตะ “เลือกสาขาเริ่มตรวจ”</div>'
   $('lrecent').querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
 }
+function homeCount(f){ if(f==='mine') return myStores.size; if(f==='all') return stores.length; return stores.filter(s=>s.cs.key===f).length }
+function updateHomeStat(){
+  const lbl={mine:'งานของฉัน · สาขาที่คุณตรวจ',building:'สาขากำลังก่อสร้าง · ต้องเข้าตรวจ',notyet:'สาขายังไม่ก่อสร้าง',opened:'สาขาเปิดแล้ว',all:'สาขาทั้งหมด'}[filter]||''
+  $('statBuild').textContent=homeCount(filter); $('statLabel').textContent=lbl
+}
 function renderHome(){
   const head=isHead()
   show($('tabs'), head)
   if(head){
-    const building=stores.filter(s=>s.cs.key==='building').length
-    $('statBuild').textContent=building
-    $('statLabel').textContent='สาขากำลังก่อสร้าง · ต้องเข้าตรวจ'
     $('cmBar').innerHTML=''
     if(!['mine','building','notyet','opened','all'].includes(filter)) filter='building'
   } else {
-    $('statBuild').textContent=myStores.size
-    $('statLabel').textContent='งานของฉัน · สาขาที่คุณตรวจ'
     filter='mine'
     $('cmBar').innerHTML='<button class="btn pri" id="btnPick" style="margin-bottom:14px">＋ เลือกสาขาเพื่อเริ่มตรวจ</button>'
     $('btnPick').onclick=openPick
   }
-  renderTabs(); renderPool()
+  updateHomeStat(); renderTabs(); renderPool()
 }
 let pickQuery=''
 function openPick(){
@@ -1227,7 +1230,7 @@ async function loadStores(){
 function renderTabs(){
   const defs=[['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`],['building','กำลังก่อสร้าง'],['notyet','ยังไม่ก่อสร้าง'],['opened','เปิดแล้ว'],['all','ทั้งหมด']]
   $('tabs').innerHTML = defs.map(([k,l])=>`<b class="${filter===k?'on':''}" data-k="${k}">${l}</b>`).join('')
-  $('tabs').querySelectorAll('b').forEach(b=> b.onclick=()=>{ filter=b.dataset.k; renderTabs(); renderPool() })
+  $('tabs').querySelectorAll('b').forEach(b=> b.onclick=()=>{ filter=b.dataset.k; updateHomeStat(); renderTabs(); renderPool() })
 }
 function renderPool(){
   const q=query.trim().toLowerCase()
@@ -1408,7 +1411,7 @@ async function openPhase(code, phase){
   let inspId=insp?insp.id:null, events=[]
   let media=[]
   if(inspId){ const {data}=await sb.from('check_events').select('checkpoint,round,status,note,by,created_at').eq('inspection_id',inspId); events=data||[]
-    const {data:m}=await sb.from('media').select('checkpoint,path,kind,thumb_path').eq('inspection_id',inspId); media=m||[]
+    const {data:m}=await sb.from('media').select('checkpoint,path,kind,thumb_path,by').eq('inspection_id',inspId); media=m||[]
     if(media.length){
       const {data:fu}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600)
       const {data:tu}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.thumb_path||x.path),3600)
@@ -1436,6 +1439,21 @@ async function saveScore(n){
   if(error) return alert('บันทึกคะแนนไม่สำเร็จ: '+error.message)
   await reloadSignoffs(); renderPhase(); toast('ให้คะแนน '+n+'/5 แล้ว')
 }
+// ลบรูปได้เฉพาะเจ้าของ (คนถ่าย) หรือ Admin
+function canDelPhoto(m){ return (profile&&profile.role==='admin') || m.pending || (m.by && m.by===myUid) }
+async function deletePhoto(path, qid){
+  if(!confirm('ลบรูปนี้? (ลบแล้วเอาคืนไม่ได้)')) return
+  if(qid!==''&&qid!=null){   // รูปที่ยังไม่อัป (คิว offline) — ลบออกจากเครื่อง
+    try{ await queueDel(+qid) }catch(e){}
+    pctx.media = pctx.media.filter(m=>String(m.qid)!==String(qid))
+    updatePendBadge(); renderPhase(); toast('ลบรูปแล้ว'); return
+  }
+  const { error } = await sb.from('media').delete().eq('path', path)
+  if(error) return alert('ลบไม่สำเร็จ: '+error.message+'\n(ลบได้เฉพาะเจ้าของรูปหรือ Admin)')
+  try{ await sb.storage.from('media').remove([path, path.replace(/\.jpg$/,'_t.jpg')]) }catch(e){}
+  pctx.media = pctx.media.filter(m=>m.path!==path)
+  renderPhase(); toast('ลบรูปแล้ว ✓')
+}
 function renderPhase(){
   const {cps, phase, storeName}=pctx
   const total=cps.length, done=cps.filter(c=>curStatus(c.id)).length, pct=total?Math.round(done/total*100):0
@@ -1455,7 +1473,7 @@ function renderPhase(){
     const stamp = cur ? `<div class="stamp">ตรวจโดย ${esc(nameOf(byOf(c.id)))} · ${fmtDate(whenOf(c.id))}</div>` : ''
     html+=`<div class="cp ${cls}">${c.no?`<div class="cno">${esc(c.no)}${rnd>1?`<span class="rnd">รอบ ${rnd}</span>`:''}</div>`:(rnd>1?`<div class="cno"><span class="rnd">รอบ ${rnd}</span></div>`:'')}
       <div class="clb">${esc(c.label)}${c.supplier?`<span class="supchip ${c.supplier==='ซัพย่อย'?'sub':'main'}">${c.supplier==='ซัพย่อย'?'ย่อย':'หลัก'}</span>`:''}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}
-      <div class="photos">${ph.map(m=>`<span class="thw${m.pending?' pend':''}${m.err?' err':''}"><img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">${m.pending?'<i class="pbadge">⟳</i>':''}${m.err?'<i class="pbadge eb">!</i>':''}</span>`).join('')}<span class="addph" data-cp="${c.id}">📷 ถ่าย/แนบรูป<small>หลายรูปได้</small></span></div>
+      <div class="photos">${ph.map(m=>`<span class="thw${m.pending?' pend':''}${m.err?' err':''}"><img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">${m.pending?'<i class="pbadge">⟳</i>':''}${m.err?'<i class="pbadge eb">!</i>':''}${canDelPhoto(m)?`<i class="delph" data-path="${esc(m.path||'')}" data-qid="${m.qid!=null?m.qid:''}" title="ลบรูปนี้">✕</i>`:''}</span>`).join('')}<span class="addph" data-cp="${c.id}">📷 ถ่าย/แนบรูป<small>หลายรูปได้</small></span></div>
       <div class="reqph ${ph.length?'ok':''}">${ph.length?('✓ มีรูป '+ph.length+' รูป'+(ph.some(m=>m.pending)?' · กำลังอัปเบื้องหลัง':(ph.some(m=>m.err)?' · บางรูปอัปไม่ขึ้น':''))):'ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'}</div>
       <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
       <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(curNote(c.id))}">${stamp}</div>`
@@ -1494,6 +1512,7 @@ function renderPhase(){
   $('phaseBody').querySelectorAll('.seg3').forEach(seg=>{ const cp=+seg.dataset.cp
     seg.querySelectorAll('b').forEach(b=> b.onclick=()=>saveTick(cp, b.dataset.s)) })
   $('phaseBody').querySelectorAll('.addph').forEach(el=> el.onclick=()=>capturePhoto(+el.dataset.cp))
+  $('phaseBody').querySelectorAll('.delph').forEach(el=> el.onclick=(e)=>{ e.stopPropagation(); deletePhoto(el.dataset.path, el.dataset.qid) })
   const _ths=[...$('phaseBody').querySelectorAll('.th')]
   const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
   _ths.forEach((im,idx)=> im.onclick=()=>openLightbox(_urls, idx))
@@ -1542,35 +1561,76 @@ async function makeThumb(srcBlob){ const img=await loadImage(srcBlob); let w=img
   return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('t')),'image/jpeg',0.55)) }
 function capturePhoto(cpId){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.multiple=true
   inp.onchange=()=>{ const fs=[...(inp.files||[])]; if(fs.length) handlePhotos(cpId, fs) }; inp.click() }
-// ถ่าย/เลือกได้หลายรูปทีเดียว · โชว์ทันที (optimistic) แล้วอัปเบื้องหลัง · อ่าน GPS ครั้งเดียวต่อชุด
+// ===== Offline photo queue (IndexedDB) — ถ่าย offline ได้ อัปอัตโนมัติเมื่อเน็ตกลับ =====
+let _idb=null
+function idbGet(){ return new Promise((res,rej)=>{ if(_idb) return res(_idb)
+  const r=indexedDB.open('cjx_inspect',1)
+  r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains('photoq')) r.result.createObjectStore('photoq',{keyPath:'id',autoIncrement:true}) }
+  r.onsuccess=()=>{ _idb=r.result; res(_idb) }; r.onerror=()=>rej(r.error) }) }
+async function qStore(mode){ const db=await idbGet(); return db.transaction('photoq',mode).objectStore('photoq') }
+async function queueAdd(rec){ const st=await qStore('readwrite'); return new Promise((res,rej)=>{ const q=st.add(rec); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error) }) }
+async function queueAll(){ const st=await qStore('readonly'); return new Promise(res=>{ const q=st.getAll(); q.onsuccess=()=>res(q.result||[]); q.onerror=()=>res([]) }) }
+async function queueDel(id){ const st=await qStore('readwrite'); return new Promise(res=>{ const q=st.delete(id); q.onsuccess=()=>res(); q.onerror=()=>res() }) }
+async function queueCount(){ const st=await qStore('readonly'); return new Promise(res=>{ const q=st.count(); q.onsuccess=()=>res(q.result); q.onerror=()=>res(0) }) }
+
+// ถ่าย/เลือกหลายรูปทีเดียว · เข้าคิวในเครื่องทันที (offline ได้) · อ่าน GPS ครั้งเดียว/ชุด
 async function handlePhotos(cpId, files){
   const P=pctx
-  if(!P.inspId){ const {data,error}=await sb.from('inspections').insert({store_code:P.code,phase:P.phase}).select('id').single()
-    if(error) return alert('บันทึกไม่สำเร็จ: '+error.message); P.inspId=data.id }
-  toast('กำลังอ่านพิกัด GPS…'); const loc=await getGPS()
-  if(loc){ try{ loc.place=await reverseGeo(loc.lat,loc.lng) }catch(e){} }
+  const loc=null, gps=null   // ตัด GPS/สถานที่ออก → เร็วขึ้น (watermark เหลือแค่ วันเวลา + เลขข้อ)
   const cp=P.cps.find(c=>c.id===cpId), round=maxRound(cpId)||1
-  const gps = loc? `${loc.lat.toFixed(6)},${loc.lng.toFixed(6)}` : null
-  const rr=()=>{ if(pctx===P) renderPhase() }
   myStores.add(P.code)
-  toast(`กำลังแนบ ${files.length} รูป…`)
-  const tasks=files.map(async(file,idx)=>{
-    let blob; try{ blob=await watermark(file, loc, cp) }catch(e){ blob=file }
+  toast(`กำลังเตรียม ${files.length} รูป…`)
+  for(let idx=0; idx<files.length; idx++){
+    let blob; try{ blob=await watermark(files[idx], loc, cp) }catch(e){ blob=files[idx] }
     let tblob=null; try{ tblob=await makeThumb(blob) }catch(e){}
-    const ts=Date.now()+'_'+idx, path=`${P.inspId}/${cpId}/${ts}.jpg`, tpath=`${P.inspId}/${cpId}/${ts}_t.jpg`
-    const rec={checkpoint:String(cpId), path, kind:'image', url:URL.createObjectURL(blob), turl:null, pending:true}
-    rec.turl = tblob?URL.createObjectURL(tblob):rec.url
-    P.media.push(rec); rr()
-    const {error:up}=await sb.storage.from('media').upload(path, blob, {contentType:'image/jpeg'})
-    if(up){ rec.pending=false; rec.err=true; rr(); return }
-    let thumbOk=false; if(tblob){ const {error:up2}=await sb.storage.from('media').upload(tpath, tblob, {contentType:'image/jpeg'}); thumbOk=!up2 }
-    const {error}=await sb.from('media').insert({inspection_id:P.inspId, checkpoint:String(cpId), round, kind:'image', path, gps, thumb_path:(thumbOk?tpath:null)})
-    rec.pending=false; if(error) rec.err=true; rr()
-  })
-  await Promise.allSettled(tasks)
-  const anyErr = P.media.some(m=>m.err)
-  toast(anyErr?`แนบแล้วบางรูปยังอัปไม่ขึ้น (เน็ตไม่เสถียร) — รูปมีขอบแดง ลองถ่ายใหม่` : (loc?`แนบ ${files.length} รูปแล้ว ✓`:`แนบรูปแล้ว — ไม่ได้ GPS · เปิด Location แล้วถ่ายใหม่`), anyErr?'err':(loc?'ok':'err'))
+    const ts=Date.now()+'_'+idx
+    let qid=null; try{ qid=await queueAdd({storeCode:P.code, phase:P.phase, cpId:String(cpId), round, gps, ts, blob, tblob}) }catch(e){}
+    const rec={checkpoint:String(cpId), path:null, kind:'image', url:URL.createObjectURL(blob), turl:tblob?URL.createObjectURL(tblob):null, pending:true, qid}
+    if(!rec.turl) rec.turl=rec.url
+    P.media.push(rec); if(pctx===P) renderPhase()
+  }
+  toast(navigator.onLine?`แนบ ${files.length} รูปแล้ว · กำลังส่งขึ้นระบบ`:`เก็บ ${files.length} รูปในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต`,'ok')
+  syncQueue()
 }
+async function _ensureInsp(code, phase, cache){
+  const k=code+'|'+phase; if(cache[k]!==undefined) return cache[k]
+  try{
+    const {data}=await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).maybeSingle()
+    let id=data?data.id:null
+    if(!id){ const {data:ins,error}=await sb.from('inspections').insert({store_code:code,phase}).select('id').single(); if(error){cache[k]=null;return null} id=ins.id }
+    if(pctx&&pctx.code===code&&pctx.phase===phase) pctx.inspId=id
+    cache[k]=id; return id
+  }catch(e){ cache[k]=null; return null }
+}
+let _syncing=false
+async function syncQueue(){
+  updatePendBadge()
+  if(_syncing || !navigator.onLine) return
+  const { data:{ session } } = await sb.auth.getSession(); if(!session) return
+  _syncing=true
+  try{
+    const items=await queueAll(); const cache={}
+    for(const r of items){
+      const inspId=await _ensureInsp(r.storeCode, r.phase, cache); if(!inspId) break
+      const path=`${inspId}/${r.cpId}/${r.ts}.jpg`, tpath=`${inspId}/${r.cpId}/${r.ts}_t.jpg`
+      const {error:up}=await sb.storage.from('media').upload(path, r.blob, {contentType:'image/jpeg',upsert:true}); if(up) break
+      let thumbOk=false; if(r.tblob){ const {error:up2}=await sb.storage.from('media').upload(tpath, r.tblob, {contentType:'image/jpeg',upsert:true}); thumbOk=!up2 }
+      const {error}=await sb.from('media').insert({inspection_id:inspId, checkpoint:r.cpId, round:r.round, kind:'image', path, gps:r.gps, thumb_path:(thumbOk?tpath:null)}); if(error) break
+      await queueDel(r.id)
+      if(pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ m.pending=false; m.path=path } }
+    }
+  }catch(e){}
+  _syncing=false
+  updatePendBadge()
+  if(pctx&&$('viewPhase')&&!$('viewPhase').classList.contains('hide')) renderPhase()
+}
+function updatePendBadge(){ queueCount().then(n=>{ let el=$('pendBadge')
+  if(!el){ el=document.createElement('div'); el.id='pendBadge'; el.className='pendbadge'; el.onclick=()=>syncQueue(); document.body.appendChild(el) }
+  el.style.display = n>0?'flex':'none'
+  el.innerHTML = n>0 ? (navigator.onLine? `⤒ กำลังส่ง ${n} รูป…` : `📴 ${n} รูปรออัป (ออฟไลน์)`) : '' }).catch(()=>{}) }
+window.addEventListener('online', ()=>syncQueue())
+window.addEventListener('offline', ()=>updatePendBadge())
+setInterval(()=>{ if(navigator.onLine) syncQueue() }, 30000)
 function loadImage(file){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image()
   img.onload=()=>{URL.revokeObjectURL(url);res(img)}; img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))}; img.src=url }) }
 async function watermark(file, loc, cp){
@@ -1579,10 +1639,8 @@ async function watermark(file, loc, cp){
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0,w,h)
   const d=new Date(), p2=n=>String(n).padStart(2,'0')
   const lines=[]
-  lines.push({t:`${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()+543}  ${p2(d.getHours())}:${p2(d.getMinutes())} น.`, c:'#ffffff', wt:700, sc:1})
-  if(loc && loc.place) lines.push({t:'📍 '+loc.place.slice(0,52), c:'#FFE08A', wt:700, sc:.92})
-  lines.push({t: loc? `Lat ${loc.lat.toFixed(6)}, Long ${loc.lng.toFixed(6)} (±${Math.round(loc.acc)}m)` : 'ไม่มีพิกัด GPS', c: loc?'#DCE0E6':'#FF9B9B', wt:600, sc:.86})
-  const cpt=((cp&&cp.no?cp.no+' ':'')+(cp?cp.label:'')).trim(); if(cpt) lines.push({t:cpt.slice(0,70), c:'#B9C0C9', wt:600, sc:.86})
+  const cpt=((cp&&cp.no?cp.no+' ':'')+(cp?cp.label:'')).trim(); if(cpt) lines.push({t:cpt.slice(0,74), c:'#FFE08A', wt:800, sc:1})
+  lines.push({t:`${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()+543}  ${p2(d.getHours())}:${p2(d.getMinutes())} น.`, c:'#DCE0E6', wt:600, sc:.86})
   const fs=Math.max(13,Math.round(w*0.027)), pad=Math.round(fs*0.65), lh=Math.round(fs*1.42), barH=Math.round(lh*lines.length+pad*1.6)
   const g=ctx.createLinearGradient(0,h-barH,0,h); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.5)')
   ctx.fillStyle=g; ctx.fillRect(0,h-barH,w,barH)
