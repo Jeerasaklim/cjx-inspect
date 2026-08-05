@@ -32,6 +32,9 @@
 
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
   @media(max-width:760px){.kpis{grid-template-columns:1fr 1fr}}
+  .searchbar{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 15px;margin-bottom:16px;color:var(--faint)}
+  .searchbar input{flex:1;background:none;border:0;color:var(--ink);font-size:15px;font-family:inherit;outline:none}
+  .searchbar .qx{display:none;cursor:pointer;font-size:13px;color:var(--mut);width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:#2a2a2e}
   .modebar{display:inline-flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px;margin-bottom:18px}
   .modebar b{font-size:13px;font-weight:800;color:var(--mut);padding:9px 18px;border-radius:9px;cursor:pointer}
   .modebar b.on{background:var(--y);color:var(--yInk)}
@@ -49,7 +52,16 @@
   .detfail{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
   .dfl{font-size:12px;color:var(--fail);font-weight:600}
   .dfph{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-  .dfph img{width:56px;height:56px;object-fit:cover;border-radius:7px;border:1px solid var(--line)}
+  .dfph img,.dthumb{width:56px;height:56px;object-fit:cover;border-radius:7px;border:1px solid var(--line);cursor:pointer}
+  .detitem{border-top:1px solid var(--line);padding:9px 0}
+  .dtop{display:flex;gap:8px;align-items:flex-start}
+  .dst{font-weight:800;font-size:13px;flex:0 0 auto;line-height:1.35}
+  .dfl2{font-size:12.5px;color:var(--ink);line-height:1.35}
+  .detlb{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:120;display:none;align-items:center;justify-content:center}
+  .detlb img{max-width:94vw;max-height:88vh;object-fit:contain;border-radius:8px}
+  .dlbx{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;z-index:2}
+  .dlbnav{position:absolute;top:50%;transform:translateY(-50%);color:#fff;font-size:44px;cursor:pointer;padding:10px 18px;user-select:none;opacity:.85}
+  .dlbnav.prev{left:6px}.dlbnav.next{right:6px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;cursor:pointer}
   .kpi.on{border-color:var(--y)}
   .kpi .v{font-size:clamp(28px,3.4vw,40px);font-weight:800;line-height:1}
@@ -103,6 +115,7 @@
     <button class="tbtn" id="outBtn">ออกจากระบบ</button>
     <div class="meta" id="meta" style="width:100%"></div>
   </div>
+  <div class="searchbar"><span>⌕</span><input id="q" placeholder="ค้นหาสาขา / รหัส / จังหวัด / ผรม."><span class="qx" id="qx">✕</span></div>
   <div id="body"><div class="spin">กำลังโหลดข้อมูล…</div></div>
 </div>
 
@@ -116,7 +129,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const CONSTRUCTION_DAYS=40
 const DCOL={fail:'var(--fail)',done:'var(--pass)',progress:'var(--build)',idle:'var(--idle)'}
 let _rows=[], _suRows=[], _filter='all', _mode='con', _auto=null, _names={}
-let _cps=[], _cpMap={}, _storeMap={}, _inspByStore={}, _evsByStore={}
+let _cps=[], _cpMap={}, _storeMap={}, _inspByStore={}, _evsByStore={}, _detImgs=[], _detLbI=0, _q=''
 const SETUP_SECTIONS=[[201,5],[202,10],[203,30],[204,30],[205,5],[206,10],[207,5],[208,5]]
 let _setupCps=[]
 function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
@@ -154,7 +167,10 @@ $('outBtn').onclick=async()=>{ await sb.auth.signOut(); if(_auto)clearInterval(_
 $('refBtn').onclick=()=>load()
 $('autoBtn').onclick=()=>{ if(_auto){ clearInterval(_auto); _auto=null; $('autoBtn').classList.remove('on'); $('autoBtn').textContent='⟳ อัปเดตอัตโนมัติ: ปิด' }
   else { _auto=setInterval(load,60000); $('autoBtn').classList.add('on'); $('autoBtn').textContent='⟳ อัปเดตอัตโนมัติ: เปิด (60วิ)'; load() } }
-async function enter(){ show('dash'); await load() }
+async function enter(){ show('dash')
+  $('q').oninput=e=>{ _q=e.target.value; $('qx').style.display=_q?'flex':'none'; render() }
+  $('qx').onclick=()=>{ _q=''; $('q').value=''; $('qx').style.display='none'; $('q').focus(); render() }
+  await load() }
 
 async function load(){
   const [{data:stores},{data:cps},{data:insps},{data:evs},{data:sgs},{data:profs}] = await Promise.all([
@@ -226,6 +242,7 @@ function render(){
   const bar=['done','progress','fail','idle'].map(k=>cnt[k]?`<i style="width:${cnt[k]/tot*100}%;background:${DCOL[k]}"></i>`:'').join('')
   const lg=[['done','เสร็จ'],['progress','กำลังตรวจ'],['fail','มีปัญหา'],['idle','ยังไม่เริ่ม']].map(([k,l])=>`<span><i style="background:${DCOL[k]}"></i>${l} ${cnt[k]}</span>`).join('')
   let list=[...rows]
+  if(_q){ const q=_q.trim().toLowerCase(); list=list.filter(r=>[r.name,r.code,r.prov,r.contractor].some(v=>(v||'').toLowerCase().includes(q))) }
   if(_filter==='fail') list=list.filter(r=>r.fail>0)
   else if(_filter==='near') list=list.filter(r=>r.days!=null&&r.days<=7&&!r.closed)
   else if(_filter==='done') list=list.filter(r=>r.done>=r.total&&r.fail===0)
@@ -258,21 +275,41 @@ async function openDetail(code){
   $('detClose').onclick=()=>ov.remove()
   const ids=_inspByStore[code]||[]; const mByCp={}
   if(ids.length){ const {data:m}=await sb.from('media').select('checkpoint,path,thumb_path').in('inspection_id',ids)
-    if(m&&m.length){ const {data:u}=await sb.storage.from('media').createSignedUrls(m.map(x=>x.thumb_path||x.path),3600)
-      m.forEach((x,i)=>{ (mByCp[x.checkpoint]||(mByCp[x.checkpoint]=[])).push((u&&u[i]&&u[i].signedUrl)||'') }) } }
+    if(m&&m.length){
+      const {data:fu}=await sb.storage.from('media').createSignedUrls(m.map(x=>x.path),3600)
+      const {data:tu}=await sb.storage.from('media').createSignedUrls(m.map(x=>x.thumb_path||x.path),3600)
+      m.forEach((x,i)=>{ (mByCp[x.checkpoint]||(mByCp[x.checkpoint]=[])).push({full:(fu&&fu[i]&&fu[i].signedUrl)||'', thumb:(tu&&tu[i]&&tu[i].signedUrl)||''}) }) } }
   const phases=[...new Set(_cps.map(c=>c.phase))].sort((a,b)=>a-b)
-  let html=''
+  const stCol=st=>st==='pass'?'var(--pass)':st==='fail'?'var(--fail)':'var(--faint)'
+  const stIco=st=>st==='pass'?'✓':st==='fail'?'✕':st==='na'?'–':'•'
+  _detImgs=[]; let html=''
   phases.forEach(ph=>{
     const items=_cps.filter(c=>c.phase===ph).sort((a,b)=>(a.sort||0)-(b.sort||0))
-    const done=items.filter(c=>cur[String(c.id)]).length; if(!done) return
-    const pass=items.filter(c=>{const e=cur[String(c.id)];return e&&e.status==='pass'}).length
-    const fails=items.filter(c=>{const e=cur[String(c.id)];return e&&e.status==='fail'})
+    const withEv=items.filter(c=>cur[String(c.id)]); if(!withEv.length) return
+    const pass=withEv.filter(c=>cur[String(c.id)].status==='pass').length
+    const fail=withEv.filter(c=>cur[String(c.id)].status==='fail').length
     const pn=(items[0]&&items[0].phase_name)||('งวด '+ph)
-    html+=`<div class="detsec"><div class="detsh">${esc(pn)}<span class="detcnt">${done}/${items.length} · <b style="color:var(--pass)">ผ่าน ${pass}</b>${fails.length?` · <b style="color:var(--fail)">ไม่ผ่าน ${fails.length}</b>`:''}</span></div>`
-    if(fails.length) html+=fails.map(c=>`<div class="detfail"><div class="dfl">${c.no?esc(c.no)+' ':''}${esc(c.label)}</div><div class="dfph">${(mByCp[String(c.id)]||[]).map(u=>u?`<a href="${u}" target="_blank"><img src="${u}"></a>`:'').join('')}</div></div>`).join('')
+    html+=`<div class="detsec"><div class="detsh">${esc(pn)}<span class="detcnt">${withEv.length}/${items.length} · <b style="color:var(--pass)">ผ่าน ${pass}</b>${fail?` · <b style="color:var(--fail)">ไม่ผ่าน ${fail}</b>`:''}</span></div>`
+    html+=withEv.map(c=>{ const e=cur[String(c.id)], ps=mByCp[String(c.id)]||[]
+      const thumbs=ps.map(p=>{ _detImgs.push(p.full||p.thumb); return `<img class="dthumb" src="${p.thumb||p.full}" data-i="${_detImgs.length-1}">` }).join('')
+      return `<div class="detitem"><div class="dtop"><span class="dst" style="color:${stCol(e.status)}">${stIco(e.status)}</span><span class="dfl2">${c.no?esc(c.no)+' ':''}${esc(c.label)}</span></div>${thumbs?`<div class="dfph">${thumbs}</div>`:''}</div>`
+    }).join('')
     html+=`</div>`
   })
   $('detBody').innerHTML = html||'<div class="spin">ยังไม่มีการตรวจในสาขานี้</div>'
+  $('detBody').querySelectorAll('.dthumb').forEach(im=> im.onclick=()=>openDetLb(+im.dataset.i))
+}
+function openDetLb(i){ _detLbI=i
+  let lb=$('detLb')
+  if(!lb){ lb=document.createElement('div'); lb.id='detLb'; lb.className='detlb'
+    lb.innerHTML=`<span class="dlbx">✕</span><span class="dlbnav prev">‹</span><img id="detLbImg"><span class="dlbnav next">›</span>`
+    document.body.appendChild(lb)
+    lb.onclick=e=>{ if(e.target===lb) lb.style.display='none' }
+    lb.querySelector('.dlbx').onclick=()=>{ lb.style.display='none' }
+    lb.querySelector('.prev').onclick=e=>{ e.stopPropagation(); _detLbI=(_detLbI-1+_detImgs.length)%_detImgs.length; $('detLbImg').src=_detImgs[_detLbI] }
+    lb.querySelector('.next').onclick=e=>{ e.stopPropagation(); _detLbI=(_detLbI+1)%_detImgs.length; $('detLbImg').src=_detImgs[_detLbI] }
+  }
+  lb.style.display='flex'; $('detLbImg').src=_detImgs[i]||''
 }
 function renderSetup(toggle){
   const rows=_suRows
@@ -287,7 +324,9 @@ function renderSetup(toggle){
     <div class="kpi"><div class="v" style="color:var(--pass)">${passStores}</div><div class="k">ผ่านครบ</div></div>
     <div class="kpi"><div class="v" style="color:var(--y)">${avg}</div><div class="k">คะแนนเฉลี่ย /100</div></div>
   </div>`
-  const list=[...rows].sort((a,b)=>(b.fail-a.fail)||((a.days==null?9999:a.days)-(b.days==null?9999:b.days)))
+  let list=[...rows]
+  if(_q){ const q=_q.trim().toLowerCase(); list=list.filter(r=>[r.name,r.code,r.prov].some(v=>(v||'').toLowerCase().includes(q))) }
+  list.sort((a,b)=>(b.fail-a.fail)||((a.days==null?9999:a.days)-(b.days==null?9999:b.days)))
   const rowsHtml=list.length?list.map(r=>{ const gc=r.done?gradeColor(r.grade):'var(--faint)'
     return `<tr class="clk" data-code="${esc(r.code)}">
       <td><span class="gradeb" style="color:${gc};border-color:${gc}55">${r.done?r.grade:'—'}</span><span class="stname">${esc(r.name)}</span><div class="stmeta"><span class="cd">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}</div></td>
