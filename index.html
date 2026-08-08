@@ -1163,12 +1163,17 @@ function openPick(){
 }
 function renderPick(){
   const q=pickQuery.trim().toLowerCase()
-  const list=stores.filter(s=> s.cs.key==='building' && (!q || [s.name,s.code,s.province].some(v=>(v||'').toLowerCase().includes(q))))
+  const rank={building:0,notyet:1,unknown:2,opened:3}
+  const list=stores.filter(s=> !q || [s.name,s.code,s.province].some(v=>(v||'').toLowerCase().includes(q)))
+    .sort((a,b)=> ((rank[a.cs.key]??9)-(rank[b.cs.key]??9)) || ((a.cs.days==null?9999:a.cs.days)-(b.cs.days==null?9999:b.cs.days)))
   const el=$('pickList')
-  if(!list.length){ el.innerHTML=`<div class="spin">${stores.length?'ไม่พบสาขาที่กำลังก่อสร้าง':'ยังไม่มีสาขาในระบบ'}</div>`; return }
+  if(!list.length){ el.innerHTML=`<div class="spin">${stores.length?'ไม่พบสาขาที่ค้นหา':'ยังไม่มีสาขาในระบบ'}</div>`; return }
   el.innerHTML=list.map(s=>{ const mine=myStores.has(s.code)
-    return `<div class="sc" data-code="${esc(s.code)}"><div class="tp"><div><div class="nm">${esc(s.name||s.code)}</div>
-      <div class="mt"><span class="code">${esc(s.code)}</span>${s.province?' · '+esc(s.province):''}</div></div>
+    const stTxt = s.cs.key==='building'?(s.cs.days!=null?`กำลังก่อสร้าง · เปิดใน ${s.cs.days} วัน`:'กำลังก่อสร้าง')
+      : s.cs.key==='notyet'?(s.cs.days!=null?`ยังไม่ก่อสร้าง · เปิดใน ${s.cs.days} วัน`:'ยังไม่ก่อสร้าง')
+      : s.cs.key==='opened'?'เปิดแล้ว':'ไม่ระบุวันเปิด'
+    return `<div class="sc" data-code="${esc(s.code)}"><div class="tp"><div style="min-width:0"><div class="nm">${esc(s.name||s.code)}</div>
+      <div class="mt"><span class="code">${esc(s.code)}</span>${s.province?' · '+esc(s.province):''} · ${stTxt}</div></div>
       ${mine?'<span class="dotlab s-pass"><i></i>งานของฉัน</span>':'<span class="dotlab s-build"><i></i>เริ่มตรวจ ›</span>'}</div></div>`
   }).join('')
   el.querySelectorAll('.sc').forEach(c=> c.onclick=()=>openSite(c.dataset.code))
