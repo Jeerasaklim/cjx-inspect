@@ -92,6 +92,7 @@ a.link{color:var(--yellow);text-decoration:none}
 .grp.first{border-top:0;padding-top:0;margin-top:2px}
 .cp{background:var(--card);border-radius:14px;padding:14px;margin-bottom:11px;border-left:3px solid transparent}
 .cp.pass{border-left-color:var(--pass)}.cp.fail{border-left-color:var(--fail)}.cp.na{border-left-color:var(--muted)}
+.cp.cpfix{border-left-color:var(--build);background:linear-gradient(90deg,#211a0d,var(--card) 60%)}
 .cp .cno{font-family:ui-monospace,monospace;font-weight:800;font-size:12px;color:var(--yellow)}
 .cp .clb{font-weight:600;font-size:13px;line-height:1.4;color:#EDEDEA;margin-top:2px}
 .cp .chint{font-size:11px;color:var(--faint);margin-top:3px}
@@ -166,6 +167,9 @@ a.link{color:var(--yellow);text-decoration:none}
 .punch .pi b{color:#fff;font-family:ui-monospace,monospace}
 .rnd{display:inline-block;font-size:10px;font-weight:800;color:var(--build);background:#2a1f0c;border-radius:99px;padding:2px 7px;margin-left:7px;vertical-align:middle}
 .appv{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--pass);background:#12271B;border:1px solid #23503a;border-radius:99px;padding:5px 11px;margin-bottom:12px}
+.lockbar{font-size:12px;font-weight:800;color:var(--yellow);background:#241d05;border:1px solid #4a3d0c;border-radius:11px;padding:10px 13px;margin-bottom:12px}
+.lockbar b{color:#fff}
+.phlocked .seg3,.phlocked .addph,.phlocked .cmt,.phlocked .sigslot,.phlocked .scoresel,.phlocked .delph{opacity:.45;pointer-events:none}
 .stamp{font-size:10.5px;color:var(--faint);margin-top:8px}
 .ctr{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px;cursor:pointer}
 .ctr:active{background:#1f2024}
@@ -267,6 +271,7 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
 .sigslot b{position:absolute;bottom:6px;font-size:10.5px;color:#555;font-weight:800}
 .sigslot i{position:absolute;bottom:-16px;font-size:10px;color:var(--muted);font-style:normal}
 .sigslot.signed{border-style:solid;border-color:var(--pass)}
+.sigslot .cmauto{color:var(--pass);font-size:12px;font-weight:800;display:flex;align-items:center;gap:4px}
 .sigwrap{margin-bottom:22px}
 </style>
 </head>
@@ -1303,31 +1308,40 @@ async function openSite(code){
     </div>
     ${!allPass?`<div class="hint">รับมอบงานได้เมื่อครบทั้ง ${PHASES.length} งวดก่อสร้าง และผ่าน 100% (ตอนนี้ผ่าน ${nPass}/${PHASES.length} งวด)</div>`:''}`
   }
-  // ---- Set-Up (NSA) track: ตรวจรับร้าน + คะแนน (เห็นได้: setup / หัวหน้า / admin) ----
-  if(isSetup()||isHead()){
+  // ---- Set-Up (NSA) track: ตรวจรับร้าน + คะแนน ----
+  //  เห็นได้: setup / หัวหน้า / admin  ·  และ CM เห็นเฉพาะร้านที่ตัวเองตรวจ (เมื่อ Set-Up เริ่มตรวจแล้ว) เพื่อแก้ข้อที่ถูกตีกลับ
+  const _isCM = profile.role==='cm'
+  const _storeHasSetup = (insps||[]).some(i=>i.phase>=201&&i.phase<=208)
+  if(isSetup()||isHead()||(_isCM&&_storeHasSetup)){
     const setupExists = checkpoints.some(c=>c.phase>=201&&c.phase<=208)
     if(setupExists){
       const sc=computeSetupScore(events)
       html += `<div class="sec">ตรวจรับร้าน (Set-Up · NSA)</div>`
+      if(_isCM && sc.failItems) html += `<div class="lockbar" style="border-color:#5a2a2a;background:#2a1414;color:#ffb4b4">🔧 Set-Up ตีกลับ ${sc.failItems} รายการ — แตะหมวดที่มี “ไม่ผ่าน” เข้าไปแนบรูปที่แก้แล้ว</div>`
       html += `<div class="suScore g-${sc.grade}">
         <div class="suGrade">${sc.doneItems?sc.grade:'—'}</div>
         <div class="suMeta"><div class="suNum">${sc.total.toFixed(0)}<span>/100</span></div>
-          <div class="suSub">ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?` · <b style="color:var(--fail)">${sc.failItems} ไม่ผ่าน</b>`:''}</div>
+          <div class="suSub">ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?` · <b style="color:var(--fail)">${sc.failItems} ไม่ผ่าน</b>`:''}${sc.fixedItems?` · <b style="color:var(--build)">${sc.fixedItems} รอตรวจซ้ำ</b>`:''}</div>
           <div class="suSup">ซัพหลัก ${sc.main.pct.toFixed(0)}% · ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div></div>`
       html += SETUP_SECTIONS.map(([n,name,w])=>{ const st=phaseStatus(n, inspByPhase[n], events)
         const sec=sc.sections.find(x=>x.phase===n)||{earned:0}
         return `<div class="step" data-phase="${n}"><div class="n suN">${n-200}</div>
           <div style="flex:1"><div class="snm">${esc(name)}</div><div class="st" style="color:${st.color}">${st.label} · <span class="scpill" style="color:var(--setup)">${sec.earned.toFixed(1)}/${w}</span></div></div><span class="chev">›</span></div>` }).join('')
-      const suLatest=(k)=>{ const a=signoffs.filter(x=>x.scope==='setup'&&x.kind===k); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
-      const nsaS=suLatest('setup_nsa'), suCmS=suLatest('setup_cm')
-      html += `<div class="apanel sigwrap" style="margin-top:14px"><div class="ap-t">ลายเซ็นใบตรวจรับร้าน</div>
-        <div class="ap-d">Set-Up (NSA) และทีมก่อสร้าง (CM) เซ็นร่วมกัน — ใช้แนบจ่ายงวดสุดท้ายคู่กับเอกสาร Check Point</div>
-        <div class="sigrow">
-          <div class="sigslot ${nsaS?'signed':''}" data-susig="setup_nsa">${nsaS&&nsaS.image?`<img src="${nsaS.image}">`:'<span>แตะเพื่อเซ็น</span>'}<b>ผู้ตรวจรับ (Set-Up/NSA)</b>${nsaS?`<i>${esc(nameOf(nsaS.by))}</i>`:''}</div>
-          <div class="sigslot ${suCmS?'signed':''}" data-susig="setup_cm">${suCmS&&suCmS.image?`<img src="${suCmS.image}">`:'<span>แตะเพื่อเซ็น</span>'}<b>ทีมก่อสร้าง (CM)</b>${suCmS?`<i>${esc(nameOf(suCmS.by))}</i>`:''}</div>
-        </div></div>`
-      html += `<div class="actbtn" style="margin-top:12px"><button class="btn pri" id="btnSetupReport">🧾 ออกใบตรวจรับร้าน (Set-Up)</button></div>`
-      html += `<div class="hint">ใบตรวจรับ = คะแนน/เกรด + รายการ 8 หมวด + ลายเซ็น 2 ฝ่าย · ${sc.allDone&&!sc.failItems?'<b style="color:var(--pass)">ครบ 100% พร้อมออกใบ ✓</b>':'ควรตรวจครบ 100% ไม่มีข้อไม่ผ่าน ก่อนออกใบจริง'}</div>`
+      if(!_isCM){
+        const suLatest=(k)=>{ const a=signoffs.filter(x=>x.scope==='setup'&&x.kind===k); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
+        const nsaS=suLatest('setup_nsa')
+        const cmName=setupCmName(signoffs)   // ชื่อ CM ตัวจริงจากงานก่อสร้าง (auto)
+        html += `<div class="apanel sigwrap" style="margin-top:14px"><div class="ap-t">ลายเซ็นใบตรวจรับร้าน</div>
+          <div class="ap-d">Set-Up (NSA) เซ็นสด · ทีมก่อสร้าง (CM) ระบบรับรองให้อัตโนมัติจากผู้ที่ตรวจ+รับมอบงานก่อสร้างจริง</div>
+          <div class="sigrow">
+            <div class="sigslot ${nsaS?'signed':''}" data-susig="setup_nsa">${nsaS&&nsaS.image?`<img src="${nsaS.image}">`:'<span>แตะเพื่อเซ็น</span>'}<b>ผู้ตรวจรับ (Set-Up/NSA)</b>${nsaS?`<i>${esc(nameOf(nsaS.by))}</i>`:''}</div>
+            <div class="sigslot ${cmName?'signed':''}"><div class="cmauto">✓ รับรองโดยงานก่อสร้าง</div><b>ทีมก่อสร้าง (CM)</b>${cmName?`<i>${esc(cmName)}</i>`:'<i style="color:var(--faint)">รอ CM ตรวจ/รับมอบงาน</i>'}</div>
+          </div></div>`
+        html += `<div class="actbtn" style="margin-top:12px"><button class="btn pri" id="btnSetupReport">🧾 ออกใบตรวจรับร้าน (Set-Up)</button></div>`
+        html += `<div class="hint">ใบตรวจรับ = คะแนน/เกรด + รายการ 8 หมวด + ลายเซ็น 2 ฝ่าย · ${sc.allDone&&!sc.failItems&&!sc.fixedItems?'<b style="color:var(--pass)">ครบ 100% พร้อมออกใบ ✓</b>':'ควรตรวจครบ 100% ไม่มีข้อไม่ผ่าน/รอตรวจซ้ำ ก่อนออกใบจริง'}</div>`
+      } else {
+        html += `<div class="hint">คุณเห็นเฉพาะสาขาที่คุณดูแล · <b style="color:var(--fail)">ไม่ผ่าน</b> = Set-Up ตีกลับ ต้องแก้แล้วแนบรูป · <b style="color:var(--build)">รอตรวจซ้ำ</b> = ส่งให้ Set-Up แล้ว รอเขาตรวจซ้ำ</div>`
+      }
     } else if(profile.role==='admin'){
       html += `<div class="sec">ตรวจรับร้าน (Set-Up)</div><div class="hint">ยังไม่ได้โหลด checklist ตรวจรับ — ไปที่ Admin › Checklist กด “โหลด checklist ตรวจรับ (Set-Up)”</div>`
     }
@@ -1371,32 +1385,46 @@ function phaseStatus(phase, insp, events){
   const done=ids.filter(id=>cur[id]).length
   if(!done) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
   if(done<total) return {key:'progress',label:`กำลังตรวจ ${done}/${total}`,color:'var(--build)',done,total}
-  return ids.some(id=>cur[id]&&cur[id].status==='fail') ? {key:'fail',label:'มีรายการไม่ผ่าน',color:'var(--fail)',done,total} : {key:'pass',label:'ผ่านทั้งหมด ✓',color:'var(--pass)',done,total}
+  if(ids.some(id=>cur[id]&&cur[id].status==='fail')) return {key:'fail',label:'มีรายการไม่ผ่าน',color:'var(--fail)',done,total}
+  if(ids.some(id=>cur[id]&&cur[id].status==='fixed')) return {key:'fixed',label:'CM แก้แล้ว · รอตรวจซ้ำ',color:'var(--build)',done,total}
+  return {key:'pass',label:'ผ่านทั้งหมด ✓',color:'var(--pass)',done,total}
 }
 // ---- Set-Up scoring (ถ่วงน้ำหนัก 8 หมวด = 100 → เกรด + แยกซัพหลัก/ย่อย) ----
 function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
 function computeSetupScore(events){
   const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
-  let total=0, gotMain=0,maxMain=0,gotSub=0,maxSub=0, doneItems=0,failItems=0,totalItems=0
+  let total=0, gotMain=0,maxMain=0,gotSub=0,maxSub=0, doneItems=0,failItems=0,fixedItems=0,totalItems=0
   const sections=SETUP_SECTIONS.map(([ph,name,weight])=>{
     const items=checkpoints.filter(c=>c.phase===ph)
     const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1
-    let earned=0,done=0,fail=0
+    let earned=0,done=0,fail=0,fixed=0
     items.forEach(c=>{ const w=(+c.points||1)/raw*weight, isSub=c.supplier==='ซัพย่อย'
       if(isSub) maxSub+=w; else maxMain+=w
       totalItems++
       const e=cur[String(c.id)]
       if(e){ done++; doneItems++
         if(e.status==='fail'){ fail++; failItems++ }
-        if(e.status==='pass'){ earned+=w; if(isSub) gotSub+=w; else gotMain+=w } } })
+        else if(e.status==='fixed'){ fixed++; fixedItems++ }   // CM แก้แล้ว รอ Set-Up ตรวจซ้ำ
+        else if(e.status==='pass'){ earned+=w; if(isSub) gotSub+=w; else gotMain+=w } } })
     total+=earned
-    return {phase:ph,name,weight,earned,done,fail,total:items.length}
+    return {phase:ph,name,weight,earned,done,fail,fixed,total:items.length}
   })
-  return {total,grade:setupGrade(total),sections,doneItems,totalItems,failItems,
+  return {total,grade:setupGrade(total),sections,doneItems,totalItems,failItems,fixedItems,
     main:{got:gotMain,max:maxMain,pct:maxMain?gotMain/maxMain*100:0},
     sub:{got:gotSub,max:maxSub,pct:maxSub?gotSub/maxSub*100:0},
     allDone:doneItems===totalItems&&totalItems>0}
 }
+// ชื่อ CM ตัวจริงของสาขา (auto) — จากผู้ที่รับมอบงานก่อสร้าง หรือผู้เซ็นรับรองงวดก่อสร้างล่าสุด
+function setupCmUid(signoffs){
+  const ho=(signoffs||[]).find(x=>x.scope==='store'&&x.kind==='handover'&&x.by)
+  if(ho) return ho.by
+  const cmSigs=(signoffs||[]).filter(x=>x.kind==='sign_cm'&&x.by)
+  if(cmSigs.length) return cmSigs.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)).by
+  const appr=(signoffs||[]).filter(x=>x.kind==='approve'&&x.by)
+  if(appr.length) return appr.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)).by
+  return null
+}
+function setupCmName(signoffs){ const u=setupCmUid(signoffs); return u?nameOf(u):null }
 function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso), p=n=>String(n).padStart(2,'0')
   return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543} ${p(d.getHours())}:${p(d.getMinutes())}` }
 async function doSignoff(code, scope, kind, after){
@@ -1433,13 +1461,18 @@ function mediaOf(id){ return pctx.media.filter(m=>m.checkpoint===String(id)) }
 function byOf(id){ const e=latestEvent(id); return e?e.by:null }
 function whenOf(id){ const e=latestEvent(id); return e?e.created_at:null }
 function latestSignoff(kind){ const a=pctx.signoffs.filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
+// ล็อกงวด: เซ็นครบ 2 ฝ่าย (ผู้ตรวจ + ผรม.) แล้ว = ปิด ใครก็แก้/ตรวจซ้ำไม่ได้ (ยกเว้น Admin)
+function phaseLocked(){ return pctx.signoffs.some(x=>x.kind==='sign_cm') && pctx.signoffs.some(x=>x.kind==='sign_contractor') }
+function phaseEditable(){ return !phaseLocked() || (profile&&profile.role==='admin') }
 async function reloadSignoffs(){ const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',pctx.code).eq('scope',String(pctx.phase)); pctx.signoffs=data||[] }
 async function saveSignature(kind, img){
+  if(phaseLocked() && !(profile&&profile.role==='admin')){ alert('งวดนี้ปิดแล้ว — เซ็นซ้ำไม่ได้'); return }
   const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:String(pctx.phase), kind, image:img })
   if(error) return alert('บันทึกลายเซ็นไม่สำเร็จ: '+error.message)
   await reloadSignoffs(); renderPhase(); toast('บันทึกลายเซ็นแล้ว')
 }
 async function saveScore(n){
+  if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว — เปลี่ยนคะแนนไม่ได้'); return }
   const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:String(pctx.phase), kind:'score', note:String(n) })
   if(error) return alert('บันทึกคะแนนไม่สำเร็จ: '+error.message)
   await reloadSignoffs(); renderPhase(); toast('ให้คะแนน '+n+'/5 แล้ว')
@@ -1447,6 +1480,7 @@ async function saveScore(n){
 // ลบรูปได้เฉพาะเจ้าของ (คนถ่าย) หรือ Admin
 function canDelPhoto(m){ return (profile&&profile.role==='admin') || m.pending || (m.by && m.by===myUid) }
 async function deletePhoto(path, qid){
+  if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว — ลบรูปไม่ได้'); return }
   if(!confirm('ลบรูปนี้? (ลบแล้วเอาคืนไม่ได้)')) return
   if(qid!==''&&qid!=null){   // รูปที่ยังไม่อัป (คิว offline) — ลบออกจากเครื่อง
     try{ await queueDel(+qid) }catch(e){}
@@ -1466,34 +1500,59 @@ function renderPhase(){
   const passN=cps.filter(c=>curStatus(c.id)==='pass').length
   const allPass = total>0 && done===total && failN===0
   const approved = pctx.signoffs.find(x=>x.kind==='approve')
-  const phaseName=(cps[0]&&cps[0].phase_name)||(phase>100?('Pre-Con '+(phase-100)):('ครั้งที่ '+phase))
+  const locked = phaseLocked(), editable = phaseEditable()
+  const phaseName=(cps[0]&&cps[0].phase_name)||(phase>200?('ตรวจรับ Set-Up '+(phase-200)):phase>100?('Pre-Con '+(phase-100)):('ครั้งที่ '+phase))
+  const suPhase = phase>=201 && phase<=208
+  const cmRespond = suPhase && profile.role==='cm'   // CM เข้ามาแก้ข้อที่ Set-Up ตีกลับ
+  const fixedN=cps.filter(c=>curStatus(c.id)==='fixed').length
   let html=`<div class="heroC"><div class="t">${esc(phaseName)}</div><div class="r"><span>${esc(storeName)}</span></div></div>`
+  if(cmRespond) html+=`<div class="lockbar" style="border-color:#3a4a2a;background:#17210f;color:#cfe8a8">🔧 โหมดแก้งานที่ Set-Up ตีกลับ — ข้อ <b style="color:var(--fail)">ไม่ผ่าน</b> แนบรูปที่แก้แล้ว → กดส่งให้ Set-Up ตรวจซ้ำ (คุณกดผ่านเองไม่ได้)</div>`
+  if(locked) html+=`<div class="lockbar">🔒 งวดนี้ปิดแล้ว · เซ็นครบ 2 ฝ่าย · ${editable?'<b>Admin แก้ไขได้ (override)</b>':'แก้ไข/ตรวจซ้ำไม่ได้'}</div>`
   if(approved) html+=`<div class="appv">✓ อนุมัติงวดแล้ว · ${esc(nameOf(approved.by))} · ${fmtDate(approved.created_at)}</div>`
   html+=`<div class="pgbar"><div class="tk"><i style="width:${pct}%"></i></div><b>${done}/${total}</b></div>`
   let lastGrp='__none__', first=true
   cps.forEach(c=>{
     if(c.group_title!==lastGrp){ if(c.group_title) html+=`<div class="grp${first?' first':''}">${esc(c.group_title)}</div>`; lastGrp=c.group_title; first=false }
-    const cur=curStatus(c.id), cls=cur==='pass'?'pass':cur==='fail'?'fail':cur==='na'?'na':''
-    const ph=mediaOf(c.id), rnd=maxRound(c.id)
-    const stamp = cur ? `<div class="stamp">ตรวจโดย ${esc(nameOf(byOf(c.id)))} · ${fmtDate(whenOf(c.id))}</div>` : ''
+    const cur=curStatus(c.id), cls=cur==='pass'?'pass':cur==='fail'?'fail':cur==='na'?'na':cur==='fixed'?'cpfix':''
+    const ph=mediaOf(c.id), rnd=maxRound(c.id), note=curNote(c.id)
+    const showAddph = editable && (!cmRespond || cur==='fail' || cur==='fixed')
+    const stamp = cur ? `<div class="stamp">${cur==='fixed'?'🔧 แก้โดย':'ตรวจโดย'} ${esc(nameOf(byOf(c.id)))} · ${fmtDate(whenOf(c.id))}</div>` : ''
+    let act=''
+    if(cmRespond){
+      if(cur==='fail'){
+        act=`${note?`<div class="chint" style="color:var(--fail)">✕ เหตุที่ Set-Up ตีกลับ: ${esc(note)}</div>`:''}
+          <div class="reqph ${ph.length?'ok':''}">${ph.length?('✓ แนบรูปที่แก้แล้ว '+ph.length+' รูป'):'แนบรูปที่แก้แล้วก่อนส่ง'}</div>
+          <input class="cmt" data-cp="${c.id}" placeholder="อธิบายว่าแก้อะไรไป (ถ้ามี)">
+          <button class="btn pri sm fixbtn" data-fix="${c.id}" style="margin-top:8px">✓ ส่งให้ Set-Up ตรวจซ้ำ</button>`
+      } else if(cur==='fixed'){
+        act=`<div class="reqph ok">✓ ส่งให้ Set-Up แล้ว · รอตรวจซ้ำ${ph.length?(' · รูปแก้ '+ph.length+' รูป'):''}</div>
+          <button class="btn gho sm fixbtn" data-fix="${c.id}" style="margin-top:8px">↻ อัปเดตรูป/ส่งใหม่</button>`
+      } else if(cur==='pass'){ act=`<div class="reqph ok">✓ Set-Up ตรวจผ่านแล้ว</div>`
+      } else if(cur==='na'){ act=`<div class="reqph">— ไม่มีงานนี้ —</div>`
+      } else { act=`<div class="reqph">Set-Up ยังไม่ได้ตรวจข้อนี้</div>` }
+    } else {
+      const suRecheck = suPhase && cur==='fixed' ? `<div class="chint" style="color:var(--build)">🔧 CM แก้แล้ว มีรูปใหม่ — โปรดตรวจซ้ำ</div>` : ''
+      act=`${suRecheck}<div class="reqph ${ph.length?'ok':''}">${ph.length?('✓ มีรูป '+ph.length+' รูป'+(ph.some(m=>m.pending)?' · กำลังอัปเบื้องหลัง':(ph.some(m=>m.err)?' · บางรูปอัปไม่ขึ้น':''))):'ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'}</div>
+      <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
+      <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(note)}">`
+    }
     html+=`<div class="cp ${cls}">${c.no?`<div class="cno">${esc(c.no)}${rnd>1?`<span class="rnd">รอบ ${rnd}</span>`:''}</div>`:(rnd>1?`<div class="cno"><span class="rnd">รอบ ${rnd}</span></div>`:'')}
       <div class="clb">${esc(c.label)}${c.supplier?`<span class="supchip ${c.supplier==='ซัพย่อย'?'sub':'main'}">${c.supplier==='ซัพย่อย'?'ย่อย':'หลัก'}</span>`:''}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}
-      <div class="photos">${ph.map(m=>`<span class="thw${m.pending?' pend':''}${m.err?' err':''}"><img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">${m.pending?'<i class="pbadge">⟳</i>':''}${m.err?'<i class="pbadge eb">!</i>':''}${canDelPhoto(m)?`<i class="delph" data-path="${esc(m.path||'')}" data-qid="${m.qid!=null?m.qid:''}" title="ลบรูปนี้">✕</i>`:''}</span>`).join('')}<span class="addph" data-cp="${c.id}">📷 ถ่าย/แนบรูป<small>หลายรูปได้</small></span></div>
-      <div class="reqph ${ph.length?'ok':''}">${ph.length?('✓ มีรูป '+ph.length+' รูป'+(ph.some(m=>m.pending)?' · กำลังอัปเบื้องหลัง':(ph.some(m=>m.err)?' · บางรูปอัปไม่ขึ้น':''))):'ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'}</div>
-      <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
-      <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(curNote(c.id))}">${stamp}</div>`
+      <div class="photos">${ph.map(m=>`<span class="thw${m.pending?' pend':''}${m.err?' err':''}"><img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">${m.pending?'<i class="pbadge">⟳</i>':''}${m.err?'<i class="pbadge eb">!</i>':''}${canDelPhoto(m)?`<i class="delph" data-path="${esc(m.path||'')}" data-qid="${m.qid!=null?m.qid:''}" title="ลบรูปนี้">✕</i>`:''}</span>`).join('')}${showAddph?`<span class="addph" data-cp="${c.id}">📷 ถ่าย/แนบรูป<small>หลายรูปได้</small></span>`:''}</div>
+      ${act}${stamp}</div>`
   })
   // ---- summary + actions ----
-  const scls = total===0?'mid':allPass?'ok':failN?'bad':'mid'
+  const scls = total===0?'mid':allPass?'ok':(failN?'bad':'mid')
   let sub, big
   if(total===0){ big=`ยังไม่มีรายการตรวจในงวดนี้`; sub=`ผู้ดูแล (Admin) ต้องกด “โหลด checklist” ในหน้า Admin ก่อน — งวดนี้จึงจะมีข้อให้ตรวจ` }
-  else if(done<total){ big=`ตรวจแล้ว ${done}/${total} รายการ`; sub=`ผ่าน ${passN} · ไม่ผ่าน ${failN} · ยังไม่ตรวจ ${total-done}` }
-  else if(failN){ big=`มี ${failN} รายการไม่ผ่าน — ต้องแก้และตรวจซ้ำ`; sub=`ผรม.แก้แล้ว กดผ่าน/ไม่ผ่านใหม่ได้เลย (ระบบเก็บเป็นรอบใหม่ ไม่ทับของเดิม)` }
-  else { big=`ผ่านครบ 100% (${passN} รายการ) ✓`; sub=`งวดนี้พร้อมเบิกงาน — ออกใบตรวจรับได้` }
+  else if(done<total){ big=`ตรวจแล้ว ${done}/${total} รายการ`; sub=`ผ่าน ${passN} · ไม่ผ่าน ${failN}${fixedN?` · รอตรวจซ้ำ ${fixedN}`:''} · ยังไม่ตรวจ ${total-done}` }
+  else if(failN){ big=`มี ${failN} รายการไม่ผ่าน — ต้องแก้และตรวจซ้ำ`; sub=suPhase?`CM แก้แล้วแนบรูป กดส่ง → Set-Up ตรวจซ้ำ (เก็บเป็นรอบใหม่ ไม่ทับของเดิม)`:`ผรม.แก้แล้ว กดผ่าน/ไม่ผ่านใหม่ได้เลย (ระบบเก็บเป็นรอบใหม่ ไม่ทับของเดิม)` }
+  else if(fixedN){ big=`รอ Set-Up ตรวจซ้ำ ${fixedN} รายการ`; sub=`CM แก้แล้วส่งกลับ — Set-Up ตรวจซ้ำเพื่อปิดข้อ` }
+  else { big=`ผ่านครบ 100% (${passN} รายการ) ✓`; sub=suPhase?`ครบทุกข้อ — กลับหน้าสาขาเพื่อออกใบตรวจรับร้าน`:`งวดนี้พร้อมเบิกงาน — ออกใบตรวจรับได้` }
   html+=`<div class="summary ${scls}"><div class="big">${big}</div><div class="sub">${sub}</div>`
   if(failN){ html+=`<div class="punch">`+cps.filter(c=>curStatus(c.id)==='fail').map(c=>`<div class="pi"><b>${esc(c.no||'•')}</b> ${esc(c.label)}</div>`).join('')+`</div>` }
   html+=`</div>`
-  if(allPass){
+  if(allPass && !suPhase){
     const scSig=latestSignoff('score'); const curScore=scSig?((+scSig.note)||0):0
     html+=`<div class="apanel scorebox" style="margin-top:16px"><div class="ap-t">คะแนนคุณภาพงวดนี้ (1–5)</div>
       <div class="ap-d">ผู้ตรวจให้คะแนนคุณภาพงานโดยรวมของงวดนี้</div>
@@ -1514,18 +1573,26 @@ function renderPhase(){
       + `</div>`
   }
   $('phaseBody').innerHTML=html
-  $('phaseBody').querySelectorAll('.seg3').forEach(seg=>{ const cp=+seg.dataset.cp
-    seg.querySelectorAll('b').forEach(b=> b.onclick=()=>saveTick(cp, b.dataset.s)) })
-  $('phaseBody').querySelectorAll('.addph').forEach(el=> el.onclick=()=>capturePhoto(+el.dataset.cp))
-  $('phaseBody').querySelectorAll('.delph').forEach(el=> el.onclick=(e)=>{ e.stopPropagation(); deletePhoto(el.dataset.path, el.dataset.qid) })
+  $('phaseBody').classList.toggle('phlocked', !editable)
   const _ths=[...$('phaseBody').querySelectorAll('.th')]
   const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
-  _ths.forEach((im,idx)=> im.onclick=()=>openLightbox(_urls, idx))
-  $('phaseBody').querySelectorAll('.cmt').forEach(inp=>{ const cp=+inp.dataset.cp
-    inp.onblur=()=>{ const cur=curStatus(cp); if(cur && inp.value.trim()!==curNote(cp)) saveTick(cp, cur) } })
-  $('phaseBody').querySelectorAll('.sigslot').forEach(el=> el.onclick=()=>{ const kind=el.dataset.sig
-    openSigPad(kind==='sign_cm'?'ลายเซ็นผู้ตรวจ (CM)':'ลายเซ็นผู้รับเหมา (ผรม.)', img=>saveSignature(kind,img)) })
-  $('phaseBody').querySelectorAll('.scoresel b').forEach(b=> b.onclick=()=>saveScore(+b.dataset.sc))
+  _ths.forEach((im,idx)=> im.onclick=()=>openLightbox(_urls, idx))   // ดูรูปได้เสมอ
+  if(editable){
+    $('phaseBody').querySelectorAll('.addph').forEach(el=> el.onclick=()=>capturePhoto(+el.dataset.cp))
+    $('phaseBody').querySelectorAll('.delph').forEach(el=> el.onclick=(e)=>{ e.stopPropagation(); deletePhoto(el.dataset.path, el.dataset.qid) })
+    if(cmRespond){
+      // CM แก้งานที่ Set-Up ตีกลับ — แนบรูปแล้วส่งให้ตรวจซ้ำ (กดผ่าน/ไม่ผ่านเองไม่ได้)
+      $('phaseBody').querySelectorAll('.fixbtn').forEach(b=> b.onclick=()=>saveFix(+b.dataset.fix))
+    } else {
+      $('phaseBody').querySelectorAll('.seg3').forEach(seg=>{ const cp=+seg.dataset.cp
+        seg.querySelectorAll('b').forEach(b=> b.onclick=()=>saveTick(cp, b.dataset.s)) })
+      $('phaseBody').querySelectorAll('.cmt').forEach(inp=>{ const cp=+inp.dataset.cp
+        inp.onblur=()=>{ const cur=curStatus(cp); if(cur && cur!=='fixed' && inp.value.trim()!==curNote(cp)) saveTick(cp, cur) } })
+      $('phaseBody').querySelectorAll('.sigslot').forEach(el=> el.onclick=()=>{ const kind=el.dataset.sig
+        openSigPad(kind==='sign_cm'?'ลายเซ็นผู้ตรวจ (CM)':'ลายเซ็นผู้รับเหมา (ผรม.)', img=>saveSignature(kind,img)) })
+      $('phaseBody').querySelectorAll('.scoresel b').forEach(b=> b.onclick=()=>saveScore(+b.dataset.sc))
+    }
+  }
   const br=$('btnPhReport'); if(br) br.onclick=()=>generateReport(pctx.code, phase)
   const ba=$('btnApprove'); if(ba) ba.onclick=()=>openSigPad('ลายเซ็นผู้อนุมัติงวดงาน', async(img)=>{
     const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:String(phase), kind:'approve', image:img })
@@ -1534,6 +1601,7 @@ function renderPhase(){
   })
 }
 async function saveTick(cpId, status){
+  if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว (เซ็นครบ 2 ฝ่าย) — แก้ไข/ตรวจซ้ำไม่ได้'); return }
   if((status==='pass'||status==='fail') && !mediaOf(cpId).length){ alert('ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'); return }
   if(!pctx.inspId){
     const { data, error } = await sb.from('inspections').insert({ store_code:pctx.code, phase:pctx.phase }).select('id').single()
@@ -1547,6 +1615,22 @@ async function saveTick(cpId, status){
   if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
   pctx.events.push({ checkpoint:String(cpId), round, status, note, by:(ins&&ins.by)||myUid, created_at:(ins&&ins.created_at)||null })
   myStores.add(pctx.code); renderPhase()
+}
+// ---- CM ส่งงานที่แก้แล้วให้ Set-Up ตรวจซ้ำ (status='fixed', เก็บเป็นรอบใหม่ ไม่ทับของเดิม) ----
+async function saveFix(cpId){
+  if(!mediaOf(cpId).length){ alert('ต้องแนบรูปที่แก้แล้วก่อนส่งให้ Set-Up ตรวจซ้ำ'); return }
+  if(!pctx.inspId){
+    const { data, error } = await sb.from('inspections').insert({ store_code:pctx.code, phase:pctx.phase }).select('id').single()
+    if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
+    pctx.inspId=data.id
+  }
+  const inp=$('phaseBody').querySelector(`.cmt[data-cp="${cpId}"]`)
+  const note = inp && inp.value.trim() ? inp.value.trim() : null
+  const round=maxRound(cpId)+1
+  const { data:ins, error } = await sb.from('check_events').insert({ inspection_id:pctx.inspId, checkpoint:String(cpId), round, status:'fixed', note }).select('by,created_at').single()
+  if(error) return alert('ส่งไม่สำเร็จ: '+error.message+'\n(ถ้าขึ้น check constraint ให้รัน sql/16 เพิ่มสถานะ fixed)')
+  pctx.events.push({ checkpoint:String(cpId), round, status:'fixed', note, by:(ins&&ins.by)||myUid, created_at:(ins&&ins.created_at)||null })
+  myStores.add(pctx.code); renderPhase(); toast('ส่งให้ Set-Up ตรวจซ้ำแล้ว ✓')
 }
 // ---- photo: capture → watermark → upload storage ----
 function getGPS(){ return new Promise(res=>{ if(!navigator.geolocation) return res(null)
@@ -1564,7 +1648,8 @@ async function makeThumb(srcBlob){ const img=await loadImage(srcBlob); let w=img
   const s=Math.min(1,400/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h)
   return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('t')),'image/jpeg',0.55)) }
-function capturePhoto(cpId){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.multiple=true
+function capturePhoto(cpId){ if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว — เพิ่มรูปไม่ได้'); return }
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.multiple=true
   inp.onchange=()=>{ const fs=[...(inp.files||[])]; if(fs.length) handlePhotos(cpId, fs) }; inp.click() }
 // ===== Offline photo queue (IndexedDB) — ถ่าย offline ได้ อัปอัตโนมัติเมื่อเน็ตกลับ =====
 let _idb=null
@@ -1923,8 +2008,8 @@ function drawUsers(){
 }
 
 // ========== B · REPORT / CERTIFICATE (print → PDF) ==========
-function statusTxt(s){ return s==='pass'?'ผ่าน':s==='fail'?'ไม่ผ่าน':s==='na'?'ไม่มีงานนี้':'ยังไม่ตรวจ' }
-function statusColor(s){ return s==='pass'?'#137a43':s==='fail'?'#c0392b':s==='na'?'#777':'#999' }
+function statusTxt(s){ return s==='pass'?'ผ่าน':s==='fail'?'ไม่ผ่าน':s==='fixed'?'CM แก้แล้ว · รอตรวจซ้ำ':s==='na'?'ไม่มีงานนี้':'ยังไม่ตรวจ' }
+function statusColor(s){ return s==='pass'?'#137a43':s==='fail'?'#c0392b':s==='fixed'?'#b06a00':s==='na'?'#777':'#999' }
 let _reportReturn=null
 $('reportBack').onclick = ()=>{ if(_reportReturn) _reportReturn(); else goHome() }
 $('reportPrint').onclick = ()=>{ const f=$('reportFrame'); try{ f.contentWindow.focus(); f.contentWindow.print() }catch(e){ window.print() } }
@@ -2058,6 +2143,10 @@ async function generateSetupReport(code){
   }
   const { data:sg } = await sb.from('signoffs').select('kind,by,created_at,image').eq('store_code',code).eq('scope','setup')
   const pickSig=(kind)=>{ const a=(sg||[]).filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
+  // ชื่อ CM ตัวจริง (auto) จากงานก่อสร้าง — สำหรับช่องลายเซ็นฝั่ง CM
+  const { data:sgCon } = await sb.from('signoffs').select('scope,kind,by,created_at').eq('store_code',code)
+  const cmName=setupCmName(sgCon)
+  const _ho=(sgCon||[]).find(x=>x.scope==='store'&&x.kind==='handover'); const cmDate=_ho?fmtDate(_ho.created_at):null
   const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
   const sc=computeSetupScore(events)
@@ -2080,9 +2169,10 @@ async function generateSetupReport(code){
     body+=`<h2>${esc(name)} <span class="okpill">${ss.earned.toFixed(1)}/${weight}</span></h2>
       <table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
   })
-  const passAll = sc.allDone && sc.failItems===0
-  const nsaSig=pickSig('setup_nsa'), cmSig=pickSig('setup_cm')
+  const passAll = sc.allDone && sc.failItems===0 && sc.fixedItems===0
+  const nsaSig=pickSig('setup_nsa')
   const sigCell=(sig,label)=>`<div>${sig&&sig.image?`<img src="${sig.image}">`:'<div class="sigsp"></div>'}<div class="slab">${label}</div>${sig?`<div class="sby">${esc(nameOf(sig.by))}<br>${fmtDate(sig.created_at)}</div>`:''}</div>`
+  const cmCell=`<div><div class="sigsp" style="display:flex;align-items:flex-end;justify-content:center;color:#137a43;font-weight:800;font-size:11.5px">✓ รับรองจากงานก่อสร้าง</div><div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${cmName?esc(cmName):'—'}${cmDate?'<br>รับมอบงาน '+cmDate:''}</div></div>`
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ใบตรวจรับร้าน ${esc(s.name||code)}</title><style>
   *{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
@@ -2136,7 +2226,7 @@ async function generateSetupReport(code){
     ${passAll?'<div class="stmt">ขอรับรองว่าร้านนี้ผ่านการตรวจรับจากทีม Set-Up (NSA) ครบถ้วน 100% — ใช้แนบประกอบการจ่ายงวดสุดท้าย คู่กับเอกสารตรวจ Check Point งานก่อสร้าง</div>':''}
   </div>
   ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจรับ</p>'}
-  <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${sigCell(cmSig,'ทีมก่อสร้าง (CM)')}</div>
+  <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${cmCell}</div>
   </body></html>`
   frame.srcdoc=html
   frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
