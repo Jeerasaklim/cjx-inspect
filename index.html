@@ -100,8 +100,7 @@ a.link{color:var(--yellow);text-decoration:none}
 .seg3 b{flex:1;text-align:center;padding:12px 4px;border-radius:10px;background:#232327;font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer}
 .seg3 b.on-p{background:var(--pass);color:#062B18}.seg3 b.on-f{background:var(--fail);color:#2B0808}.seg3 b.on-n{background:#3A3A3E;color:#fff}
 .cp .cmt{width:100%;margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#141416;color:var(--ink);font-size:13px;font-family:inherit}
-.cp .cprow{display:flex;gap:8px;align-items:stretch}.cp .cprow .cmt{flex:1;min-width:0}
-.cp .clrtick{margin-top:10px;flex:0 0 auto;background:#241416;color:#ff9b9b;border:1px solid #5a2a2a;border-radius:9px;padding:0 12px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer}
+.cp .ptip{font-size:10px;color:var(--faint);margin-top:6px}
 .cp .cmt:focus{outline:1px solid var(--yellow);border-color:var(--yellow)}
 .photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;align-items:center}
 .photos .th{width:60px;height:60px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:#222}
@@ -1559,9 +1558,10 @@ function renderPhase(){
         : (needEvid ? ('ต้องแนบ'+(isVid?'วิดีโอ':'รูป')+'ก่อนกดผ่าน/ไม่ผ่าน') : 'ข้อนี้ไม่บังคับแนบรูป · ติ๊กได้เลย')
       act=`${suRecheck}<div class="reqph ${ph.length?'ok':(needEvid?'':'opt')}">${evTxt}</div>
       <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
-      <div class="cprow"><input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(note)}">${cur?`<button class="clrtick" data-cp="${c.id}" title="ล้างการติ๊ก (ติ๊กผิด)">✕ ล้าง</button>`:''}</div>`
+      ${cur?'<div class="ptip">แตะตัวเลือกเดิมซ้ำ = เอาการติ๊กออก</div>':''}
+      <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(note)}">`
     }
-    html+=`<div class="cp ${cls}">${c.no?`<div class="cno">${esc(c.no)}${rnd>1?`<span class="rnd">รอบ ${rnd}</span>`:''}</div>`:(rnd>1?`<div class="cno"><span class="rnd">รอบ ${rnd}</span></div>`:'')}
+    html+=`<div class="cp ${cls}">${c.no?`<div class="cno">${esc(c.no)}</div>`:''}
       <div class="clb">${esc(c.label)}${c.supplier?`<span class="supchip ${c.supplier==='ซัพย่อย'?'sub':'main'}">${c.supplier==='ซัพย่อย'?'ย่อย':'หลัก'}</span>`:''}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}
       <div class="photos">${ph.map(m=>evidTile(m)).join('')}${showAddph?`<span class="addph${needEvid?'':' opt'}" data-cp="${c.id}" data-vid="${isVid?1:0}">${isVid?'🎥 ถ่าย/แนบวิดีโอ':'📷 ถ่าย/แนบรูป'}<small>${isVid?'สั้นๆ พอ':(needEvid?'หลายรูปได้':'ถ้ามี')}</small></span>`:''}</div>
       ${act}${stamp}</div>`
@@ -1610,8 +1610,7 @@ function renderPhase(){
       $('phaseBody').querySelectorAll('.fixbtn').forEach(b=> b.onclick=()=>saveFix(+b.dataset.fix))
     } else {
       $('phaseBody').querySelectorAll('.seg3').forEach(seg=>{ const cp=+seg.dataset.cp
-        seg.querySelectorAll('b').forEach(b=> b.onclick=()=>saveTick(cp, b.dataset.s)) })
-      $('phaseBody').querySelectorAll('.clrtick').forEach(b=> b.onclick=()=>clearTick(+b.dataset.cp))
+        seg.querySelectorAll('b').forEach(b=> b.onclick=()=>{ const s=b.dataset.s; if(curStatus(cp)===s) clearTick(cp); else saveTick(cp,s) }) })
       $('phaseBody').querySelectorAll('.cmt').forEach(inp=>{ const cp=+inp.dataset.cp
         inp.onblur=()=>{ const cur=curStatus(cp); if(cur && cur!=='fixed' && inp.value.trim()!==curNote(cp)) saveTick(cp, cur) } })
       $('phaseBody').querySelectorAll('.sigslot').forEach(el=> el.onclick=()=>{ const kind=el.dataset.sig
