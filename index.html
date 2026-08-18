@@ -100,6 +100,8 @@ a.link{color:var(--yellow);text-decoration:none}
 .seg3 b{flex:1;text-align:center;padding:12px 4px;border-radius:10px;background:#232327;font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer}
 .seg3 b.on-p{background:var(--pass);color:#062B18}.seg3 b.on-f{background:var(--fail);color:#2B0808}.seg3 b.on-n{background:#3A3A3E;color:#fff}
 .cp .cmt{width:100%;margin-top:10px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#141416;color:var(--ink);font-size:13px;font-family:inherit}
+.cp .cprow{display:flex;gap:8px;align-items:stretch}.cp .cprow .cmt{flex:1;min-width:0}
+.cp .clrtick{margin-top:10px;flex:0 0 auto;background:#241416;color:#ff9b9b;border:1px solid #5a2a2a;border-radius:9px;padding:0 12px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer}
 .cp .cmt:focus{outline:1px solid var(--yellow);border-color:var(--yellow)}
 .photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;align-items:center}
 .photos .th{width:60px;height:60px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:#222}
@@ -1463,7 +1465,8 @@ async function openPhase(code, phase){
   pctx={ code, phase, inspId, cps, events, media, signoffs:sg||[], storeName:s?(s.name||code):code }
   renderPhase(); hideAllViews(); showTabbar(false); show($('viewPhase'),true); window.scrollTo(0,0)
 }
-function latestEvent(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); return es.length? es.reduce((a,b)=>b.round>a.round?b:a) : null }
+function latestEvent(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); if(!es.length) return null
+  const mr=Math.max(...es.map(e=>e.round)); let last=null; es.forEach(e=>{ if(e.round===mr) last=e }); return last }   // รอบล่าสุด + event สุดท้ายในรอบนั้น (แก้ที่ติ๊กผิดทับได้ ไม่ค้างของเก่า)
 function curStatus(id){ const e=latestEvent(id); return e?e.status:null }
 function curNote(id){ const e=latestEvent(id); return e?(e.note||''):'' }
 function maxRound(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); return es.length?Math.max(...es.map(e=>e.round)):0 }
@@ -1556,7 +1559,7 @@ function renderPhase(){
         : (needEvid ? ('ต้องแนบ'+(isVid?'วิดีโอ':'รูป')+'ก่อนกดผ่าน/ไม่ผ่าน') : 'ข้อนี้ไม่บังคับแนบรูป · ติ๊กได้เลย')
       act=`${suRecheck}<div class="reqph ${ph.length?'ok':(needEvid?'':'opt')}">${evTxt}</div>
       <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
-      <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(note)}">`
+      <div class="cprow"><input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(note)}">${cur?`<button class="clrtick" data-cp="${c.id}" title="ล้างการติ๊ก (ติ๊กผิด)">✕ ล้าง</button>`:''}</div>`
     }
     html+=`<div class="cp ${cls}">${c.no?`<div class="cno">${esc(c.no)}${rnd>1?`<span class="rnd">รอบ ${rnd}</span>`:''}</div>`:(rnd>1?`<div class="cno"><span class="rnd">รอบ ${rnd}</span></div>`:'')}
       <div class="clb">${esc(c.label)}${c.supplier?`<span class="supchip ${c.supplier==='ซัพย่อย'?'sub':'main'}">${c.supplier==='ซัพย่อย'?'ย่อย':'หลัก'}</span>`:''}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}
@@ -1608,6 +1611,7 @@ function renderPhase(){
     } else {
       $('phaseBody').querySelectorAll('.seg3').forEach(seg=>{ const cp=+seg.dataset.cp
         seg.querySelectorAll('b').forEach(b=> b.onclick=()=>saveTick(cp, b.dataset.s)) })
+      $('phaseBody').querySelectorAll('.clrtick').forEach(b=> b.onclick=()=>clearTick(+b.dataset.cp))
       $('phaseBody').querySelectorAll('.cmt').forEach(inp=>{ const cp=+inp.dataset.cp
         inp.onblur=()=>{ const cur=curStatus(cp); if(cur && cur!=='fixed' && inp.value.trim()!==curNote(cp)) saveTick(cp, cur) } })
       $('phaseBody').querySelectorAll('.sigslot').forEach(el=> el.onclick=()=>{ const kind=el.dataset.sig
@@ -1633,11 +1637,23 @@ async function saveTick(cpId, status){
   }
   const inp=$('phaseBody').querySelector(`.cmt[data-cp="${cpId}"]`)
   const note = inp && inp.value.trim() ? inp.value.trim() : null
-  const round=maxRound(cpId)+1
+  const round=maxRound(cpId)||1   // ไม่เพิ่มรอบทุกครั้งที่ติ๊ก — แก้ที่กดผิดอยู่รอบเดิม · รอบเพิ่มเฉพาะตอน CM ส่งงานแก้ (saveFix)
   const { data:ins, error } = await sb.from('check_events').insert({ inspection_id:pctx.inspId, checkpoint:String(cpId), round, status, note }).select('by,created_at').single()
   if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
   pctx.events.push({ checkpoint:String(cpId), round, status, note, by:(ins&&ins.by)||myUid, created_at:(ins&&ins.created_at)||null })
   myStores.add(pctx.code); renderPhase()
+}
+// ล้างการติ๊ก (ติ๊กผิด) — ลบ event รอบล่าสุดของข้อนี้ (เฉพาะของตัวเอง/Admin) กลับเป็น "ยังไม่ตรวจ"
+async function clearTick(cpId){
+  if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว — แก้ไม่ได้'); return }
+  const es=pctx.events.filter(e=>e.checkpoint===String(cpId)); if(!es.length) return
+  const mr=Math.max(...es.map(e=>e.round))
+  if(pctx.inspId){
+    const { error } = await sb.from('check_events').delete().eq('inspection_id',pctx.inspId).eq('checkpoint',String(cpId)).eq('round',mr)
+    if(error) return alert('ล้างไม่สำเร็จ: '+error.message+'\n(ถ้าขึ้นเรื่องสิทธิ์ ให้รัน sql/19)')
+  }
+  pctx.events=pctx.events.filter(e=>!(e.checkpoint===String(cpId)&&e.round===mr))
+  renderPhase(); toast('ล้างการติ๊กแล้ว')
 }
 // ---- CM ส่งงานที่แก้แล้วให้ Set-Up ตรวจซ้ำ (status='fixed', เก็บเป็นรอบใหม่ ไม่ทับของเดิม) ----
 async function saveFix(cpId){
