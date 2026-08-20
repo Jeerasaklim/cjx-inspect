@@ -169,8 +169,15 @@ a.link{color:var(--yellow);text-decoration:none}
 .summary .big{font-size:15px;font-weight:800}
 .summary.ok .big{color:var(--pass)}.summary.bad .big{color:var(--fail)}.summary.mid .big{color:var(--build)}
 .summary .sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.6}
-.punch{margin-top:12px}.punch .pi{font-size:12.5px;color:#FFB4B4;padding:8px 0;border-top:1px solid #33232a}
-.punch .pi b{color:#fff;font-family:ui-monospace,monospace}
+.punch{margin-top:12px}
+.punch .punchh{font-size:11px;font-weight:800;color:var(--fail);letter-spacing:.02em;margin-bottom:4px}
+.punch .pi{font-size:12.5px;color:#FFB4B4;padding:9px 0;border-top:1px solid #33232a}
+.punch .pihd b{color:#fff;font-family:ui-monospace,monospace;margin-right:4px}
+.punch .pint{font-size:11.5px;color:#e6b8b8;margin-top:3px}
+.punch .pinophoto{font-size:11px;color:var(--build);margin-top:5px}
+.punch .piph{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.punch .pith{width:52px;height:52px;border-radius:7px;object-fit:cover;border:1px solid #4a2a2a;cursor:pointer}
+.punch .pithv{width:78px;height:52px;border-radius:7px;object-fit:cover;border:1px solid #4a2a2a;background:#000}
 .rnd{display:inline-block;font-size:10px;font-weight:800;color:var(--build);background:#2a1f0c;border-radius:99px;padding:2px 7px;margin-left:7px;vertical-align:middle}
 .appv{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--pass);background:#12271B;border:1px solid #23503a;border-radius:99px;padding:5px 11px;margin-bottom:12px}
 .lockbar{font-size:12px;font-weight:800;color:var(--yellow);background:#241d05;border:1px solid #4a3d0c;border-radius:11px;padding:10px 13px;margin-bottom:12px}
@@ -1555,7 +1562,7 @@ function renderPhase(){
     } else {
       const suRecheck = suPhase && cur==='fixed' ? `<div class="chint" style="color:var(--build)">🔧 CM แก้แล้ว มีรูปใหม่ — โปรดตรวจซ้ำ</div>` : ''
       const evTxt = ph.length ? ('✓ มี'+(isVid?'วิดีโอ':'รูป')+' '+ph.length+(ph.some(m=>m.pending)?' · กำลังอัปเบื้องหลัง':(ph.some(m=>m.err)?' · บางอันอัปไม่ขึ้น':'')))
-        : (needEvid ? ('ต้องแนบ'+(isVid?'วิดีโอ':'รูป')+'ก่อนกดผ่าน/ไม่ผ่าน') : 'ข้อนี้ไม่บังคับแนบรูป · ติ๊กได้เลย')
+        : (needEvid ? ('ต้องแนบ'+(isVid?'วิดีโอ':'รูป')+'ก่อนกดผ่าน/ไม่ผ่าน') : '“ผ่าน” ติ๊กได้เลย · “ไม่ผ่าน” ต้องแนบรูปจุดที่มีปัญหา')
       act=`${suRecheck}<div class="reqph ${ph.length?'ok':(needEvid?'':'opt')}">${evTxt}</div>
       <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
       ${cur?'<div class="ptip">แตะตัวเลือกเดิมซ้ำ = เอาการติ๊กออก</div>':''}
@@ -1575,7 +1582,10 @@ function renderPhase(){
   else if(fixedN){ big=`รอ Set-Up ตรวจซ้ำ ${fixedN} รายการ`; sub=`CM แก้แล้วส่งกลับ — Set-Up ตรวจซ้ำเพื่อปิดข้อ` }
   else { big=`ผ่านครบ 100% (${passN} รายการ) ✓`; sub=suPhase?`ครบทุกข้อ — กลับหน้าสาขาเพื่อออกใบตรวจรับร้าน`:`งวดนี้พร้อมเบิกงาน — ออกใบตรวจรับได้` }
   html+=`<div class="summary ${scls}"><div class="big">${big}</div><div class="sub">${sub}</div>`
-  if(failN){ html+=`<div class="punch">`+cps.filter(c=>curStatus(c.id)==='fail').map(c=>`<div class="pi"><b>${esc(c.no||'•')}</b> ${esc(c.label)}</div>`).join('')+`</div>` }
+  if(failN){ html+=`<div class="punch"><div class="punchh">จุดที่ไม่ผ่าน ${failN} รายการ</div>`+cps.filter(c=>curStatus(c.id)==='fail').map(c=>{
+    const pm=mediaOf(c.id), nt=curNote(c.id)
+    return `<div class="pi"><div class="pihd"><b>${esc(c.no||'•')}</b> ${esc(c.label)}</div>${nt?`<div class="pint">📝 ${esc(nt)}</div>`:''}${pm.length?`<div class="piph">${pm.map(m=>m.kind==='video'?`<video class="pithv" src="${m.url||''}" playsinline muted preload="metadata"></video>`:`<img class="th pith" src="${m.turl||m.url||''}" data-url="${m.url||''}">`).join('')}</div>`:'<div class="pinophoto">⚠ ยังไม่มีรูป</div>'}</div>`
+  }).join('')+`</div>` }
   html+=`</div>`
   if(allPass && !suPhase){
     const scSig=latestSignoff('score'); const curScore=scSig?((+scSig.note)||0):0
@@ -1628,7 +1638,11 @@ function renderPhase(){
 async function saveTick(cpId, status){
   if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว (เซ็นครบ 2 ฝ่าย) — แก้ไข/ตรวจซ้ำไม่ได้'); return }
   const _cp=pctx.cps.find(c=>c.id===cpId)
-  if((status==='pass'||status==='fail') && cpEvid(_cp) && !mediaOf(cpId).length){ alert(cpVideo(_cp)?'ข้อนี้ต้องแนบวิดีโอก่อนกดผ่าน/ไม่ผ่าน':'ข้อนี้ต้องแนบรูปก่อนกดผ่าน/ไม่ผ่าน'); return }
+  const mustEvid = (status==='fail') || cpEvid(_cp)   // "ไม่ผ่าน" = ต้องแนบรูปจุดที่มีปัญหาเสมอ (แม้ข้อนั้นไม่บังคับตอนผ่าน)
+  if((status==='pass'||status==='fail') && mustEvid && !mediaOf(cpId).length){
+    alert(status==='fail'
+      ? (cpVideo(_cp)?'“ไม่ผ่าน” — ต้องแนบวิดีโอจุดที่มีปัญหาก่อน':'“ไม่ผ่าน” — ต้องแนบรูปจุดที่มีปัญหาก่อน')
+      : (cpVideo(_cp)?'ข้อนี้ต้องแนบวิดีโอก่อนกดผ่าน':'ข้อนี้ต้องแนบรูปก่อนกดผ่าน')); return }
   if(!pctx.inspId){
     const { data, error } = await sb.from('inspections').insert({ store_code:pctx.code, phase:pctx.phase }).select('id').single()
     if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
@@ -1648,8 +1662,9 @@ async function clearTick(cpId){
   const es=pctx.events.filter(e=>e.checkpoint===String(cpId)); if(!es.length) return
   const mr=Math.max(...es.map(e=>e.round))
   if(pctx.inspId){
-    const { error } = await sb.from('check_events').delete().eq('inspection_id',pctx.inspId).eq('checkpoint',String(cpId)).eq('round',mr)
-    if(error) return alert('ล้างไม่สำเร็จ: '+error.message+'\n(ถ้าขึ้นเรื่องสิทธิ์ ให้รัน sql/19)')
+    const { data:del, error } = await sb.from('check_events').delete().eq('inspection_id',pctx.inspId).eq('checkpoint',String(cpId)).eq('round',mr).select()
+    if(error) return alert('ล้างไม่สำเร็จ: '+error.message)
+    if(!del || !del.length){ alert('ล้างไม่สำเร็จ — ระบบยังไม่อนุญาตให้ลบ\nให้ผู้ดูแลรัน sql/19 ใน Supabase ก่อน (หรือติ๊กนี้เป็นของคนอื่น)'); return }
   }
   pctx.events=pctx.events.filter(e=>!(e.checkpoint===String(cpId)&&e.round===mr))
   renderPhase(); toast('ล้างการติ๊กแล้ว')
@@ -2144,6 +2159,13 @@ async function generateReport(code, phase){
     return `<div>${s&&s.image?`<img src="${s.image}">`:'<div class="sigsp"></div>'}<div class="slab">${label}</div>${info}</div>`
   }
   const signHtml=`<div class="sign">${sigCell(cmSig,'ผู้ตรวจ (CM)')}${sigCell(conSig,'ผู้รับเหมา (ผรม.)', s.contractor||'')}${sigCell(apprSig, phase?'ผู้อนุมัติ (Head Construction)':'ผู้รับมอบงาน (Head)')}</div>`
+  // ---- สรุปจุดที่ไม่ผ่าน (รวมทุกงวด) + รูป ----
+  const failList=[]
+  phases.forEach(pn=>{ checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&e.status==='fail') failList.push({c,e,pn}) }) })
+  const failHtml = failList.length ? `<div class="failbox"><div class="failh">⚠ สรุปจุดที่ไม่ผ่าน ${failList.length} รายการ — ต้องแก้ไข</div>`+failList.map(({c,e,pn})=>{
+      const ims=(mediaByCp[String(c.id)]||[]); const pName=(checkpoints.find(x=>x.phase===pn)||{}).phase_name||('ครั้งที่ '+pn)
+      return `<div class="fitem"><div class="fhd"><span class="fno">${esc(c.no||'•')}</span> ${esc(c.label)} <span class="fph">${esc(pName)}</span></div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
+    }).join('')+`</div>` : ''
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>รายงานตรวจงาน ${esc(s.name||code)}</title><style>
   *{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
@@ -2166,6 +2188,14 @@ async function generateReport(code, phase){
   td.im{width:170px}td.im img{width:76px;height:76px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #ddd}
   .grp{background:#fafafa;font-weight:800;color:#444;font-size:11.5px}
   .nt{color:#b06a00;font-size:11px;margin-top:3px}
+  .failbox{border:1.5px solid #e6b0b0;background:#fdf5f5;border-radius:12px;padding:14px 16px;margin-bottom:22px;page-break-inside:avoid}
+  .failh{font-weight:800;font-size:14px;color:#c0392b;margin-bottom:10px}
+  .fitem{padding:9px 0;border-top:1px solid #f0d5d5}.fitem:first-of-type{border-top:0}
+  .fhd{font-weight:700;font-size:12.5px;color:#333}.fno{font-family:monospace;color:#c0392b;font-weight:800;margin-right:4px}
+  .fph{color:#999;font-weight:600;font-size:11px}
+  .fnt{color:#b06a00;font-size:11.5px;margin:3px 0}
+  .fimgs{margin-top:5px}.fimgs img{width:76px;height:76px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #e0b0b0}
+  .fnoimg{color:#c0392b;font-size:11px}
   .sign{display:flex;gap:24px;margin-top:40px;page-break-inside:avoid}
   .sign>div{flex:1;text-align:center;font-size:12px;color:#555}
   .sign img{max-height:60px;max-width:92%;object-fit:contain;display:block;margin:0 auto 2px}
@@ -2185,6 +2215,7 @@ async function generateReport(code, phase){
     <div class="issued">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}${handover?` · รับมอบงานแล้ว ${fmtDate(handover.created_at)}`:''}</div>
     ${passAll?'<div class="stmt">ขอรับรองว่างานก่อสร้างในขอบเขตนี้ได้รับการตรวจสอบและผ่านเกณฑ์ครบถ้วน 100% พร้อมประกอบการเบิกจ่ายงวดงาน</div>':''}
   </div>
+  ${failHtml}
   ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจในขอบเขตนี้</p>'}
   ${signHtml}
   </body></html>`
@@ -2240,6 +2271,14 @@ async function generateSetupReport(code){
       <table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
   })
   const passAll = sc.allDone && sc.failItems===0 && sc.fixedItems===0
+  // ---- สรุปจุดที่ไม่ผ่าน (รวม "รอตรวจซ้ำ") + รูป ----
+  const suFail=[]
+  SETUP_SECTIONS.forEach(([pn,name])=>{ checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')) suFail.push({c,e,name}) }) })
+  const suFailHtml = suFail.length ? `<div class="failbox"><div class="failh">⚠ สรุปจุดที่ไม่ผ่าน ${suFail.length} รายการ</div>`+suFail.map(({c,e,name})=>{
+      const ims=(mediaByCp[String(c.id)]||[])
+      const tag = e.status==='fixed'?'<span class="ftag fx">CM แก้แล้ว · รอตรวจซ้ำ</span>':'<span class="ftag">ไม่ผ่าน</span>'
+      return `<div class="fitem"><div class="fhd"><span class="fno">•</span> ${esc(c.label)} <span class="fph">${esc(name)}</span> ${tag}</div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
+    }).join('')+`</div>` : ''
   const nsaSig=pickSig('setup_nsa')
   const sigCell=(sig,label)=>`<div>${sig&&sig.image?`<img src="${sig.image}">`:'<div class="sigsp"></div>'}<div class="slab">${label}</div>${sig?`<div class="sby">${esc(nameOf(sig.by))}<br>${fmtDate(sig.created_at)}</div>`:''}</div>`
   const cmCell=`<div><div class="sigsp" style="display:flex;align-items:flex-end;justify-content:center;color:#137a43;font-weight:800;font-size:11.5px">✓ รับรองจากงานก่อสร้าง</div><div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${cmName?esc(cmName):'—'}${cmDate?'<br>รับมอบงาน '+cmDate:''}</div></div>`
@@ -2273,6 +2312,15 @@ async function generateSetupReport(code){
   .sup{font-size:10px;font-weight:800;padding:1px 6px;border-radius:5px;margin-left:6px}
   .sup.m{color:#2d5bb8;background:#eef4ff}.sup.y{color:#a5701a;background:#fff6e8}
   .brkT td.c{font-weight:700}
+  .failbox{border:1.5px solid #e6b0b0;background:#fdf5f5;border-radius:12px;padding:14px 16px;margin:0 0 22px;page-break-inside:avoid}
+  .failh{font-weight:800;font-size:14px;color:#c0392b;margin-bottom:10px}
+  .fitem{padding:9px 0;border-top:1px solid #f0d5d5}.fitem:first-of-type{border-top:0}
+  .fhd{font-weight:700;font-size:12.5px;color:#333}.fno{color:#c0392b;font-weight:800;margin-right:4px}
+  .fph{color:#999;font-weight:600;font-size:11px}
+  .ftag{font-size:10px;font-weight:800;color:#c0392b;background:#fdeaea;border-radius:5px;padding:1px 7px;margin-left:4px}.ftag.fx{color:#a5701a;background:#fff6e8}
+  .fnt{color:#b06a00;font-size:11.5px;margin:3px 0}
+  .fimgs{margin-top:5px}.fimgs img{width:72px;height:72px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #e0b0b0}
+  .fnoimg{color:#c0392b;font-size:11px}
   .sign{display:flex;gap:24px;margin-top:40px;page-break-inside:avoid}
   .sign>div{flex:1;text-align:center;font-size:12px;color:#555}
   .sign img{max-height:60px;max-width:92%;object-fit:contain;display:block;margin:0 auto 2px}
@@ -2295,6 +2343,7 @@ async function generateSetupReport(code){
     <div class="issued">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}</div>
     ${passAll?'<div class="stmt">ขอรับรองว่าร้านนี้ผ่านการตรวจรับจากทีม Set-Up (NSA) ครบถ้วน 100% — ใช้แนบประกอบการจ่ายงวดสุดท้าย คู่กับเอกสารตรวจ Check Point งานก่อสร้าง</div>':''}
   </div>
+  ${suFailHtml}
   ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจรับ</p>'}
   <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${cmCell}</div>
   </body></html>`
