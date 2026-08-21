@@ -3,31 +3,28 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-:root{--bg:#eceff3;--surface:#fff;--surface2:#f5f8fb;--sidebar:#141c26;--sidebar-ink:#e7edf3;--sidebar-mut:#8595a5;--ink:#18222e;--muted:#5c6b7a;--faint:#93a1af;--border:#dde4eb;--line:#eef2f6;--gold:#a9761a;--gold-soft:#f6ecd6;--purple:#7241b8;--purple-soft:#efe7fb;--boss:#0e7268;--boss-soft:#d5f0ec;--good:#0a8a5f;--good-soft:#d8f0e6;--bad:#cf4436;--bad-soft:#f8dfdc;--warn:#bd7912;--warn-soft:#f8ead0;--track:#e7ecf1;--shadow:0 1px 2px rgba(16,30,45,.05),0 6px 20px rgba(16,30,45,.05);--accent:var(--gold);--accent-soft:var(--gold-soft)}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b1116;--surface:#141d26;--surface2:#1a242e;--sidebar:#0a1014;--sidebar-ink:#e7edf3;--sidebar-mut:#6c7c8b;--ink:#e7eef5;--muted:#9aa9b7;--faint:#63727f;--border:#26333f;--line:#1e2a34;--gold:#e0ad4c;--gold-soft:#332810;--purple:#b28bec;--purple-soft:#241634;--boss:#3fbdb0;--boss-soft:#0f3330;--good:#43c98d;--good-soft:#0f3327;--bad:#ee7365;--bad-soft:#3a1e1b;--warn:#e2a745;--warn-soft:#352914;--track:#212e3a;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25)}}
-:root[data-theme=dark]{--bg:#0b1116;--surface:#141d26;--surface2:#1a242e;--sidebar:#0a1014;--sidebar-ink:#e7edf3;--sidebar-mut:#6c7c8b;--ink:#e7eef5;--muted:#9aa9b7;--faint:#63727f;--border:#26333f;--line:#1e2a34;--gold:#e0ad4c;--gold-soft:#332810;--purple:#b28bec;--purple-soft:#241634;--boss:#3fbdb0;--boss-soft:#0f3330;--good:#43c98d;--good-soft:#0f3327;--bad:#ee7365;--bad-soft:#3a1e1b;--warn:#e2a745;--warn-soft:#352914;--track:#212e3a;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25)}
+:root{--bg:#eeece3;--surface:#fff;--surface2:#f6f4ec;--ink:#1a1710;--muted:#6b6456;--faint:#9a9384;--border:#e4e0d3;--line:#efece2;--gold:#a97b00;--gold-soft:#fdf3cf;--purple:#7241b8;--purple-soft:#efe7fb;--boss:#0e7268;--boss-soft:#d5f0ec;--good:#0a8a5f;--good-soft:#dcf1e8;--bad:#cf4436;--bad-soft:#f8dfdc;--warn:#bd7912;--warn-soft:#f8ead0;--track:#e8e4d6;--y:#f5c400;--yd:#d4a900;--k:#17140c;--shadow:none;--accent:var(--gold);--accent-soft:var(--gold-soft)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141109;--surface:#1e1a12;--surface2:#262117;--ink:#f0ece0;--muted:#a89f8c;--faint:#6f6858;--border:#332d1f;--line:#2a2417;--gold:#e0ad4c;--gold-soft:#33280f;--purple:#b28bec;--purple-soft:#241634;--boss:#3fbdb0;--boss-soft:#0f3330;--good:#43c98d;--good-soft:#0f3327;--bad:#ee7365;--bad-soft:#3a1e1b;--warn:#e2a745;--warn-soft:#352914;--track:#2a2417;--y:#f5c400;--yd:#d4a900;--k:#17140c;--shadow:none}}
+:root[data-theme=dark]{--bg:#141109;--surface:#1e1a12;--surface2:#262117;--ink:#f0ece0;--muted:#a89f8c;--faint:#6f6858;--border:#332d1f;--line:#2a2417;--gold:#e0ad4c;--gold-soft:#33280f;--purple:#b28bec;--purple-soft:#241634;--boss:#3fbdb0;--boss-soft:#0f3330;--good:#43c98d;--good-soft:#0f3327;--bad:#ee7365;--bad-soft:#3a1e1b;--warn:#e2a745;--warn-soft:#352914;--track:#2a2417;--y:#f5c400;--yd:#d4a900;--k:#17140c;--shadow:none}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sarabun",system-ui,sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
 .tnum{font-variant-numeric:tabular-nums}h1,h2,h3{font-family:"IBM Plex Sans Thai",sans-serif;margin:0}
 #app{--accent:var(--gold);--accent-soft:var(--gold-soft)}#app[data-mode=ratkit]{--accent:var(--purple);--accent-soft:var(--purple-soft)}#app[data-mode=boss]{--accent:var(--boss);--accent-soft:var(--boss-soft)}
-.shell{display:flex;min-height:100vh}
-.side{width:238px;flex-shrink:0;background:var(--sidebar);color:var(--sidebar-ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
-.side .brand{display:flex;align-items:center;gap:11px;padding:18px 18px 16px}
-.side .brand .dot{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center;font-size:18px;flex-shrink:0}
-.side .brand .bn{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:16px;line-height:1.1}.side .brand .bs{font-size:10.5px;color:var(--sidebar-mut);margin-top:2px}
-.side .grp{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--sidebar-mut);padding:14px 20px 7px;font-weight:600}
-.nav{padding:0 10px}
-.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--sidebar-ink);cursor:pointer;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:13.5px;margin-bottom:3px}
-.nav a .ni{font-size:17px;width:20px;text-align:center}.nav a .nc{margin-left:auto;font-size:11px;color:var(--sidebar-mut);font-variant-numeric:tabular-nums}
-.nav a:hover{background:rgba(255,255,255,.06)}
-.nav a.on{background:var(--accent);color:#fff}.nav a.on .nc{color:rgba(255,255,255,.85)}
-.side .who-w{padding:6px 16px 0}
-.side select{width:100%;background:rgba(255,255,255,.07);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:9px 10px;font-family:"IBM Plex Sans Thai";font-size:13px;font-weight:600}
-.side select option{color:#000}
-.alertbtn{margin:12px 16px 0;display:flex;align-items:center;gap:9px;background:rgba(207,68,54,.16);border:1px solid rgba(238,115,101,.35);color:#ff9d92;border-radius:10px;padding:10px 12px;cursor:pointer;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:13px}
-.alertbtn .ab{margin-left:auto;background:var(--bad);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px}
-.side .foot{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:10.5px;color:var(--sidebar-mut);line-height:1.6}
-.side .foot b{color:var(--sidebar-ink)}
-.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:15px;background:var(--y);color:var(--k);padding:0 22px;height:58px;position:sticky;top:0;z-index:30}
+.topbar .logo{width:34px;height:34px;border-radius:9px;background:var(--k);color:var(--y);display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.topbar .brand{font-family:"IBM Plex Sans Thai";font-weight:800;font-size:17px;letter-spacing:-.01em;flex-shrink:0}
+.tabs{display:flex;gap:4px;margin-left:6px}
+.tabs a{display:flex;align-items:center;gap:7px;padding:8px 15px;border-radius:9px;color:var(--k);cursor:pointer;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13.5px;opacity:.72;white-space:nowrap}
+.tabs a .ni{font-size:15px}.tabs a .nc{font-size:11px;opacity:.7;font-variant-numeric:tabular-nums}
+.tabs a:hover{opacity:1;background:rgba(0,0,0,.06)}
+.tabs a.on{background:var(--k);color:var(--y);opacity:1}.tabs a.on .nc{color:var(--y);opacity:.8}
+.topbar .right{margin-left:auto;display:flex;align-items:center;gap:13px}
+.topbar .upd{font-size:11px;color:var(--k);opacity:.66;font-weight:600}.topbar .upd b{font-weight:800}
+.bell{position:relative;cursor:pointer;font-size:19px;line-height:1}
+.bell .b{position:absolute;top:-6px;right:-8px;background:var(--bad);color:#fff;border-radius:20px;padding:0 5px;font-size:10px;font-weight:700;font-family:"IBM Plex Sans Thai";min-width:16px;text-align:center;box-sizing:content-box}
+.main{min-width:0;display:flex;flex-direction:column}
+.pgtools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.who-w select{background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:9px;padding:8px 10px;font-family:"IBM Plex Sans Thai";font-size:13px;font-weight:600}
+.who-lbl{font-size:12px;color:var(--muted);font-weight:600}
 .pgh{padding:22px 30px 0;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .pgh h1{font-size:21px;display:flex;align-items:center;gap:9px}
 .pgh .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
@@ -42,12 +39,12 @@
 .kpi .l{font-size:12px;color:var(--muted);margin-top:7px}
 .rail{display:flex;align-items:stretch;gap:0;margin-bottom:22px;overflow-x:auto;padding-bottom:2px}
 .node{flex:1;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 16px;cursor:pointer;box-shadow:var(--shadow);position:relative;transition:box-shadow .12s}
-.node:hover{box-shadow:0 2px 4px rgba(16,30,45,.08),0 10px 26px rgba(16,30,45,.1)}
+.node:hover{border-color:var(--yd)}
 .node.on{outline:2px solid var(--accent);outline-offset:-1px}
 .node.fin{background:var(--good-soft);border-color:transparent}
-.node .nh{display:flex;align-items:center;gap:9px}.node .ni{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.node .nh{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ic nn""tt tt";align-items:center;column-gap:9px}.node .ni{grid-area:ic;width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:18px;flex-shrink:0}
 .node.hot .ni{background:var(--bad-soft);color:var(--bad)}.node.fin .ni{background:var(--good);color:#fff}
-.node .nt{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13.5px;flex:1}.node .nn{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:24px}
+.node .nt{grid-area:tt;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:14px;margin-top:7px}.node .nn{grid-area:nn;justify-self:end;font-family:"IBM Plex Sans Thai";font-weight:800;font-size:23px}
 .node .ntask{font-size:11px;color:var(--muted);margin:9px 0 10px;min-height:30px}
 .node .nsla{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-weight:600;font-family:"IBM Plex Sans Thai";font-size:10.5px;color:var(--muted)}
@@ -113,39 +110,44 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .note-in{width:100%;margin-top:11px;padding:11px 13px;border:1px solid var(--border);border-radius:11px;font-family:inherit;font-size:13px;background:var(--surface2);color:var(--ink)}
 #login{position:fixed;inset:0;background:var(--bg);z-index:80;display:none;align-items:center;justify-content:center;padding:20px}
 .lbox{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px 28px;max-width:540px;width:100%;box-shadow:var(--shadow);text-align:center}
-.lbox .dot{width:46px;height:46px;border-radius:12px;background:var(--gold);display:inline-grid;place-items:center;font-size:24px;margin-bottom:10px}
+.lbox .dot{width:46px;height:46px;border-radius:12px;background:var(--y);color:var(--k);display:inline-grid;place-items:center;font-size:24px;margin-bottom:10px}
 .lh{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:22px}.ls{color:var(--muted);font-size:13.5px;margin:6px 0 20px}
 .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-bottom:16px;max-height:52vh;overflow:auto;text-align:left}
 .lgrid button{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink);border-radius:11px;padding:10px 12px;cursor:pointer;font-family:"Sarabun";font-size:13.5px;font-weight:600}
 .lgrid button:hover{border-color:var(--gold);background:var(--gold-soft)}
 .lboss{width:100%;border:1px dashed var(--border);background:none;color:var(--muted);border-radius:11px;padding:11px;cursor:pointer;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:13.5px}.lboss:hover{border-color:var(--boss);color:var(--boss)}
-.userchip{margin:8px 16px 0;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:9px 11px;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:13px;color:var(--sidebar-ink)}
-.userchip .sw{margin-left:auto;font-size:10.5px;color:var(--sidebar-mut);cursor:pointer;text-decoration:underline;font-weight:400}
-.mobtop{display:none}
+.userchip{display:flex;align-items:center;gap:7px;background:rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.13);border-radius:9px;padding:6px 11px;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12.5px;color:var(--k)}
+.userchip .sw{margin-left:3px;font-size:10.5px;color:var(--k);opacity:.6;cursor:pointer;text-decoration:underline;font-weight:600}
 @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.pgrid,.pgrid2{grid-template-columns:1fr}}
-@media(max-width:760px){.side{position:fixed;left:0;top:0;z-index:60;transform:translateX(-100%);transition:transform .2s;box-shadow:10px 0 40px rgba(0,0,0,.3)}.side.open{transform:translateX(0)}.mobtop{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}.mobtop .mb{font-size:22px;background:none;border:none;color:var(--ink);cursor:pointer}.pgh,.content{padding-left:16px;padding-right:16px}}
+@media(max-width:760px){.topbar{flex-wrap:wrap;height:auto;padding:10px 14px;gap:9px 12px}.tabs{margin-left:0;order:3;width:100%;overflow-x:auto}.topbar .upd{display:none}.pgh,.content{padding-left:16px;padding-right:16px}.drawer{width:100%}}
 </style>
-<div id="app" data-mode="nego"><div class="shell">
-  <aside class="side" id="side">
-    <div class="brand"><span class="dot">🏗️</span><div><div class="bn">CJX Site Ops</div><div class="bs">ระบบติดตามงานเปิดสาขา</div></div></div>
-    <div class="grp">ท่อนงาน</div>
-    <nav class="nav">
+<div id="app" data-mode="nego">
+  <div class="topbar">
+    <span class="logo">🏗️</span><span class="brand">CJX Site Ops</span>
+    <nav class="tabs">
       <a id="mb-nego" class="on" onclick="setMode('nego')"><span class="ni">🤝</span> เจรจา <span class="nc" id="nc-nego"></span></a>
       <a id="mb-ratkit" onclick="setMode('ratkit')"><span class="ni">🏛️</span> รัฐกิจ <span class="nc" id="nc-ratkit"></span></a>
       <a id="mb-boss" onclick="setMode('boss')"><span class="ni">📊</span> Performance</a>
     </nav>
-    <div class="userchip" id="userchip" style="display:none"></div>
-    <div class="grp" id="who-lbl" style="display:none">ดูงานของ (หัวหน้า)</div>
-    <div class="who-w" style="display:none"><select id="who" onchange="ACTIVE=null;render()"></select></div>
-    <div class="alertbtn" onclick="setV('alert')">🔔 งานเกิน SLA <span class="ab" id="belln">0</span></div>
-    <div class="foot">◇ เจรจา = <b>Pipeline Commit Nego-2026</b> · รัฐกิจ = ชีต SLA<br>อัปเดต <b id="upd"></b><br><span style="opacity:.7">ตอบผล = บันทึกโน้ต (webhook) · เขียนกลับชีต = เฟสถัดไป</span></div>
-  </aside>
-  <div class="main">
-    <div class="mobtop"><button class="mb" onclick="document.getElementById('side').classList.toggle('open')">☰</button><b id="mobtitle">เจรจา</b></div>
-    <div class="pgh"><div><h1 id="pgt"></h1><div class="sub" id="pgs"></div></div><div class="seg" id="seg"></div></div>
-    <div class="content" id="body"></div>
+    <div class="right">
+      <span class="upd">อัปเดต <b id="upd"></b></span>
+      <span class="bell" onclick="setV('alert')" title="งานเกิน SLA">🔔<span class="b" id="belln">0</span></span>
+      <span class="userchip" id="userchip" style="display:none"></span>
+    </div>
   </div>
-</div></div>
+  <div class="main">
+    <div class="pgh">
+      <div><h1 id="pgt"></h1><div class="sub" id="pgs"></div></div>
+      <div class="pgtools">
+        <span class="who-lbl" id="who-lbl" style="display:none">ดูงานของ</span>
+        <span class="who-w" style="display:none"><select id="who" onchange="ACTIVE=null;render()"></select></span>
+        <div class="seg" id="seg"></div>
+      </div>
+    </div>
+    <div class="content" id="body"></div>
+    <span id="mobtitle" style="display:none"></span>
+  </div>
+</div>
 <div class="scrim" id="scrim" onclick="closeD()"></div><div class="drawer" id="drawer"></div>
 <div id="login"></div>
 <script>
@@ -318,10 +320,10 @@ async function getCsvFb(cen,src){try{var r=await fetch(cen);if(r.ok){var rows=cs
 async function getConstr(){  /* ก่อสร้าง normalize → [code,name,prov,open,active,hide] */
  try{var r=await fetch(CEN+"src_constr");if(r.ok){var rows=csv(await r.text());if(rows.length>1&&rows[0].length>=6)return rows.slice(1);}}catch(e){}
  var raw=await getCsv(gv(ID_MIR,"1005640128"));return raw.slice(3).map(function(x){return [cc(x,2),cc(x,3),cc(x,5),cc(x,137),cc(x,138),cc(x,139)];});}
-async function getFlow(){  /* milestone normalize → [name,kt,ktok,sign_owner,send_check,legal,signed] */
- try{var r=await fetch(CEN+"src_flow");if(r.ok){var rows=csv(await r.text());if(rows.length>1&&rows[0].length>=7)return rows;}}catch(e){}
- var raw=await getCsv("https://docs.google.com/spreadsheets/d/1cVFBJpP_C6XY5hM15pu71ioQO7JZ7pihRq1FJ-v-k1g/gviz/tq?tqx=out:csv&gid=1302290821");
- return [["name","kt","ktok","sign_owner","send_check","legal","signed"]].concat(raw.slice(1).map(function(x){return [cc(x,2),cc(x,15),cc(x,16),cc(x,47),cc(x,21),cc(x,22),cc(x,17)];}));}
+async function getFlow(){  /* milestone กฎหมาย normalize → [code,send_legal,legal_back,sign_owner,signed] (join ด้วย Site Code) */
+ try{var r=await fetch(CEN+"src_flow");if(r.ok){var rows=csv(await r.text());if(rows.length>1&&rows[0].length>=5)return rows;}}catch(e){}
+ var raw=await getCsv("https://docs.google.com/spreadsheets/d/1cVFBJpP_C6XY5hM15pu71ioQO7JZ7pihRq1FJ-v-k1g/gviz/tq?tqx=out:csv&sheet="+encodeURIComponent("ตารางรับส่งสัญญา กฎหมาย"));
+ return [["code","send_legal","legal_back","sign_owner","signed"]].concat(raw.slice(1).map(function(x){return [cc(x,0),cc(x,11),cc(x,12),cc(x,16),cc(x,8)];}));}
 async function getUpdates(){for(var t=0;t<3;t++){try{var r=await fetch(WRITE_URL+"?key="+WSECRET);if(!r.ok)continue;var j=JSON.parse(await r.text());return (j.rows||[]).slice(1).filter(function(x){return x.length>=5&&x[1];}).map(function(x){return {code:x[1],track:x[2],field:x[3],value:x[4]};});}catch(e){}}return [];}
 
 function compute(neg,sla,reg,constr,ratown,upd,flow){
@@ -354,8 +356,8 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
    return "";}
  // FLOWMAP: ชื่อสาขา → milestone วันที่ (จากแท็บ master) ใช้แกะ 6 step
  function nmk(s){return (s||"").split(/\s+/).join(" ").trim();}
- var FLOW={};for(var fi=1;fi<flow.length;fi++){var fr=flow[fi];var nn=nmk(fr[0]);if(nn)FLOW[nn]={kt:cc(fr,1),ktok:cc(fr,2),so:cc(fr,3),sc:cc(fr,4),lg:cc(fr,5),sg:cc(fr,6)};}
- function fhas(x){return x&&x.indexOf("1899")<0&&x.indexOf("1900")<0&&x.trim()!=="";}
+ var FLOW={};for(var fi=1;fi<flow.length;fi++){var fr=flow[fi];var cd=cc(fr,0);if(cd)FLOW[cd]={sl:cc(fr,1),lb:cc(fr,2),so:cc(fr,3),sg:cc(fr,4)};}
+ function fhas(x){return x&&x.indexOf("1899")<0&&x.indexOf("1900")<0&&x.indexOf("#")<0&&x.trim()!=="";}
  var NF="เซ็นแล้ว (จบเจรจา)";
  var NEGO_STEPS=[{ico:"🤝",stp:"เจรจากับเจ้าของที่",task:"เข้าพบ ตกลงราคา/เงื่อนไข กับเจ้าของที่ดิน",sla:"ค้างเกิน 90 วัน = เร่ง"},
    {ico:"📋",stp:"ดำเนินการ / เสนอ KT",task:"ทำใบปะหน้า เสนอ KT อนุมัติราคา/เงื่อนไข",sla:"ค้างเกิน 90 วัน = เร่ง"},
@@ -364,19 +366,18 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
    {ico:"⚖️",stp:"รอกฎหมายตรวจสอบสัญญา",task:"ฝ่ายกฎหมาย (LG) ตรวจสอบสัญญา ก่อนไฟนอล",sla:"ค้างเกิน 90 วัน = เร่ง"},
    {ico:"✅",stp:NF,task:"เซ็นสัญญาแล้ว · ส่งต่อ รัฐกิจ/ก่อสร้าง",sla:"จบงานเจรจา"}];
  var SORD={"เจรจากับเจ้าของที่":0,"ดำเนินการ / เสนอ KT":1,"รอเซ็นสัญญา":2,"รอส่งตรวจสอบสัญญา":3,"รอกฎหมายตรวจสอบสัญญา":4};
- function stepOf(g,name){var f=FLOW[nmk(name)]||{};
+ function stepOf(g,code){var f=FLOW[code]||{};
    if(g=="3"||g=="4"||fhas(f.sg))return NF;
-   if(fhas(f.lg))return "รอกฎหมายตรวจสอบสัญญา";
-   if(fhas(f.sc))return "รอส่งตรวจสอบสัญญา";
-   if(fhas(f.so)||fhas(f.ktok))return "รอเซ็นสัญญา";
-   if(fhas(f.kt)||g=="1")return "ดำเนินการ / เสนอ KT";
+   if(fhas(f.sl)&&!fhas(f.lb))return "รอกฎหมายตรวจสอบสัญญา";   // ส่งกฎหมายแล้ว รอกลับ
+   if(fhas(f.lb)||fhas(f.so))return "รอเซ็นสัญญา";              // กฎหมายกลับ/ส่งเจ้าของ = รอเซ็น
+   if(g=="1")return "ดำเนินการ / เสนอ KT";
    return "เจรจากับเจ้าของที่";}
  var negT=[],nowner={},nsigned={},nTotal=negRows.length,nSignedAll=0;
  for(var k=0;k<negRows.length;k++){var r=negRows[k];var c=cc(r,0),g=gm(r);var own=cc(r,3)||"(ไม่ระบุ)";
    nowner[own]=(nowner[own]||0)+1;if(g=="3"||g=="4"){nsigned[own]=(nsigned[own]||0)+1;nSignedAll++;}
    if(g=="5"||g=="?")continue;
    var name=cc(r,1);var man=stepCol>=0?manualStep(cc(r,stepCol)):"";
-   var stp=nego_signed[c]?NF:(man||stepOf(g,name));var signed=(stp==NF);var ord=signed?5:SORD[stp];
+   var stp=nego_signed[c]?NF:(man||stepOf(g,c));var signed=(stp==NF);var ord=signed?5:SORD[stp];
    var ag=cc(r,24);ag=/^\d+$/.test(ag)?parseInt(ag,10):null;var st,sx,sk;
    if(signed){st="done";sx="เซ็นแล้ว ✓";sk=[9,0];}
    else if(ag==null){st="none";sx="—";sk=[3,ord];}
