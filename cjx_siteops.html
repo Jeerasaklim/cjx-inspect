@@ -85,6 +85,45 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .bstat .s.bad .v{color:var(--bad)}.bstat .s.good .v{color:var(--good)}.bstat .s.warn .v{color:var(--warn)}
 .pgrid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .prow{display:flex;align-items:center;gap:11px;font-size:13px;padding:9px 0;border-top:1px solid var(--line)}.prow:first-of-type{border-top:none}.prow .pn{width:150px;font-weight:600;display:flex;align-items:center;gap:8px}.prow .tk{flex:1;height:14px;background:var(--track);border-radius:5px;overflow:hidden}.prow .tk>i{display:block;height:100%;border-radius:5px;background:var(--accent)}.prow .tk>i.red{background:var(--bad)}.prow .pf{width:110px;text-align:right;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}.prow .pf small{color:var(--faint);font-weight:400}
+.ptseg{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.ptseg button{flex:1;min-width:140px;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;gap:9px;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:14px;color:var(--ink)}
+.ptseg button .pi{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;background:var(--surface2)}
+.ptseg button.on{border-width:2px;border-color:var(--accent)}
+.plensh{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);display:flex;align-items:center;gap:9px;margin:22px 0 11px}
+.plensh .pdot{width:6px;height:16px;border-radius:3px;background:var(--accent)}
+.plensh.u{color:var(--bad)}.plensh.u .pdot{background:var(--bad)}
+.kpis.k4{grid-template-columns:repeat(4,1fr)}
+.pfun{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 17px;margin-top:12px}
+.pfrow{display:flex;align-items:center;gap:12px;margin-bottom:7px}.pfrow:last-child{margin-bottom:0}
+.pfrow .pfk{width:200px;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12.5px;flex-shrink:0}
+.pfrow .pfbar{flex:1;height:24px;background:var(--track);border-radius:7px;overflow:hidden}
+.pfrow .pfbar>i{display:block;height:100%;background:var(--accent);border-radius:7px}
+.pfrow.done .pfbar>i{background:var(--good)}.pfrow.hot .pfbar>i{background:var(--bad)}
+.pfrow .pfv{width:62px;text-align:right;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13.5px;flex-shrink:0}
+.pcall{display:flex;align-items:center;gap:12px;background:var(--bad-soft);border:1px solid var(--bad);border-radius:12px;padding:12px 16px;margin-top:12px}
+.pcall .cb{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:14px}.pcall .cs{font-size:12px;color:var(--muted)}
+.plead{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden}
+.plead th{text-align:left;font-family:"IBM Plex Sans Thai";font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--faint);padding:9px 13px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.plead th.r,.plead td.r{text-align:right}
+.plead td{padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:middle}.plead tr:last-child td{border-bottom:none}
+.plead .who{display:flex;align-items:center;gap:8px;font-weight:600}
+.rk{width:22px;height:22px;border-radius:6px;background:var(--surface2);color:var(--muted);display:grid;place-items:center;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:11px}
+.rk.g1{background:#f5c400;color:#17140c}.rk.g2{background:#d7d2c4;color:#17140c}.rk.g3{background:#e6b877;color:#17140c}
+.pbar{width:84px;height:7px;background:var(--track);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}.pbar>i{display:block;height:100%;background:var(--good);border-radius:4px}.pbar>i.lo{background:var(--bad)}.pbar>i.mid{background:var(--warn)}
+.heat{font-family:"IBM Plex Sans Thai";font-weight:700;border-radius:6px;padding:2px 8px;font-size:12px}.heat.z{color:var(--faint)}.heat.a{background:var(--warn-soft);color:var(--warn)}.heat.b{background:var(--bad-soft);color:var(--bad)}
+.prisk{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.rrow{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line)}.rrow:last-child{border-bottom:none}
+.rrow .sev{width:8px;height:8px;border-radius:50%;flex-shrink:0}.rrow .sev.hi{background:var(--bad)}.rrow .sev.md{background:var(--warn)}
+.rrow .tx{flex:1}.rrow .tt{font-weight:600;font-size:13px}.rrow .ts{font-size:11.5px;color:var(--muted)}
+.rrow .cnt{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:15px;color:var(--bad)}
+.pdelay{display:flex;align-items:flex-start;gap:13px;background:var(--bad-soft);border:1px solid var(--bad);border-left-width:5px;border-radius:12px;padding:13px 17px;margin-top:12px}
+.pdelay .di{font-size:23px}.pdelay .dt{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:14px;color:var(--bad)}.pdelay .dd{font-size:12.5px;margin-top:3px}
+.psolo{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:16px}
+.psolo .pav{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:14px;flex-shrink:0;background:var(--accent);color:#fff}
+.psolo .pav.tl{background:var(--boss)}.psolo .pav.pp{background:var(--purple)}
+.psolo .pn2{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:15px}
+.psolo .psp{display:flex;gap:22px;flex-wrap:wrap;margin-top:9px}.psolo .psp .v{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:19px}.psolo .psp .v.good{color:var(--good)}.psolo .psp .v.bad{color:var(--bad)}.psolo .psp .v.warn{color:var(--warn)}.psolo .psp .l{font-size:11px;color:var(--muted)}
+@media(max-width:760px){.kpis.k4{grid-template-columns:repeat(2,1fr)}.pfrow .pfk{width:120px}}
 .scrim{position:fixed;inset:0;background:rgba(10,20,30,.42);display:none;z-index:40}.scrim.on{display:block}
 .drawer{position:fixed;top:0;right:0;height:100%;width:440px;max-width:94vw;background:var(--surface);border-left:1px solid var(--border);z-index:50;transform:translateX(100%);transition:transform .24s cubic-bezier(.4,0,.2,1);overflow-y:auto;box-shadow:-12px 0 44px rgba(10,20,30,.16)}
 .drawer.on{transform:translateX(0)}
@@ -163,7 +202,7 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 var NOTES_WH="https://script.google.com/macros/s/AKfycbwpSe8-xhAr7sT24kVUZc8FAWxBPOWyD-a5EiTjqZ9dvK8P7u97mcKqYnDn5WAjy7k_rg/exec";
 var WRITE_URL="https://script.google.com/macros/s/AKfycbwcTzrkPICy3E2cZuJA93_OWNSg0ezNzs8zV4S_4n8XvoMRcJRM2aMQq3HfIn7nTUdS/exec";var WSECRET="cjx-siteops-write-2026";
 var DATA={updated:"—",wh:NOTES_WH,nego:{owners:[],tasks:[],steps:[],final:""},ratkit:{o1:{owners:[],tasks:[],steps:[],final:""},reg:{owners:[],tasks:[],steps:[],final:""}},perf:{nego:{over:0,pending:0,signed:0,final:0,at_sign:0,close_pct:0,sla_pct:0,total:0},ratkit:{over:0,reg_over:0,got:0,wait:0,prep:0,waiver:0,sla_pct:0},problems:[],persons_nego:[],persons_rat:[]}};
-var MODE="nego",RATSUB="o1",VIEW="flow",ACTIVE=null,WH=NOTES_WH,SEARCH="",FSTAT="";
+var MODE="nego",RATSUB="o1",PSUB="neg",VIEW="flow",ACTIVE=null,WH=NOTES_WH,SEARCH="",FSTAT="";
 var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → เสนอ KT → รอเซ็น → รอส่งตรวจ → รอกฎหมายตรวจ → เซ็นแล้ว · (สถานะติดขัด/นำเสนอใหม่ = ตัวกรอง)"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},boss:{t:"📊 Performance Team",s:"ภาพรวมผลงาน + SLA ทุกส่วน"}};
 function esc(s){s=(s==null?"":String(s));return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function md(){return MODE==="ratkit"?DATA.ratkit[RATSUB]:DATA[MODE];}
@@ -300,19 +339,64 @@ function writeBack(code,track,field,value,lbl){var box=document.getElementById("
    _banner("✓ บันทึกกลับชีตกลางแล้ว");}
  else{try{fetch(WH,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({code:"OPS:"+code,note:lbl})});}catch(e){}_banner("⚠️ ยังไม่ตั้ง WRITE_URL — เก็บเป็นโน้ตก่อน");}
  setTimeout(closeD,1200);setTimeout(function(){boot(true);},1600);}
-function renderBoss(){var p=DATA.perf;
- var b='<div class="pgrid">';
- b+='<div class="bcard"><div class="bt">🤝 ทีมเจรจา (สัญญา)</div><div class="tot">เซ็นสะสม '+p.nego.close_pct+'% · ตรง SLA เซ็น '+p.nego.sla_pct+'%</div><div class="bstat"><div class="s"><div class="v">'+p.nego.pending+'</div><div class="l">ค้าง (ต้องทำ)</div></div><div class="s good"><div class="v">'+p.nego.signed+'</div><div class="l">เซ็นแล้ว</div></div><div class="s bad"><div class="v">'+p.nego.over+'</div><div class="l">🔴 เกิน SLA</div></div></div></div>';
- b+='<div class="bcard"><div class="bt">🏛️ ทีมรัฐกิจ</div><div class="tot">ตรง SLA '+p.ratkit.sla_pct+'%</div><div class="bstat"><div class="s good"><div class="v">'+p.ratkit.got+'</div><div class="l">ได้ อ.1</div></div><div class="s warn"><div class="v">'+p.ratkit.wait+'</div><div class="l">รอ อ.1</div></div><div class="s bad"><div class="v">'+p.ratkit.over+'</div><div class="l">🔴 เกิน SLA</div></div></div></div>';
- b+='<div class="bcard"><div class="bt">🏗️ อนุโลม / ภาพรวม</div><div class="tot">ก่อสร้างก่อน อ.1 ออก</div><div class="bstat"><div class="s warn"><div class="v">'+p.ratkit.waiver+'</div><div class="l">อนุโลม</div></div><div class="s"><div class="v">'+p.nego.total+'</div><div class="l">ไซต์เจรจารวม</div></div><div class="s good"><div class="v">'+p.nego.final+'</div><div class="l">Final ล่าสุด</div></div></div></div>';
- b+='</div><div class="pgrid2">';
- var mx=Math.max.apply(null,p.problems.map(function(x){return x[1];}))||1;
- b+='<div class="bcard"><div class="bt">🚧 สัญญาค้าง — คั่งที่ step ไหน</div><div class="tot">จำนวนสาขาในแต่ละขั้น (ยังไม่ Final)</div>'+p.problems.map(function(x){return '<div class="prow"><span class="pn">'+esc(x[0])+'</span><span class="tk"><i style="width:'+Math.round(100*x[1]/mx)+'%"></i></span><span class="pf tnum">'+x[1]+' ราย</span></div>';}).join("")+'</div>';
- b+='<div class="bcard"><div class="bt">🧑‍💼 รายคน เจรจา — เซ็นสะสม %</div><div class="tot">แถบ = % เซ็น · เลขท้าย = งานเกิน SLA</div>'+p.persons_nego.slice(0,10).map(function(x){return '<div class="prow"><span class="pn">'+av(x.nm)+esc(x.nm)+'</span><span class="tk"><i class="'+(x.pct<40?"red":"")+'" style="width:'+x.pct+'%"></i></span><span class="pf tnum">'+x.pct+'% <small>· ค้าง '+x.over+'</small></span></div>';}).join("")+'</div>';
- b+='</div>';
- if(p.persons_rat&&p.persons_rat.length){b+='<div class="pgrid2" style="margin-top:14px"><div class="bcard"><div class="bt">🧑‍💼 รายคน รัฐกิจ — งานในมือ · เกิน SLA</div><div class="tot">&nbsp;</div>'+p.persons_rat.slice(0,10).map(function(x){var mm=p.persons_rat[0].hold||1;return '<div class="prow"><span class="pn">'+av(x.nm)+esc(x.nm)+'</span><span class="tk"><i class="'+(x.over>0?"red":"")+'" style="width:'+Math.round(100*x.hold/mm)+'%"></i></span><span class="pf tnum">'+x.hold+' งาน <small>· เกิน '+x.over+'</small></span></div>';}).join("")+'</div><div class="bcard" style="display:flex;flex-direction:column;justify-content:center;text-align:center"><div style="font-size:13px;color:var(--muted);margin-bottom:6px">SLA รวมทุกส่วน</div><div style="font-family:IBM Plex Sans Thai;font-weight:700;font-size:40px">'+Math.round((p.nego.sla_pct+p.ratkit.sla_pct)/2)+'%</div><div style="font-size:12px;color:var(--muted);margin-top:4px">เจรจา '+p.nego.sla_pct+'% · รัฐกิจ '+p.ratkit.sla_pct+'%</div></div></div>';}
+function pcnt(arr,step){var n=0;for(var i=0;i<arr.length;i++)if(arr[i].step===step)n++;return n;}
+function lensH(t,u){return '<div class="plensh'+(u?" u":"")+'"><span class="pdot"></span>'+t+'</div>';}
+function kpiC(v,l,c){return '<div class="kpi '+(c||"")+'"><div class="v tnum">'+v+'</div><div class="l">'+l+'</div></div>';}
+function pfrow(label,disp,width,cls){return '<div class="pfrow '+(cls||"")+'"><span class="pfk">'+esc(label)+'</span><span class="pfbar"><i style="width:'+Math.max(2,Math.min(100,width))+'%"></i></span><span class="pfv tnum">'+disp+'</span></div>';}
+function rr(sev,tt,ts,cnt){return '<div class="rrow"><span class="sev '+sev+'"></span><div class="tx"><div class="tt">'+esc(tt)+'</div><div class="ts">'+esc(ts)+'</div></div><span class="cnt">'+esc(cnt)+'</span></div>';}
+function pdelay(ic,t,d){return '<div class="pdelay"><span class="di">'+ic+'</span><div><div class="dt">เสี่ยงเปิดร้านเลื่อน — '+esc(t)+'</div><div class="dd">'+esc(d)+'</div></div></div>';}
+function psolo(name,cl,desc,stats){var b='<div class="psolo"><span class="pav '+cl+'">'+esc(name)+'</span><div style="flex:1"><div class="pn2">'+esc(name)+' — '+esc(desc)+'</div><div class="psp">';for(var i=0;i<stats.length;i++)b+='<div><div class="v '+(stats[i][2]||"")+'">'+stats[i][0]+'</div><div class="l">'+esc(stats[i][1])+'</div></div>';return b+'</div></div></div>';}
+function leadTable(ppl){var b='<table class="plead"><thead><tr><th style="width:34px">#</th><th>รายชื่อ</th><th class="r">ในมือ</th><th>% เซ็น</th><th class="r">เกิน SLA</th></tr></thead><tbody>';
+ ppl.slice(0,8).forEach(function(x,i){var rk=i<3?"g"+(i+1):"";var bc=x.pct<40?"lo":(x.pct<60?"mid":"");var hc=x.over>=10?"b":(x.over>0?"a":"z");
+   b+='<tr><td><span class="rk '+rk+'">'+(i+1)+'</span></td><td><span class="who">'+av(x.nm)+esc(x.nm)+'</span></td><td class="r tnum">'+x.hold+'</td><td><span class="pbar"><i class="'+bc+'" style="width:'+x.pct+'%"></i></span>'+x.pct+'%</td><td class="r"><span class="heat '+hc+'">'+x.over+'</span></td></tr>';});
+ return b+'</tbody></table>';}
+function perfNeg(p){var b=lensH("📊 มุมงาน");
+ b+='<div class="kpis">'+kpiC(p.nego.total,"สัญญาทั้งหมด")+kpiC(p.nego.signed,"✅ เซ็นแล้ว ("+p.nego.close_pct+"%)","good")+kpiC(p.nego.pending,"📄 ค้าง","warn")+kpiC(p.nego.over,"🔴 เกิน 90 วัน","bad")+kpiC(p.nego.sla_pct+"%","✅ ตรง SLA","good")+'</div>';
+ var mx=Math.max.apply(null,p.problems.map(function(x){return x[1];}).concat([p.nego.final]))||1;
+ var topc=Math.max.apply(null,p.problems.map(function(x){return x[1];}))||0;
+ b+='<div class="pfun">'+p.problems.map(function(x){return pfrow(x[0],x[1],Math.round(100*x[1]/mx),x[1]===topc&&topc>0?"hot":"");}).join("")+pfrow("✅ เซ็นแล้ว (จบ)",p.nego.final,Math.round(100*p.nego.final/mx),"done")+'</div>';
+ var top=p.problems.slice().sort(function(a,c){return c[1]-a[1];})[0];
+ if(top)b+='<div class="pcall"><span style="font-size:22px">🔴</span><div><div class="cb">คอขวด: '+esc(top[0])+' '+top[1]+' ไซต์</div><div class="cs">โฟกัสตรงนี้ปลดล็อกสัญญาได้เยอะสุด</div></div></div>';
+ b+=lensH("🧑 มุมรายคน — ใครแบก / ใครค้าง")+leadTable(p.persons_nego)+'<div class="note">แสดง '+Math.min(8,p.persons_nego.length)+' จาก '+p.persons_nego.length+' คน · เรียงตามงานในมือ</div>';
+ b+=lensH("🚨 เร่งด่วน + เสี่ยงเปิดร้านเลื่อน",1);
+ var ov=p.persons_nego.slice().filter(function(x){return x.over>0;}).sort(function(a,c){return c.over-a.over;}).slice(0,4);
+ b+='<div class="prisk">'+ov.map(function(x){return rr(x.over>=10?"hi":"md",x.nm+" — เกิน SLA","ถือ "+x.hold+" · เซ็นได้ "+x.pct+"%","🔴 "+x.over);}).join("")+'</div>';
+ b+=pdelay("🏗️",p.nego.over+" ไซต์ยังไม่เซ็น + ค้างเกิน 90 วัน","ยังไม่เซ็น = เริ่มก่อสร้าง/ยื่น อ.1 ไม่ได้ → ค้างตั้งแต่ต้นน้ำ");
  return b;}
-function setMode(m){MODE=m;RATSUB="o1";VIEW="flow";ACTIVE=null;SEARCH="";FSTAT="";document.getElementById("app").setAttribute("data-mode",m);["nego","ratkit","boss"].forEach(function(x){document.getElementById("mb-"+x).className=(x===m?"on":"");});var sd=document.getElementById("side");if(sd)sd.classList.remove("open");fillWho();render();}
+function perfO1(p){var o=DATA.ratkit.o1.tasks,S=DATA.ratkit.o1.steps;var b=lensH("📊 มุมงาน");
+ b+='<div class="kpis k4">'+kpiC(p.ratkit.prep,"📑 ติดตามเอกสาร","pp")+kpiC(p.ratkit.wait,"🔎 ยื่น · ติดตาม อ.1","warn")+kpiC(p.ratkit.got,"✅ อ.1 ออกแล้ว","good")+kpiC(p.ratkit.waiver,"🏗️ อนุโลม","warn")+'</div>';
+ var cnts=S.map(function(s){return pcnt(o,s.stp);});var mx=Math.max.apply(null,cnts)||1;
+ b+='<div class="pfun">'+S.map(function(s,i){return pfrow(s.ico+" "+s.stp,cnts[i],Math.round(100*cnts[i]/mx),i===S.length-1?"done":(cnts[i]===mx&&mx>0?"hot":""));}).join("")+'</div>';
+ b+=lensH("🧑 มุมรายคน");
+ b+=psolo("เกด","pp","ดูแลท่อน อ.1 ทั้งหมด",[[o.length,"งานในมือ",""],[p.ratkit.got,"ออกแล้ว","good"],[o.length-p.ratkit.got,"กำลังทำ","warn"],[(o.length?Math.round(100*p.ratkit.got/o.length):0)+"%","อัตราออก",""]]);
+ b+='<div class="note">ท่อน อ.1 มีเกดดูแลคนเดียว → รายคน = โหลดของเกด</div>';
+ b+=lensH("🚨 เร่งด่วน + เสี่ยงเปิดร้านเลื่อน",1);
+ b+='<div class="prisk">'+rr("md","อนุโลม "+p.ratkit.waiver+" ไซต์ — ก่อสร้างก่อน ยังไม่ได้ใบจริง","ต้องตามใบ อ.1 ตัวจริงให้ออก","🏗️ "+p.ratkit.waiver)+rr("md","รอผลใบ อ.1 — "+p.ratkit.wait+" ไซต์","ตจว.45/กทม.60 วัน จากวันยื่น","🔎 "+p.ratkit.wait)+(p.ratkit.over>0?rr("hi","อ.1 เกิน SLA","เลยกำหนดจากวันยื่น","🔴 "+p.ratkit.over):"")+'</div>';
+ b+=pdelay("🎫","ไซต์ใกล้วันเปิดแต่ใบ อ.1 ยังไม่ออก","แอปจริงไฮไลต์เฉพาะ D-day ใกล้ + อ.1 ยังไม่ออก = ต้องเร่ง/อนุโลม");
+ return b;}
+function perfReg(p){var rg=DATA.ratkit.reg.tasks;var agg={},order=[];
+ rg.forEach(function(t){(t.checklist||[]).forEach(function(x){if(!agg[x.n]){agg[x.n]={ok:0};order.push(x.n);}if(x.ok)agg[x.n].ok++;});});
+ var N=rg.length,fin=DATA.ratkit.reg.final,complete=pcnt(rg,fin),notc=N-complete;
+ var b=lensH("📊 มุมงาน");
+ b+='<div class="kpis k4">'+kpiC(N,"📋 สาขากำลังทำ")+kpiC(p.ratkit.reg_over,"🔴 เลย D-day","bad")+kpiC(notc,"🟠 ยังไม่ครบ","warn")+kpiC(complete,"✅ ครบทุกใบ",complete>0?"good":"bad")+'</div>';
+ b+='<div class="pfun">'+order.map(function(n){var ok=agg[n].ok;return pfrow(n,ok+"/"+N,Math.round(100*ok/N),ok<N*0.5?"hot":(ok>=N*0.9?"done":""));}).join("")+'</div>';
+ b+=lensH("🧑 มุมรายคน");
+ b+=psolo("หมิว","tl","ดูแลงานทะเบียนทั้งหมด",[[N,"สาขาในมือ",""],[p.ratkit.reg_over,"เลย D-day","bad"],[notc,"ยังไม่ครบ","warn"],[complete,"ครบแล้ว","good"]]);
+ b+='<div class="note">ท่อนทะเบียนมีหมิวดูแลคนเดียว → รายคน = โหลดของหมิว</div>';
+ b+=lensH("🚨 เร่งด่วน + เสี่ยงเปิดร้านเลื่อน",1);
+ var worst=order.map(function(n){return {n:n,ok:agg[n].ok};}).sort(function(a,c){return a.ok-c.ok;}).slice(0,3);
+ b+='<div class="prisk">'+worst.map(function(w){var miss=N-w.ok;return rr(miss>=N*0.5?"hi":"md",w.n+" — ค้าง "+miss+" สาขา","ได้แล้ว "+w.ok+"/"+N+" สาขา","🔴 "+miss);}).join("")+'</div>';
+ b+=pdelay("📋","สาขาถึงวันเปิดแต่เอกสารไม่ครบ ("+complete+"/"+N+" ครบ)","ตัวฉุดหลัก = ใบที่ค้างเยอะสุดข้างบน → เปิดแล้วเสี่ยงโดนปรับ/ระงับ");
+ return b;}
+function renderBoss(){var p=DATA.perf;
+ var T=[["neg","🤝","สัญญา"],["o1","🎫","อ.1"],["reg","📋","ทะเบียน"]];
+ var b='<div class="ptseg">';
+ T.forEach(function(x){b+='<button class="'+(PSUB===x[0]?"on":"")+'" onclick="setPSub(\''+x[0]+'\')"><span class="pi">'+x[1]+'</span><span>'+x[2]+'</span></button>';});
+ b+='</div>';
+ b+=(PSUB==="neg"?perfNeg(p):(PSUB==="o1"?perfO1(p):perfReg(p)));
+ return b;}
+function setPSub(s){PSUB=s;render();}
+function setMode(m){MODE=m;RATSUB="o1";PSUB="neg";VIEW="flow";ACTIVE=null;SEARCH="";FSTAT="";document.getElementById("app").setAttribute("data-mode",m);["nego","ratkit","boss"].forEach(function(x){document.getElementById("mb-"+x).className=(x===m?"on":"");});var sd=document.getElementById("side");if(sd)sd.classList.remove("open");fillWho();render();}
 
 /* ============ LIVE DATA LAYER (ดึงสด + คำนวณในเบราว์เซอร์) ============ */
 var SS_NEG="https://docs.google.com/spreadsheets/d/e/2PACX-1vTqFq4mb_2P2bPpfts-C98Dw78uEXaA_Yt1aZFvmx6gplG4r3X1vh8iyqK0NpO7YsP5kApXYKkAW_nZ/pub?output=csv";
@@ -425,7 +509,7 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
  var ratT=[];
  Object.keys(cand).forEach(function(c){
    if(opened[c])return;                               // ก่อสร้างเปิดแล้ว = พ้นท่อน อ.1
-   var stp=o1step(c);var prov=cand[c].prov||rkProv[c]||cprov[c]||"";var own=rkOwn[c]||"(ไม่ระบุ)";var wv=!!SWAI[c]&&!SGOT[c];
+   var stp=o1step(c);var prov=cand[c].prov||rkProv[c]||cprov[c]||"";var own="เกด";var wv=!!SWAI[c]&&!SGOT[c];
    var st,sx,sk;
    if(SGOT[c]){st="done";sx=(wv?"ได้ อ.1 ✓":"ได้ อ.1 ✓");sk=[3,0];}
    else if(SSUB[c]&&A_ORD[stp]>=A_ORD[A_TRK]){var sd=pdate(SSUB[c]);var lim=bkk(prov)?60:45;var dl=sd?daysBetween(new Date(sd.getTime()+lim*86400000),TODAY):null;
@@ -477,7 +561,7 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
    else{var worst=null;chk.forEach(function(x){if(x.g==stp&&!x.ok&&(x.st=="red"||x.st=="amber")){if(!worst||x.st=="red")worst=x;}});
      if(worst){st=worst.st;sx=worst.sx;sk=[worst.st=="red"?0:1,0];}else{st="none";sx=(stp==RG_PREP?"เตรียมเอกสาร":"กำลังทำ");sk=[2,0];}}
    var pend=chk.filter(function(x){return !x.ok;});
-   regT.push({code:c,name:cc(r,1),prov:cc(r,2),owner:cc(r,3)||"(ไม่ระบุ)",step:stp,st:st,slatxt:sx,sk:sk,checklist:chk,kt:"",
+   regT.push({code:c,name:cc(r,1),prov:cc(r,2),owner:"หมิว",step:stp,st:st,slatxt:sx,sk:sk,checklist:chk,kt:"",
      why:"เปิด "+(cc(r,4)||"?")+" · เสร็จ "+doneN+"/"+DOCS.length+" ใบ",
      w:(pend.length?{track:"reg",field:"done",value:pend[0].col,lbl:"✅ "+pend[0].n+" เสร็จ"}:null)});}
  var regOver=regT.filter(function(t){return t.st=="red";}).length;
