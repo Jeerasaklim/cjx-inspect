@@ -63,8 +63,11 @@
   .dlbx{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;z-index:2}
   .dlbnav{position:absolute;top:50%;transform:translateY(-50%);color:#fff;font-size:44px;cursor:pointer;padding:10px 18px;user-select:none;opacity:.85}
   .dlbnav.prev{left:6px}.dlbnav.next{right:6px}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;cursor:pointer}
-  .kpi.on{border-color:var(--y)}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;cursor:pointer;transition:border-color .15s,background .15s}
+  .kpi[data-f]:hover{border-color:#3a3520}
+  .kpi.on{border-color:var(--y);background:#1e1c12}
+  .kpi.kpiflat{cursor:default}
+  .flab{font-size:12px;color:var(--y);cursor:pointer;white-space:nowrap}
   .kpi .v{font-size:clamp(28px,3.4vw,40px);font-weight:800;line-height:1}
   .kpi .k{font-size:12.5px;color:var(--mut);margin-top:6px}
   .statusbar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:#26262b;margin-bottom:8px}
@@ -379,14 +382,18 @@ function renderSetup(toggle){
   const failStores=rows.filter(r=>r.fail>0).length
   const passStores=rows.filter(r=>r.allDone&&r.fail===0&&r.done>0).length
   const avg=graded.length?Math.round(graded.reduce((n,r)=>n+r.score,0)/graded.length):0
+  const on=f=>_filter===f?' on':''
   const kpis=`<div class="kpis">
-    <div class="kpi"><div class="v" style="color:var(--build)">${inProg}</div><div class="k">กำลังตรวจรับ</div></div>
-    <div class="kpi"><div class="v" style="color:var(--fail)">${failStores}</div><div class="k">มีจุดไม่ผ่าน</div></div>
-    <div class="kpi"><div class="v" style="color:var(--pass)">${passStores}</div><div class="k">ผ่านครบ</div></div>
-    <div class="kpi"><div class="v" style="color:var(--y)">${avg}</div><div class="k">คะแนนเฉลี่ย /100</div></div>
+    <div class="kpi${on('progress')}" data-f="progress"><div class="v" style="color:var(--build)">${inProg}</div><div class="k">กำลังตรวจรับ</div></div>
+    <div class="kpi${on('fail')}" data-f="fail"><div class="v" style="color:var(--fail)">${failStores}</div><div class="k">มีจุดไม่ผ่าน</div></div>
+    <div class="kpi${on('done')}" data-f="done"><div class="v" style="color:var(--pass)">${passStores}</div><div class="k">ผ่านครบ</div></div>
+    <div class="kpi kpiflat"><div class="v" style="color:var(--y)">${avg}</div><div class="k">คะแนนเฉลี่ย /100</div></div>
   </div>`
   let list=[...rows]
   if(_q){ const q=_q.trim().toLowerCase(); list=list.filter(r=>[r.name,r.code,r.prov].some(v=>(v||'').toLowerCase().includes(q))) }
+  if(_filter==='progress') list=list.filter(r=>r.done>0&&!(r.allDone&&r.fail===0))
+  else if(_filter==='fail') list=list.filter(r=>r.fail>0)
+  else if(_filter==='done') list=list.filter(r=>r.allDone&&r.fail===0&&r.done>0)
   list.sort((a,b)=>(b.fail-a.fail)||((a.days==null?9999:a.days)-(b.days==null?9999:b.days)))
   const rowsHtml=list.length?list.map(r=>{ const gc=r.done?gradeColor(r.grade):'var(--faint)'
     return `<tr class="clk" data-code="${esc(r.code)}">
@@ -397,11 +404,14 @@ function renderSetup(toggle){
       <td class="num">${r.fail?`<span class="fail">${r.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
       <td class="hidecol num" style="font-size:11.5px"><span style="color:var(--main)">หลัก ${r.mainPct.toFixed(0)}%</span> · <span style="color:var(--sub)">ย่อย ${r.subPct.toFixed(0)}%</span></td>
       <td class="hidecol">${r.signed?'<span style="color:var(--pass);font-weight:700">เซ็นแล้ว ✓</span>':'<span style="color:var(--faint)">—</span>'}</td>
-    </tr>`}).join(''):'<tr><td colspan="7" class="empty">ยังไม่มีสาขาตรวจรับ</td></tr>'
+    </tr>`}).join(''):`<tr><td colspan="7" class="empty">${_filter!=='all'?'ไม่มีสาขาในกลุ่มนี้':'ยังไม่มีสาขาตรวจรับ'}</td></tr>`
+  const flab={progress:'กำลังตรวจรับ',fail:'มีจุดไม่ผ่าน',done:'ผ่านครบ'}[_filter]||''
   $('body').innerHTML = toggle + kpis
     + insightsHtml(true)
-    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา · ตรวจรับ (Set-Up)</div><button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div>
+    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา · ตรวจรับ${flab?' · '+flab:''}</div><div style="display:flex;gap:10px;align-items:center">${flab?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
        <div style="overflow-x:auto"><table><thead><tr><th>สาขา · เกรด</th><th>เปิดใน</th><th>คะแนน</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol num">แยกซัพ</th><th class="hidecol">รับร้าน</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
+  $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
+  const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
   wireMode()
 }
 // ====== ใบตรวจรับ / รายงาน (เปิดแท็บใหม่ → พิมพ์/เซฟ PDF) ======
