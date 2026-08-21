@@ -281,7 +281,7 @@ function render(){
    if(i<ss.length-1)b+='<div class="railgap">→</div>';
  }
  b+='</div>';
- b+='<div class="tbar"><input id="q" class="qbox" placeholder="🔍 ค้นหา Site Code / ชื่อสาขา / สถานะ..." value="'+esc(SEARCH)+'" oninput="SEARCH=this.value;filterTable()">'+statusFilterHtml()+'<span class="pill">📋 <b id="cnt">0</b> สาขา</span>'+(ACTIVE?'<span class="chip">step: '+esc(ACTIVE)+'</span><span class="clr" onclick="ACTIVE=null;render()">✕ step</span>':"")+'</div>';
+ b+='<div class="tbar"><input id="q" class="qbox" placeholder="🔍 ค้นหา Site Code / ชื่อสาขา / สถานะ..." value="'+esc(SEARCH)+'" oninput="SEARCH=this.value;filterTable()">'+statusFilterHtml()+'<span class="pill">📋 <b id="cnt">0</b> สาขา</span>'+(ACTIVE?'<span class="chip">step: '+esc(ACTIVE)+'</span><span class="clr" onclick="ACTIVE=null;render()">✕ step</span>':"")+'<button class="clr" style="margin-left:auto" onclick="exportCSV()">⬇️ Export CSV</button></div>';
  b+='<div id="tblbox"></div>';
  el.innerHTML=b;filterTable();
  var q=document.getElementById("q");if(q&&SEARCH){q.focus();q.setSelectionRange(SEARCH.length,SEARCH.length);}
@@ -393,9 +393,28 @@ function renderBoss(){var p=DATA.perf;
  var b='<div class="ptseg">';
  T.forEach(function(x){b+='<button class="'+(PSUB===x[0]?"on":"")+'" onclick="setPSub(\''+x[0]+'\')"><span class="pi">'+x[1]+'</span><span>'+x[2]+'</span></button>';});
  b+='</div>';
+ b+='<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="clr" onclick="exportPerf()">⬇️ Export CSV</button></div>';
  b+=(PSUB==="neg"?perfNeg(p):(PSUB==="o1"?perfO1(p):perfReg(p)));
  return b;}
 function setPSub(s){PSUB=s;render();}
+function csvCell(v){v=(v==null?"":String(v));if(/[",\n\r]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v;}
+function downloadCSV(name,rows){var s="﻿"+rows.map(function(r){return r.map(csvCell).join(",");}).join("\r\n");
+ var blob=new Blob([s],{type:"text/csv;charset=utf-8;"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);}
+function exportCSV(){var list=visRows();var hdr,rows;
+ if(MODE==="ratkit"&&RATSUB==="reg"){
+   var docNames=(list[0]&&list[0].checklist)?list[0].checklist.map(function(x){return x.n;}):[];
+   hdr=["Site Code","ชื่อสาขา","จังหวัด","ผู้รับผิดชอบ","ขั้นตอน","สถานะ SLA","หมายเหตุ"].concat(docNames);
+   rows=[hdr];list.forEach(function(t){var base=[t.code,t.name,t.prov,t.owner,t.step,t.slatxt,t.why];
+     if(t.checklist)t.checklist.forEach(function(x){base.push(x.ok?"เสร็จ":(x.st==="red"?"เลย D-day":"ยังไม่ทำ"));});rows.push(base);});
+ }else{
+   hdr=["Site Code","ชื่อสาขา","จังหวัด","ผู้รับผิดชอบ","ขั้นตอน","สถานะ SLA","หมายเหตุ"];
+   rows=[hdr];list.forEach(function(t){rows.push([t.code,t.name,t.prov,t.owner,t.step,t.slatxt,t.why]);});
+ }
+ var tag=(MODE==="nego"?"เจรจา":(MODE==="ratkit"?(RATSUB==="o1"?"อ.1":"ทะเบียน"):"perf"));
+ downloadCSV("CJX_SiteOps_"+tag+"_"+DATA.updated+".csv",rows);}
+function exportPerf(){var rows;
+ if(PSUB==="neg"){rows=[["อันดับ","ชื่อ","งานในมือ","% เซ็น","เกิน SLA"]];DATA.perf.persons_nego.forEach(function(x,i){rows.push([i+1,x.nm,x.hold,x.pct+"%",x.over]);});downloadCSV("CJX_Perf_เจรจา_รายคน_"+DATA.updated+".csv",rows);}
+ else{var arr=(PSUB==="o1"?DATA.ratkit.o1.tasks:DATA.ratkit.reg.tasks);rows=[["Site Code","ชื่อสาขา","จังหวัด","ผู้รับผิดชอบ","ขั้นตอน","สถานะ SLA"]];arr.forEach(function(t){rows.push([t.code,t.name,t.prov,t.owner,t.step,t.slatxt]);});downloadCSV("CJX_Perf_"+(PSUB==="o1"?"อ.1":"ทะเบียน")+"_"+DATA.updated+".csv",rows);}}
 function setMode(m){MODE=m;RATSUB="o1";PSUB="neg";VIEW="flow";ACTIVE=null;SEARCH="";FSTAT="";document.getElementById("app").setAttribute("data-mode",m);["nego","ratkit","boss"].forEach(function(x){document.getElementById("mb-"+x).className=(x===m?"on":"");});var sd=document.getElementById("side");if(sd)sd.classList.remove("open");fillWho();render();}
 
 /* ============ LIVE DATA LAYER (ดึงสด + คำนวณในเบราว์เซอร์) ============ */
