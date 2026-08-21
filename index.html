@@ -1345,6 +1345,7 @@ async function openSite(code){
         const sec=sc.sections.find(x=>x.phase===n)||{earned:0}
         return `<div class="step" data-phase="${n}"><div class="n suN">${n-200}</div>
           <div style="flex:1"><div class="snm">${esc(name)}</div><div class="st" style="color:${st.color}">${st.label} · <span class="scpill" style="color:var(--setup)">${sec.earned.toFixed(1)}/${w}</span></div></div><span class="chev">›</span></div>` }).join('')
+      if(sc.failItems||sc.fixedItems) html += `<div class="actbtn" style="margin-top:12px"><button class="btn gho" id="btnSetupPunch">🔧 ออกรายงานงานที่ต้องแก้ (ส่งให้ CM)</button></div>`
       {
         const suLatest=(k)=>{ const a=signoffs.filter(x=>x.scope==='setup'&&x.kind===k); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
         const nsaS=suLatest('setup_nsa'), suCmS=suLatest('setup_cm'), cmName=setupCmName(signoffs)
@@ -1381,6 +1382,7 @@ async function openSite(code){
   $('siteBody').querySelectorAll('.sigslot[data-susig]').forEach(el=> el.onclick=()=>{ const kind=el.dataset.susig
     openSigPad(kind==='setup_nsa'?'ลายเซ็นผู้ตรวจรับ (Set-Up/NSA)':'ลายเซ็นทีมก่อสร้าง (CM)', img=>saveSetupSig(code,kind,img)) })
   const bsr=$('btnSetupReport'); if(bsr) bsr.onclick=()=>generateSetupReport(code)
+  const bsp=$('btnSetupPunch'); if(bsp) bsp.onclick=()=>generateSetupPunch(code)
   hideAllViews(); showTabbar(false); show($('viewSite'),true); window.scrollTo(0,0)
 }
 function ctrOptions(cur){
@@ -2360,6 +2362,79 @@ async function generateSetupReport(code){
   ${suFailHtml}
   ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจรับ</p>'}
   <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${cmCell}</div>
+  </body></html>`
+  frame.srcdoc=html
+  frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
+}
+// ---- รายงาน "งานที่ต้องแก้" (Set-Up ตีกลับ) — ส่งให้ CM ไปแก้แล้วตอบกลับในแอป ----
+async function generateSetupPunch(code){
+  const s=stores.find(x=>x.code===code)||{code}
+  await loadChecklist()
+  hideAllViews(); showTabbar(false); show($('viewReport'),true); window.scrollTo(0,0)
+  _reportReturn = ()=>openSite(code)
+  const frame=$('reportFrame')
+  frame.removeAttribute('style'); frame.srcdoc='<!doctype html><meta charset=utf-8><body style="font-family:sans-serif;padding:24px;color:#555">กำลังสร้างรายงาน…</body>'
+  const { data:insps } = await sb.from('inspections').select('id,phase').eq('store_code',code).gte('phase',201).lte('phase',208)
+  const ids=(insps||[]).map(i=>i.id); let events=[], media=[]
+  if(ids.length){
+    const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
+    const {data:m}=await sb.from('media').select('checkpoint,path,kind').in('inspection_id',ids); media=m||[]
+    for(const x of media){ const {data:u}=await sb.storage.from('media').createSignedUrl(x.path,3600); x.url=u?u.signedUrl:'' }
+  }
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
+  const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543} ${p2(dd.getHours())}:${p2(dd.getMinutes())}`
+  let failN=0, fixN=0, body=''
+  SETUP_SECTIONS.forEach(([pn,name])=>{
+    const cps=checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort)
+    const rows=[]
+    cps.forEach(c=>{ const e=cur[String(c.id)]; if(!e||(e.status!=='fail'&&e.status!=='fixed')) return
+      if(e.status==='fail') failN++; else fixN++
+      const ims=(mediaByCp[String(c.id)]||[])
+      const sup=c.supplier==='ซัพย่อย'?'<span class="sup y">ซัพย่อย</span>':(c.supplier?'<span class="sup m">ซัพหลัก</span>':'')
+      const tag=e.status==='fixed'?'<span class="tg fx">CM แก้แล้ว · รอ Set-Up ตรวจซ้ำ</span>':'<span class="tg fl">ต้องแก้</span>'
+      rows.push(`<div class="it"><div class="ith"><div class="itl">${c.group_title?`<span class="grp">${esc(c.group_title)}</span> `:''}${esc(c.label)} ${sup}</div>${tag}</div>
+        ${e.note?`<div class="rsn">✕ เหตุที่ตีกลับ: ${esc(e.note)}</div>`:''}
+        <div class="by">โดย ${esc(nameOf(e.by))} · ${fmtDate(e.created_at)}</div>
+        <div class="ims">${ims.map(m=>m.kind==='video'?`<a href="${m.url||''}" target="_blank">🎥 วิดีโอ</a>`:`<a href="${m.url||''}" target="_blank"><img src="${m.url||''}"></a>`).join('')||'<span class="noimg">— ไม่มีรูป —</span>'}</div></div>`)
+    })
+    if(rows.length) body+=`<h2>${esc(name)} <span class="cnt">${rows.length} จุด</span></h2>${rows.join('')}`
+  })
+  const total=failN+fixN
+  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>งานที่ต้องแก้ ${esc(s.name||code)}</title><style>
+    *{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:24px;font-size:13px;line-height:1.5;background:#fff}
+    .cert{border:2px solid #E67E22;border-radius:14px;padding:20px 22px;margin-bottom:20px;background:#fffaf4}
+    .brand{font-weight:800;font-size:15px;letter-spacing:1px;color:#111}.brand b{color:#E0A800}
+    h1{font-size:20px;margin:6px 0 10px;color:#c0392b}
+    .site{font-size:17px;font-weight:800}.site span{color:#888;font-weight:600;font-size:14px}
+    .meta{color:#666;font-size:12px;margin-top:6px}
+    .sum{display:inline-flex;gap:14px;margin-top:12px}
+    .sum b{display:inline-block;font-size:13px;font-weight:800;padding:7px 14px;border-radius:9px}
+    .sum .f{background:#fdeaea;color:#c0392b;border:1px solid #e6b0b0}.sum .x{background:#fff6e8;color:#a5701a;border:1px solid #f0dcae}
+    h2{font-size:15px;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid #f0d5c0;color:#b0561a}
+    .cnt{font-size:11px;font-weight:700;color:#c0392b;background:#fdeaea;border-radius:99px;padding:2px 9px;float:right}
+    .it{border:1px solid #eee;border-left:3px solid #E67E22;border-radius:10px;padding:11px 13px;margin-bottom:9px;page-break-inside:avoid}
+    .ith{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .itl{font-weight:700;font-size:13px;color:#222}.grp{color:#999;font-weight:600;font-size:11px}
+    .sup{font-size:10px;font-weight:800;padding:1px 6px;border-radius:5px;margin-left:4px}.sup.m{color:#2d5bb8;background:#eef4ff}.sup.y{color:#a5701a;background:#fff6e8}
+    .tg{font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;white-space:nowrap;flex:0 0 auto}.tg.fl{color:#c0392b;background:#fdeaea}.tg.fx{color:#a5701a;background:#fff6e8}
+    .rsn{color:#b06a00;font-size:12px;margin:5px 0 3px}
+    .by{color:#999;font-size:11px}
+    .ims{margin-top:6px}.ims img{width:96px;height:96px;object-fit:cover;border-radius:7px;margin:3px 3px 0 0;border:1px solid #e0c0a0}.noimg{color:#c0392b;font-size:11px}
+    .how{margin-top:20px;padding:14px 16px;background:#f2f8ff;border:1px solid #cdddff;border-radius:11px;font-size:12.5px;color:#2d5bb8}
+    .how b{color:#1c3d7a}
+    .noprint{margin-bottom:14px}.noprint button{background:#E67E22;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
+    @media print{.noprint{display:none}body{padding:0}}
+  </style></head><body>
+    <div class="noprint"><button onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button></div>
+    <div class="cert"><div class="brand">CJ<b>X</b> INSPECT</div>
+      <h1>🔧 รายงานงานที่ต้องแก้ไข (Set-Up ตีกลับ)</h1>
+      <div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
+      <div class="meta">ออกเอกสาร ${today} โดย ${esc(profile.name||profile.email||'')}${s.contractor?' · ผรม. '+esc(s.contractor):''}</div>
+      <div class="sum"><b class="f">ต้องแก้ ${failN} จุด</b>${fixN?`<b class="x">รอตรวจซ้ำ ${fixN} จุด</b>`:''}</div>
+    </div>
+    ${total?body:'<p style="color:#137a43;font-weight:700">✓ ไม่มีจุดที่ต้องแก้ — ผ่านทั้งหมด</p>'}
+    ${total?`<div class="how"><b>ขั้นตอนให้ CM แก้งาน:</b><br>1) เปิดแอป → หน้าสาขานี้ → แตะหมวดที่มี “ไม่ผ่าน”<br>2) แก้งานจริง แล้ว <b>แนบรูปที่แก้แล้ว</b> ในข้อนั้น<br>3) กด <b>“ส่งให้ Set-Up ตรวจซ้ำ”</b> → Set-Up จะเข้ามาตรวจซ้ำเพื่อปิดจุดนั้น</div>`:''}
   </body></html>`
   frame.srcdoc=html
   frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
