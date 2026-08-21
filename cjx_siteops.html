@@ -1,0 +1,368 @@
+<title>CJX Site Ops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#eceff3;--surface:#fff;--surface2:#f5f8fb;--sidebar:#141c26;--sidebar-ink:#e7edf3;--sidebar-mut:#8595a5;--ink:#18222e;--muted:#5c6b7a;--faint:#93a1af;--border:#dde4eb;--line:#eef2f6;--gold:#a9761a;--gold-soft:#f6ecd6;--purple:#7241b8;--purple-soft:#efe7fb;--boss:#0e7268;--boss-soft:#d5f0ec;--good:#0a8a5f;--good-soft:#d8f0e6;--bad:#cf4436;--bad-soft:#f8dfdc;--warn:#bd7912;--warn-soft:#f8ead0;--track:#e7ecf1;--shadow:0 1px 2px rgba(16,30,45,.05),0 6px 20px rgba(16,30,45,.05);--accent:var(--gold);--accent-soft:var(--gold-soft)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b1116;--surface:#141d26;--surface2:#1a242e;--sidebar:#0a1014;--sidebar-ink:#e7edf3;--sidebar-mut:#6c7c8b;--ink:#e7eef5;--muted:#9aa9b7;--faint:#63727f;--border:#26333f;--line:#1e2a34;--gold:#e0ad4c;--gold-soft:#332810;--purple:#b28bec;--purple-soft:#241634;--boss:#3fbdb0;--boss-soft:#0f3330;--good:#43c98d;--good-soft:#0f3327;--bad:#ee7365;--bad-soft:#3a1e1b;--warn:#e2a745;--warn-soft:#352914;--track:#212e3a;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25)}}
+:root[data-theme=dark]{--bg:#0b1116;--surface:#141d26;--surface2:#1a242e;--sidebar:#0a1014;--sidebar-ink:#e7edf3;--sidebar-mut:#6c7c8b;--ink:#e7eef5;--muted:#9aa9b7;--faint:#63727f;--border:#26333f;--line:#1e2a34;--gold:#e0ad4c;--gold-soft:#332810;--purple:#b28bec;--purple-soft:#241634;--boss:#3fbdb0;--boss-soft:#0f3330;--good:#43c98d;--good-soft:#0f3327;--bad:#ee7365;--bad-soft:#3a1e1b;--warn:#e2a745;--warn-soft:#352914;--track:#212e3a;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sarabun",system-ui,sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.tnum{font-variant-numeric:tabular-nums}h1,h2,h3{font-family:"IBM Plex Sans Thai",sans-serif;margin:0}
+#app{--accent:var(--gold);--accent-soft:var(--gold-soft)}#app[data-mode=ratkit]{--accent:var(--purple);--accent-soft:var(--purple-soft)}#app[data-mode=boss]{--accent:var(--boss);--accent-soft:var(--boss-soft)}
+.shell{display:flex;min-height:100vh}
+.side{width:238px;flex-shrink:0;background:var(--sidebar);color:var(--sidebar-ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.side .brand{display:flex;align-items:center;gap:11px;padding:18px 18px 16px}
+.side .brand .dot{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.side .brand .bn{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:16px;line-height:1.1}.side .brand .bs{font-size:10.5px;color:var(--sidebar-mut);margin-top:2px}
+.side .grp{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--sidebar-mut);padding:14px 20px 7px;font-weight:600}
+.nav{padding:0 10px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--sidebar-ink);cursor:pointer;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:13.5px;margin-bottom:3px}
+.nav a .ni{font-size:17px;width:20px;text-align:center}.nav a .nc{margin-left:auto;font-size:11px;color:var(--sidebar-mut);font-variant-numeric:tabular-nums}
+.nav a:hover{background:rgba(255,255,255,.06)}
+.nav a.on{background:var(--accent);color:#fff}.nav a.on .nc{color:rgba(255,255,255,.85)}
+.side .who-w{padding:6px 16px 0}
+.side select{width:100%;background:rgba(255,255,255,.07);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:9px 10px;font-family:"IBM Plex Sans Thai";font-size:13px;font-weight:600}
+.side select option{color:#000}
+.alertbtn{margin:12px 16px 0;display:flex;align-items:center;gap:9px;background:rgba(207,68,54,.16);border:1px solid rgba(238,115,101,.35);color:#ff9d92;border-radius:10px;padding:10px 12px;cursor:pointer;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:13px}
+.alertbtn .ab{margin-left:auto;background:var(--bad);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px}
+.side .foot{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:10.5px;color:var(--sidebar-mut);line-height:1.6}
+.side .foot b{color:var(--sidebar-ink)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.pgh{padding:22px 30px 0;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.pgh h1{font-size:21px;display:flex;align-items:center;gap:9px}
+.pgh .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.seg{display:flex;gap:3px;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:3px}
+.seg button{border:none;background:transparent;color:var(--muted);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12.5px;padding:7px 14px;border-radius:8px;cursor:pointer}.seg button.on{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
+.content{padding:18px 30px 50px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-bottom:22px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.5}
+.kpi.bad::after{background:var(--bad)}.kpi.warn::after{background:var(--warn)}.kpi.good::after{background:var(--good)}
+.kpi .v{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:28px;line-height:1}.kpi.bad .v{color:var(--bad)}.kpi.warn .v{color:var(--warn)}.kpi.good .v{color:var(--good)}
+.kpi .l{font-size:12px;color:var(--muted);margin-top:7px}
+.rail{display:flex;align-items:stretch;gap:0;margin-bottom:22px;overflow-x:auto;padding-bottom:2px}
+.node{flex:1;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 16px;cursor:pointer;box-shadow:var(--shadow);position:relative;transition:box-shadow .12s}
+.node:hover{box-shadow:0 2px 4px rgba(16,30,45,.08),0 10px 26px rgba(16,30,45,.1)}
+.node.on{outline:2px solid var(--accent);outline-offset:-1px}
+.node.fin{background:var(--good-soft);border-color:transparent}
+.node .nh{display:flex;align-items:center;gap:9px}.node .ni{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.node.hot .ni{background:var(--bad-soft);color:var(--bad)}.node.fin .ni{background:var(--good);color:#fff}
+.node .nt{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13.5px;flex:1}.node .nn{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:24px}
+.node .ntask{font-size:11px;color:var(--muted);margin:9px 0 10px;min-height:30px}
+.node .nsla{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-weight:600;font-family:"IBM Plex Sans Thai";font-size:10.5px;color:var(--muted)}
+.chip.red{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.railgap{display:flex;align-items:center;color:var(--faint);font-size:16px;padding:0 3px;flex-shrink:0}
+.tbar{display:flex;align-items:center;gap:10px;margin-bottom:11px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.tbar b{color:var(--ink)}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:20px;padding:3px 12px;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12px}
+.clr{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;padding:3px 11px;font-size:11.5px;cursor:pointer;font-family:"IBM Plex Sans Thai";font-weight:600}
+.tblwrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-family:"IBM Plex Sans Thai";font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--faint);padding:11px 16px;background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
+th.r,td.r{text-align:right}
+td{padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr{cursor:pointer;transition:background .1s}tbody tr:hover{background:var(--surface2)}
+.c1{display:flex;align-items:center;gap:10px}
+.sdot{width:9px;height:9px;border-radius:50%;background:var(--good);flex-shrink:0}.sdot.red{background:var(--bad)}.sdot.amber{background:var(--warn)}.sdot.none{background:var(--faint)}.sdot.done{background:var(--good)}
+.code{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13px}
+.nm2{font-size:11px;color:var(--faint)}
+.who-c{display:flex;align-items:center;gap:8px}.av{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12px;flex-shrink:0}
+.stepbadge{font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;font-family:"IBM Plex Sans Thai";background:var(--surface2);border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.slacell{display:flex;flex-direction:column;gap:4px;min-width:130px}
+.slatop{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}
+.sla-red{color:var(--bad)}.sla-amber{color:var(--warn)}.sla-green{color:var(--good)}.sla-none{color:var(--faint)}.sla-done{color:var(--good)}
+.slabar{height:5px;border-radius:3px;background:var(--track);overflow:hidden}.slabar>i{display:block;height:100%;border-radius:3px}
+.gobtn{border:1px solid var(--border);background:var(--surface);color:var(--accent);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:11.5px;padding:6px 12px;border-radius:8px;cursor:pointer}
+tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--accent)}
+.hint{font-size:11.5px;color:var(--faint);font-style:italic;margin-top:14px}
+.sh{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:16px;margin:6px 0 13px;display:flex;align-items:center;gap:8px}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.bcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:17px;box-shadow:var(--shadow)}
+.bcard .bt{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:15px;display:flex;gap:8px;align-items:center}
+.bcard .tot{font-size:12px;color:var(--muted);margin:4px 0 13px}
+.bstat{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.bstat .s{text-align:center;background:var(--surface2);border-radius:11px;padding:13px 4px}.bstat .v{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:24px}.bstat .l{font-size:10.5px;color:var(--muted);margin-top:3px}
+.bstat .s.bad .v{color:var(--bad)}.bstat .s.good .v{color:var(--good)}.bstat .s.warn .v{color:var(--warn)}
+.pgrid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.prow{display:flex;align-items:center;gap:11px;font-size:13px;padding:9px 0;border-top:1px solid var(--line)}.prow:first-of-type{border-top:none}.prow .pn{width:150px;font-weight:600;display:flex;align-items:center;gap:8px}.prow .tk{flex:1;height:14px;background:var(--track);border-radius:5px;overflow:hidden}.prow .tk>i{display:block;height:100%;border-radius:5px;background:var(--accent)}.prow .tk>i.red{background:var(--bad)}.prow .pf{width:110px;text-align:right;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}.prow .pf small{color:var(--faint);font-weight:400}
+.scrim{position:fixed;inset:0;background:rgba(10,20,30,.42);display:none;z-index:40}.scrim.on{display:block}
+.drawer{position:fixed;top:0;right:0;height:100%;width:440px;max-width:94vw;background:var(--surface);border-left:1px solid var(--border);z-index:50;transform:translateX(100%);transition:transform .24s cubic-bezier(.4,0,.2,1);overflow-y:auto;box-shadow:-12px 0 44px rgba(10,20,30,.16)}
+.drawer.on{transform:translateX(0)}
+.dhead{padding:22px 24px 16px;border-bottom:1px solid var(--line);position:relative}
+.dhead .x{position:absolute;top:18px;right:20px;font-size:18px;color:var(--muted);cursor:pointer;border:none;background:var(--surface2);width:30px;height:30px;border-radius:8px}
+.dhead .dcode{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:19px}.dhead .dnm{color:var(--muted);font-size:13.5px;margin-top:2px}
+.dbody{padding:18px 24px 30px}
+.slabox{border:1px solid var(--bad);background:var(--bad-soft);border-radius:12px;padding:14px 16px;margin-bottom:18px;display:flex;align-items:center;gap:13px}.slabox.ok{border-color:var(--good);background:var(--good-soft)}.slabox .ico{font-size:26px}.slabox .big{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:16px}.slabox .s2{font-size:12px;color:var(--muted);margin-top:2px}
+.dstep-h{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px}
+.stepper{margin-bottom:20px;position:relative}
+.snode{display:flex;gap:12px;padding-bottom:16px;position:relative}
+.snode:not(:last-child)::before{content:"";position:absolute;left:13px;top:26px;bottom:-2px;width:2px;background:var(--border)}
+.snode.done:not(:last-child)::before{background:var(--good)}
+.sbullet{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:13px;background:var(--surface2);border:2px solid var(--border);color:var(--faint);z-index:1;font-family:"IBM Plex Sans Thai";font-weight:700}
+.snode.done .sbullet{background:var(--good);border-color:var(--good);color:#fff}
+.snode.active .sbullet{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 0 4px var(--accent-soft)}
+.snode .sc .st{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13px}.snode.pending .sc .st{color:var(--faint)}
+.snode .sc .sd{font-size:11px;color:var(--muted);margin-top:2px}
+.snode.active .sc .sd{color:var(--ink)}
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;gap:14px}.kv .k{color:var(--muted);white-space:nowrap}.kv .v{font-weight:600;text-align:right}
+.act-h{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:14px;margin:20px 0 3px}.act-sub{font-size:12px;color:var(--muted);margin-bottom:12px}
+.acts{display:flex;flex-direction:column;gap:8px}.acts button{border:1px solid var(--border);background:var(--surface2);color:var(--ink);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:13px;padding:12px 15px;border-radius:11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:9px}.acts button:hover{border-color:var(--accent)}.acts button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.note-in{width:100%;margin-top:11px;padding:11px 13px;border:1px solid var(--border);border-radius:11px;font-family:inherit;font-size:13px;background:var(--surface2);color:var(--ink)}
+.mobtop{display:none}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.pgrid,.pgrid2{grid-template-columns:1fr}}
+@media(max-width:760px){.side{position:fixed;left:0;top:0;z-index:60;transform:translateX(-100%);transition:transform .2s;box-shadow:10px 0 40px rgba(0,0,0,.3)}.side.open{transform:translateX(0)}.mobtop{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}.mobtop .mb{font-size:22px;background:none;border:none;color:var(--ink);cursor:pointer}.pgh,.content{padding-left:16px;padding-right:16px}}
+</style>
+<div id="app" data-mode="nego"><div class="shell">
+  <aside class="side" id="side">
+    <div class="brand"><span class="dot">🏗️</span><div><div class="bn">CJX Site Ops</div><div class="bs">ระบบติดตามงานเปิดสาขา</div></div></div>
+    <div class="grp">ท่อนงาน</div>
+    <nav class="nav">
+      <a id="mb-nego" class="on" onclick="setMode('nego')"><span class="ni">🤝</span> เจรจา <span class="nc" id="nc-nego"></span></a>
+      <a id="mb-ratkit" onclick="setMode('ratkit')"><span class="ni">🏛️</span> รัฐกิจ <span class="nc" id="nc-ratkit"></span></a>
+      <a id="mb-boss" onclick="setMode('boss')"><span class="ni">📊</span> Performance</a>
+    </nav>
+    <div class="grp" id="who-lbl">มุมมองของ</div>
+    <div class="who-w"><select id="who" onchange="ACTIVE=null;render()"></select></div>
+    <div class="alertbtn" onclick="setV('alert')">🔔 งานเกิน SLA <span class="ab" id="belln">0</span></div>
+    <div class="foot">◇ เจรจา = <b>Pipeline Commit Nego-2026</b> · รัฐกิจ = ชีต SLA<br>อัปเดต <b id="upd"></b><br><span style="opacity:.7">ตอบผล = บันทึกโน้ต (webhook) · เขียนกลับชีต = เฟสถัดไป</span></div>
+  </aside>
+  <div class="main">
+    <div class="mobtop"><button class="mb" onclick="document.getElementById('side').classList.toggle('open')">☰</button><b id="mobtitle">เจรจา</b></div>
+    <div class="pgh"><div><h1 id="pgt"></h1><div class="sub" id="pgs"></div></div><div class="seg" id="seg"></div></div>
+    <div class="content" id="body"></div>
+  </div>
+</div></div>
+<div class="scrim" id="scrim" onclick="closeD()"></div><div class="drawer" id="drawer"></div>
+<script>
+var NOTES_WH="https://script.google.com/macros/s/AKfycbwpSe8-xhAr7sT24kVUZc8FAWxBPOWyD-a5EiTjqZ9dvK8P7u97mcKqYnDn5WAjy7k_rg/exec";
+var WRITE_URL="https://script.google.com/macros/s/AKfycbwcTzrkPICy3E2cZuJA93_OWNSg0ezNzs8zV4S_4n8XvoMRcJRM2aMQq3HfIn7nTUdS/exec";var WSECRET="cjx-siteops-write-2026";
+var DATA={updated:"—",wh:NOTES_WH,nego:{owners:[],tasks:[],steps:[],final:""},ratkit:{o1:{owners:[],tasks:[],steps:[],final:""},reg:{owners:[],tasks:[],steps:[],final:""}},perf:{nego:{over:0,pending:0,signed:0,final:0,at_sign:0,close_pct:0,sla_pct:0,total:0},ratkit:{over:0,reg_over:0,got:0,wait:0,prep:0,waiver:0,sla_pct:0},problems:[],persons_nego:[],persons_rat:[]}};
+var MODE="nego",RATSUB="o1",VIEW="flow",ACTIVE=null,WH=NOTES_WH;
+var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → ติดขัด/KT → รอเซ็น → กฎหมายตรวจ → เซ็นแล้ว · จาก Pipeline Commit Nego-2026"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},boss:{t:"📊 Performance Team",s:"ภาพรวมผลงาน + SLA ทุกส่วน"}};
+function esc(s){s=(s==null?"":String(s));return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function md(){return MODE==="ratkit"?DATA.ratkit[RATSUB]:DATA[MODE];}
+function steps(){return md().steps;}
+function av(nm){var c=(nm&&nm!=="(ไม่ระบุ)")?nm.trim().charAt(0):"?";return '<span class="av">'+esc(c)+'</span>';}
+function tasksFor(){var t=md().tasks;var w=(document.getElementById("who")||{}).value;if(w&&w!=="__all__")t=t.filter(function(x){return x.owner===w;});return t;}
+var STC={red:"var(--bad)",amber:"var(--warn)",green:"var(--good)",none:"var(--faint)",done:"var(--good)"};
+var STW={red:100,amber:65,green:36,none:12,done:100};
+function slaCell(t){return '<div class="slacell"><span class="slatop sla-'+t.st+'">'+esc(t.slatxt)+'</span><span class="slabar"><i style="width:'+STW[t.st]+'%;background:'+STC[t.st]+'"></i></span></div>';}
+function bySk(a,c){return (a.sk[0]-c.sk[0])||(a.sk[1]-c.sk[1]);}
+function fillWho(){var sel=document.getElementById("who");document.getElementById("nc-nego").textContent=DATA.nego.tasks.length;document.getElementById("nc-ratkit").textContent=DATA.ratkit.o1.tasks.length+DATA.ratkit.reg.tasks.length;
+ if(MODE==="boss"){document.getElementById("who-lbl").style.display="none";document.querySelector(".who-w").style.display="none";return;}
+ document.getElementById("who-lbl").style.display="";document.querySelector(".who-w").style.display="";
+ var ow=md().owners;var h='<option value="__all__">👥 ทั้งทีม ('+md().tasks.length+' งาน)</option>';for(var i=0;i<ow.length;i++){var n=md().tasks.filter(function(x){return x.owner===ow[i];}).length;h+='<option value="'+esc(ow[i])+'">👤 '+esc(ow[i])+' ('+n+')</option>';}sel.innerHTML=h;}
+function kpis(team){var p=DATA.perf;var over=team.filter(function(t){return t.st==="red";}).length;
+ if(MODE==="nego")return [{v:p.nego.pending,l:"📄 สัญญาที่ต้องทำ (ค้าง)"},{v:over,l:"🔴 ค้างเกิน 90 วัน",c:"bad"},{v:p.nego.at_sign,l:"⚠️ ติดขัด",c:"warn"},{v:p.nego.final,l:"✅ เซ็นแล้ว (จบ)",c:"good"},{v:p.nego.close_pct+"%",l:"อัตราเซ็นสะสม"}];
+ var near=team.filter(function(t){return t.st==="amber";}).length;
+ if(MODE==="ratkit"&&RATSUB==="reg"){var done=team.filter(function(t){return t.st==="done";}).length;return [{v:team.length,l:"📋 สาขากำลังทำทะเบียน"},{v:over,l:"🔴 เลยเดดไลน์ D-day",c:"bad"},{v:near,l:"🟠 ใกล้ D-day ≤7 วัน",c:"warn"},{v:done,l:"✅ ทะเบียนครบ",c:"good"},{v:team.length-done,l:"ยังไม่จบ"}];}
+ return [{v:p.ratkit.prep,l:"📝 เตรียมยื่น อ.1"},{v:p.ratkit.wait,l:"📨 ยื่นแล้ว รอผล"},{v:over,l:"🔴 เกิน SLA",c:"bad"},{v:p.ratkit.got,l:"✅ ได้ อ.1",c:"good"},{v:p.ratkit.waiver,l:"🏗️ อนุโลม",c:"warn"}];}
+function render(){
+ document.getElementById("upd").textContent=DATA.updated;
+ document.getElementById("belln").textContent=DATA.perf.nego.over+DATA.perf.ratkit.over+DATA.perf.ratkit.reg_over;
+ document.getElementById("pgt").innerHTML=TITLES[MODE].t;document.getElementById("pgs").textContent=TITLES[MODE].s;
+ document.getElementById("mobtitle").textContent=TITLES[MODE].t.replace(/^\S+\s/,"");
+ var seg=document.getElementById("seg");seg.style.display=(MODE==="boss")?"none":"flex";
+ seg.innerHTML='<button class="'+(VIEW==="flow"?"on":"")+'" onclick="setV(\'flow\')">Flow + ตาราง</button><button class="'+(VIEW==="alert"?"on":"")+'" onclick="setV(\'alert\')">🔔 เกิน SLA</button>';
+ var el=document.getElementById("body");
+ if(MODE==="boss"){el.innerHTML=renderBoss();return;}
+ var tasks=tasksFor();var team=md().tasks;var ss=steps();
+ var b="";
+ if(MODE==="ratkit")b+='<div class="seg" style="display:inline-flex;margin-bottom:16px"><button class="'+(RATSUB==="o1"?"on":"")+'" onclick="setSub(\'o1\')">🎫 งาน อ.1 ('+DATA.ratkit.o1.tasks.length+')</button><button class="'+(RATSUB==="reg"?"on":"")+'" onclick="setSub(\'reg\')">📋 งานทะเบียน ('+DATA.ratkit.reg.tasks.length+')</button></div>';
+ b+='<div class="kpis">'+kpis(team).map(function(k){return '<div class="kpi '+(k.c||"")+'"><div class="v tnum">'+k.v+'</div><div class="l">'+k.l+'</div></div>';}).join("")+'</div>';
+ if(VIEW==="alert"){var ov=tasks.filter(function(t){return t.st==="red";}).sort(bySk);
+   b+='<div class="sh">🔔 งานเกิน SLA ('+ov.length+') — ด่วนสุดก่อน</div>'+tableHtml(ov);el.innerHTML=b;return;}
+ b+='<div class="rail">';
+ for(var i=0;i<ss.length;i++){var s=ss[i];var list=team.filter(function(t){return t.step===s.stp;});var ov2=list.filter(function(t){return t.st==="red";}).length;var fin=(s.stp===md().final);
+   b+='<div class="node'+(ov2>0?' hot':'')+(fin?' fin':'')+(ACTIVE===s.stp?' on':'')+'" onclick="setStep('+i+')"><div class="nh"><span class="ni">'+s.ico+'</span><span class="nt">'+s.stp+'</span><span class="nn tnum">'+list.length+'</span></div><div class="ntask">'+s.task+'</div><div class="nsla"><span class="chip">⏱ '+s.sla+'</span>'+(ov2>0?'<span class="chip red">🔴 เกิน '+ov2+'</span>':'')+'</div></div>';
+   if(i<ss.length-1)b+='<div class="railgap">→</div>';
+ }
+ b+='</div>';
+ var show=(ACTIVE?tasks.filter(function(t){return t.step===ACTIVE;}):tasks).slice().sort(bySk);
+ var who=(document.getElementById("who")||{}).value;
+ b+='<div class="tbar"><span class="pill">📋 '+show.length+' สาขา</span>'+(ACTIVE?'<span class="chip">step: '+esc(ACTIVE)+'</span><span class="clr" onclick="ACTIVE=null;render()">✕ ล้างตัวกรอง step</span>':'<span style="color:var(--faint)">ทุก step</span>')+(who&&who!=="__all__"?'<span class="chip">👤 '+esc(who)+'</span>':"")+'<span style="margin-left:auto;color:var(--faint);font-size:12px">เรียง: เกิน SLA ก่อน</span></div>';
+ b+=tableHtml(show);
+ el.innerHTML=b;
+}
+function tableHtml(list){
+ if(!list.length)return '<div class="tblwrap"><table><tbody><tr><td style="text-align:center;color:var(--faint);padding:34px">ไม่มีงานในมุมนี้ 🎉</td></tr></tbody></table></div>';
+ var h='<div class="tblwrap"><table><thead><tr><th>สาขา</th><th>จังหวัด</th><th>ผู้รับผิดชอบ</th><th>Step ปัจจุบัน</th><th>SLA</th><th class="r"></th></tr></thead><tbody>';
+ h+=list.map(function(t){return '<tr onclick="openSite(\''+esc(t.code)+'\')"><td><div class="c1"><span class="sdot '+t.st+'"></span><div><div class="code">'+esc(t.code)+'</div><div class="nm2">'+esc(t.name)+' · '+esc(t.why)+'</div></div></div></td><td>'+esc(t.prov)+'</td><td><div class="who-c">'+av(t.owner)+'<span>'+esc(t.owner)+'</span></div></td><td><span class="stepbadge">'+esc(t.step)+'</span></td><td>'+slaCell(t)+'</td><td class="r"><span class="gobtn">ตอบผล ›</span></td></tr>';}).join("");
+ return h+'</tbody></table></div>';
+}
+function setStep(i){var s=steps()[i];ACTIVE=(ACTIVE===s.stp?null:s.stp);render();}
+function setV(v){VIEW=v;if(MODE==="boss")MODE="nego";render();}
+function findTask(code){var all=md().tasks;for(var i=0;i<all.length;i++)if(all[i].code===code)return all[i];return null;}
+function setSub(s){RATSUB=s;VIEW="flow";ACTIVE=null;fillWho();render();}
+function openSite(code){var t=findTask(code);if(!t)return;var ss=steps();var ci=0;for(var k=0;k<ss.length;k++)if(ss[k].stp===t.step)ci=k;var st=ss[ci];
+ var ok=(t.st!=="red");
+ var b='<div class="dhead"><button class="x" onclick="closeD()">✕</button><div class="dcode">'+esc(t.code)+'</div><div class="dnm">'+esc(t.name)+' · '+esc(t.prov)+'</div></div><div class="dbody">';
+ b+='<div class="slabox'+(ok?" ok":"")+'"><span class="ico">'+(t.st==="red"?"🔴":(t.st==="done"?"✅":"🟢"))+'</span><div><div class="big">'+esc(t.slatxt)+'</div><div class="s2">SLA ขั้นนี้: '+st.sla+'</div></div></div>';
+ b+='<div class="dstep-h">ขั้นตอนงานสัญญา (flow)</div><div class="stepper">';
+ for(var j=0;j<ss.length;j++){var cls=(j<ci?"done":(j===ci?"active":"pending"));var bul=(j<ci?"✓":(j+1));
+   b+='<div class="snode '+cls+'"><span class="sbullet">'+bul+'</span><div class="sc"><div class="st">'+ss[j].ico+' '+ss[j].stp+'</div><div class="sd">'+(j===ci?"👉 "+ss[j].task:ss[j].task)+'</div></div></div>';}
+ b+='</div>';
+ b+='<div class="kv"><span class="k">ผู้รับผิดชอบ</span><span class="v">'+esc(t.owner)+'</span></div><div class="kv"><span class="k">Step ปัจจุบัน</span><span class="v">'+esc(t.step)+'</span></div>'+(t.kt?'<div class="kv"><span class="k">วันเสนอ KT</span><span class="v">'+esc(t.kt)+'</span></div>':"")+'<div class="kv"><span class="k">โน้ต/ความคืบหน้า</span><span class="v">'+esc(t.why)+'</span></div>';
+ b+='<div class="act-h">⚡ ทำงาน / ตอบผล</div><div class="act-sub">ทำอะไร: '+st.task+'</div>';
+ b+='<div class="acts">';
+ if(t.w)b+=wbtn(t.code,t.w,true);
+ if(t.w2)b+=wbtn(t.code,t.w2,false);
+ if(!t.w)b+='<button class="primary" onclick="saveNote(\''+esc(t.code)+'\',\'ตอบผล step: '+esc(t.step)+'\')">✅ ตอบผล / อัปเดตความคืบหน้า</button>';
+ b+='<button onclick="saveNote(\''+esc(t.code)+'\',\'บันทึกโน้ต\')">📝 บันทึกโน้ต / ปัญหา</button><button onclick="saveNote(\''+esc(t.code)+'\',\'ส่งต่อทีม\')">🕐 ส่งต่อขั้นถัดไป</button></div>';
+ b+='<input class="note-in" id="notebox" placeholder="รายละเอียด / เหตุผลที่ค้าง...">';
+ b+='<div class="hint">✅ ตอบผล = บันทึกโน้ตผ่าน webhook · เขียนสถานะกลับชีตเต็มรูปแบบ = เฟสถัดไป</div></div>';
+ document.getElementById("drawer").innerHTML=b;document.getElementById("drawer").classList.add("on");document.getElementById("scrim").classList.add("on");}
+function closeD(){document.getElementById("drawer").classList.remove("on");document.getElementById("scrim").classList.remove("on");}
+function saveNote(code,kind){var box=document.getElementById("notebox");var v=box?box.value:"";var msg=kind+(v?": "+v:"");
+ try{fetch(WH,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({code:"OPS:"+code,note:msg})});}catch(e){}
+ var d=document.getElementById("drawer");d.insertAdjacentHTML("afterbegin",'<div style="position:sticky;top:0;background:var(--good);color:#fff;text-align:center;padding:11px;font-family:IBM Plex Sans Thai;font-weight:600;font-size:13.5px;z-index:3">✓ บันทึกแล้ว ('+esc(code)+')</div>');setTimeout(closeD,950);}
+function _banner(msg){var d=document.getElementById("drawer");d.insertAdjacentHTML("afterbegin",'<div style="position:sticky;top:0;background:var(--good);color:#fff;text-align:center;padding:11px;font-family:IBM Plex Sans Thai;font-weight:600;font-size:13px;z-index:3">'+esc(msg)+'</div>');}
+function wbtn(code,w,primary){var v=(w.value===undefined||w.value===null)?"":w.value;
+ return '<button class="'+(primary?"primary":"")+'" onclick="writeBack(\''+esc(code)+'\',\''+w.track+'\',\''+w.field+'\',\''+v+'\',\''+esc(w.lbl)+'\')">'+esc(w.lbl)+'</button>';}
+function writeBack(code,track,field,value,lbl){var box=document.getElementById("notebox");var note=box?box.value:"";
+ var val=(value===""||value==null)?new Date().toISOString().slice(0,10):value;
+ if(WRITE_URL){try{fetch(WRITE_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({secret:WSECRET,code:code,track:track,field:field,value:val,note:lbl+(note?" · "+note:"")})});}catch(e){}
+   _banner("✓ บันทึกกลับชีตกลางแล้ว");}
+ else{try{fetch(WH,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({code:"OPS:"+code,note:lbl})});}catch(e){}_banner("⚠️ ยังไม่ตั้ง WRITE_URL — เก็บเป็นโน้ตก่อน");}
+ setTimeout(closeD,1200);setTimeout(function(){boot(true);},1600);}
+function renderBoss(){var p=DATA.perf;
+ var b='<div class="pgrid">';
+ b+='<div class="bcard"><div class="bt">🤝 ทีมเจรจา (สัญญา)</div><div class="tot">เซ็นสะสม '+p.nego.close_pct+'% · ตรง SLA เซ็น '+p.nego.sla_pct+'%</div><div class="bstat"><div class="s"><div class="v">'+p.nego.pending+'</div><div class="l">ค้าง (ต้องทำ)</div></div><div class="s good"><div class="v">'+p.nego.signed+'</div><div class="l">เซ็นแล้ว</div></div><div class="s bad"><div class="v">'+p.nego.over+'</div><div class="l">🔴 เกิน SLA</div></div></div></div>';
+ b+='<div class="bcard"><div class="bt">🏛️ ทีมรัฐกิจ</div><div class="tot">ตรง SLA '+p.ratkit.sla_pct+'%</div><div class="bstat"><div class="s good"><div class="v">'+p.ratkit.got+'</div><div class="l">ได้ อ.1</div></div><div class="s warn"><div class="v">'+p.ratkit.wait+'</div><div class="l">รอ อ.1</div></div><div class="s bad"><div class="v">'+p.ratkit.over+'</div><div class="l">🔴 เกิน SLA</div></div></div></div>';
+ b+='<div class="bcard"><div class="bt">🏗️ อนุโลม / ภาพรวม</div><div class="tot">ก่อสร้างก่อน อ.1 ออก</div><div class="bstat"><div class="s warn"><div class="v">'+p.ratkit.waiver+'</div><div class="l">อนุโลม</div></div><div class="s"><div class="v">'+p.nego.total+'</div><div class="l">ไซต์เจรจารวม</div></div><div class="s good"><div class="v">'+p.nego.final+'</div><div class="l">Final ล่าสุด</div></div></div></div>';
+ b+='</div><div class="pgrid2">';
+ var mx=Math.max.apply(null,p.problems.map(function(x){return x[1];}))||1;
+ b+='<div class="bcard"><div class="bt">🚧 สัญญาค้าง — คั่งที่ step ไหน</div><div class="tot">จำนวนสาขาในแต่ละขั้น (ยังไม่ Final)</div>'+p.problems.map(function(x){return '<div class="prow"><span class="pn">'+esc(x[0])+'</span><span class="tk"><i style="width:'+Math.round(100*x[1]/mx)+'%"></i></span><span class="pf tnum">'+x[1]+' ราย</span></div>';}).join("")+'</div>';
+ b+='<div class="bcard"><div class="bt">🧑‍💼 รายคน เจรจา — เซ็นสะสม %</div><div class="tot">แถบ = % เซ็น · เลขท้าย = งานเกิน SLA</div>'+p.persons_nego.slice(0,10).map(function(x){return '<div class="prow"><span class="pn">'+av(x.nm)+esc(x.nm)+'</span><span class="tk"><i class="'+(x.pct<40?"red":"")+'" style="width:'+x.pct+'%"></i></span><span class="pf tnum">'+x.pct+'% <small>· ค้าง '+x.over+'</small></span></div>';}).join("")+'</div>';
+ b+='</div>';
+ if(p.persons_rat&&p.persons_rat.length){b+='<div class="pgrid2" style="margin-top:14px"><div class="bcard"><div class="bt">🧑‍💼 รายคน รัฐกิจ — งานในมือ · เกิน SLA</div><div class="tot">&nbsp;</div>'+p.persons_rat.slice(0,10).map(function(x){var mm=p.persons_rat[0].hold||1;return '<div class="prow"><span class="pn">'+av(x.nm)+esc(x.nm)+'</span><span class="tk"><i class="'+(x.over>0?"red":"")+'" style="width:'+Math.round(100*x.hold/mm)+'%"></i></span><span class="pf tnum">'+x.hold+' งาน <small>· เกิน '+x.over+'</small></span></div>';}).join("")+'</div><div class="bcard" style="display:flex;flex-direction:column;justify-content:center;text-align:center"><div style="font-size:13px;color:var(--muted);margin-bottom:6px">SLA รวมทุกส่วน</div><div style="font-family:IBM Plex Sans Thai;font-weight:700;font-size:40px">'+Math.round((p.nego.sla_pct+p.ratkit.sla_pct)/2)+'%</div><div style="font-size:12px;color:var(--muted);margin-top:4px">เจรจา '+p.nego.sla_pct+'% · รัฐกิจ '+p.ratkit.sla_pct+'%</div></div></div>';}
+ return b;}
+function setMode(m){MODE=m;RATSUB="o1";VIEW="flow";ACTIVE=null;document.getElementById("app").setAttribute("data-mode",m);["nego","ratkit","boss"].forEach(function(x){document.getElementById("mb-"+x).className=(x===m?"on":"");});var sd=document.getElementById("side");if(sd)sd.classList.remove("open");fillWho();render();}
+
+/* ============ LIVE DATA LAYER (ดึงสด + คำนวณในเบราว์เซอร์) ============ */
+var SS_NEG="https://docs.google.com/spreadsheets/d/e/2PACX-1vTqFq4mb_2P2bPpfts-C98Dw78uEXaA_Yt1aZFvmx6gplG4r3X1vh8iyqK0NpO7YsP5kApXYKkAW_nZ/pub?output=csv";
+var SS_SLA="https://docs.google.com/spreadsheets/d/e/2PACX-1vSTGFYU9PHIek5uAK_vtT6knOAjSLzOREyffUc0s5fipxbiPK3lzg_bxzxCCS0oZWW-OrvKv8ZWyiGK/pub?output=csv&gid=238646031";
+var SS_RATOWN="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQUJHYbkRQeludCnbLks5JVdaZV6hsAnJDhLi5iX6Yqo3-8SWnxZVxPoleVMbTKri8w3Q6zAFjoAvp/pub?output=csv";
+var ID_NEGLOG="1cVFBJpP_C6XY5hM15pu71ioQO7JZ7pihRq1FJ-v-k1g",ID_REG="18gVIl2NztRw-HUgpSbpjXNO5I_tj7Yuci5Zp9YskCAo",ID_MIR="1Fnlv8S9uBVL_u_JpoajkNoI0zoyvDj5usCXx6uCtzIk";
+function gv(id,g){return "https://docs.google.com/spreadsheets/d/"+id+"/gviz/tq?tqx=out:csv&gid="+g;}
+var TODAY=new Date();TODAY.setHours(0,0,0,0);
+function iso(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function cc(r,i){return (r&&i<r.length&&r[i]!=null)?String(r[i]).trim():"";}
+function csv(s){var R=[],row=[],f="",q=false;for(var i=0;i<s.length;i++){var c=s[i];if(q){if(c=='"'){if(s[i+1]=='"'){f+='"';i++;}else q=false;}else f+=c;}else{if(c=='"')q=true;else if(c==','){row.push(f);f="";}else if(c=='\n'){row.push(f);R.push(row);row=[];f="";}else if(c!='\r')f+=c;}}if(f!==""||row.length){row.push(f);R.push(row);}return R;}
+var THM={"ม.ค.":0,"ก.พ.":1,"มี.ค.":2,"เม.ย.":3,"พ.ค.":4,"มิ.ย.":5,"ก.ค.":6,"ส.ค.":7,"ก.ย.":8,"ต.ค.":9,"พ.ย.":10,"ธ.ค.":11};
+var ENM={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function pdate(s){s=(s||"").trim();if(s.length>=10&&s[4]=="-"&&/^\d/.test(s)){var d=new Date(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10));if(!isNaN(d.getTime()))return d;}var p=s.split("-");if(p.length==3){var m=THM[p[1]];if(m==null)m=ENM[(p[1]||"").toLowerCase().slice(0,3)];if(m!=null){var y=+p[2];if(y<100)y+=2000;var dd=new Date(y,m,+p[0]);if(!isNaN(dd.getTime()))return dd;}}return null;}
+function daysBetween(a,b){return Math.round((a-b)/86400000);}
+async function getCsv(u){var r=await fetch(u);return csv(await r.text());}
+async function getUpdates(){for(var t=0;t<3;t++){try{var r=await fetch(WRITE_URL+"?key="+WSECRET);if(!r.ok)continue;var j=JSON.parse(await r.text());return (j.rows||[]).slice(1).filter(function(x){return x.length>=5&&x[1];}).map(function(x){return {code:x[1],track:x[2],field:x[3],value:x[4]};});}catch(e){}}return [];}
+
+function compute(neg,sla,reg,constr,ratown,upd){
+ // ---- SLA sheet (อ.1) ----
+ var hr=0;for(var i=0;i<8&&i<sla.length;i++){if(sla[i].join("|").indexOf("Site Code")>=0){hr=i;break;}}
+ var SGOT={},SWAI={},SSUB={};function okv(v){return v&&v.indexOf("1899")<0&&v.indexOf("1900")<0;}
+ for(i=hr+1;i<sla.length;i++){var r=sla[i];var c=cc(r,0);if(!c)continue;if(okv(cc(r,33)))SSUB[c]=cc(r,33);if(okv(cc(r,34)))SGOT[c]=1;if(okv(cc(r,46)))SWAI[c]=1;}
+ // ---- construction opened + prov/name ----
+ var opened={},cprov={},cname={};
+ for(i=3;i<constr.length;i++){var r=constr[i];var c=cc(r,2);if(!c)continue;cprov[c]=cc(r,5);if(!cname[c])cname[c]=cc(r,3)||cc(r,1);var o=pdate(cc(r,137));if((cc(r,138)=="Active"||cc(r,139)=="Hide")&&o&&o<=TODAY)opened[c]=1;}
+ // ---- ratkit owner ----
+ var rkOwn={},rkProv={};var rhr=0;for(i=0;i<6&&i<ratown.length;i++){if(ratown[i].join("|").indexOf("Site Code")>=0){rhr=i;break;}}
+ for(i=rhr+1;i<ratown.length;i++){var r=ratown[i];var c=cc(r,0);if(c){rkOwn[c]=cc(r,5);rkProv[c]=cc(r,4);}}
+ // ---- overlay ----
+ var reg_done={},nego_signed={};
+ upd.forEach(function(u){var co=u.code;if(!co)return;if(u.track=="reg"&&u.field=="done"){(reg_done[co]=reg_done[co]||{})[parseInt(u.value,10)]=1;}else if(u.track=="o1"){if(u.field=="submit"){if(!SSUB[co])SSUB[co]=u.value||iso(TODAY);}else if(u.field=="got")SGOT[co]=1;else if(u.field=="waiver")SWAI[co]=1;}else if(u.track=="nego"&&u.field=="signed")nego_signed[co]=1;});
+ function bkk(p){return (p||"").indexOf("กรุงเทพ")>=0;}
+ // ================= เจรจา (Main Status 4 กล่อง) =================
+ var negRows=neg.slice(1).filter(function(r){return cc(r,0);});
+ function gm(r){var m=cc(r,5);return (m&&/[0-9]/.test(m[0]))?m[0]:"?";}
+ var NF="เซ็นแล้ว (จบเจรจา)";
+ var NEGO_STEPS=[{ico:"🤝",stp:"เจรจากับเจ้าของที่",task:"เข้าพบ ตกลงราคา/เงื่อนไข (Potential)",sla:"ค้างเกิน 90 วัน = เร่ง"},
+   {ico:"📋",stp:"ดำเนินการ / เสนอ KT",task:"กำลังดำเนินการ · ทำใบปะหน้าเสนอ KT",sla:"ค้างเกิน 90 วัน = เร่ง"},
+   {ico:"⚠️",stp:"ติดขัด / แก้ปัญหา",task:"ติดปัญหา (โฉนด/CF/ราคา) รอแก้",sla:"ค้างเกิน 90 วัน = เร่ง"},
+   {ico:"✅",stp:NF,task:"เซ็นสัญญาแล้ว · ส่งต่อ รัฐกิจ/ก่อสร้าง",sla:"จบงานเจรจา"}];
+ var STMAP={"0":"เจรจากับเจ้าของที่","1":"ดำเนินการ / เสนอ KT","2":"ติดขัด / แก้ปัญหา"};
+ var negT=[],nowner={},nsigned={},nTotal=negRows.length,nSignedAll=0;
+ for(var k=0;k<negRows.length;k++){var r=negRows[k];var c=cc(r,0),g=gm(r);var own=cc(r,3)||"(ไม่ระบุ)";
+   nowner[own]=(nowner[own]||0)+1;if(g=="3"||g=="4"){nsigned[own]=(nsigned[own]||0)+1;nSignedAll++;}
+   if(g=="5"||g=="?")continue;
+   var signed=(g=="3"||g=="4"||nego_signed[c]);var stp=signed?NF:STMAP[g];
+   var ag=cc(r,24);ag=/^\d+$/.test(ag)?parseInt(ag,10):null;var st,sx,sk;
+   if(signed){st="done";sx="เซ็นแล้ว ✓";sk=[3,0];}
+   else if(ag==null){st="none";sx="—";sk=[2,0];}
+   else if(ag>90){st="red";sx="ค้าง "+ag+" วัน (เกิน 90)";sk=[0,-ag];}
+   else if(ag>60){st="amber";sx="ค้าง "+ag+" วัน";sk=[1,-ag];}
+   else{st="green";sx="ค้าง "+ag+" วัน";sk=[1,-ag];}
+   var prob=cc(r,7),note=cc(r,8).replace(/\s+/g," ").trim();
+   var why=((prob&&g=="2")?prob+" · ":"")+(note.slice(0,60)||cc(r,6)||stp);
+   var task={code:c,name:cc(r,1),prov:cc(r,2),owner:own,step:stp,st:st,slatxt:sx,sk:sk,why:why||stp,kt:cc(r,25)};
+   if(!signed)task.w={track:"nego",field:"signed",lbl:"✅ เซ็นสัญญาแล้ว (จบเจรจา)"};
+   negT.push(task);}
+ var nPending=negT.filter(function(t){return t.step!=NF;}).length;
+ var nFinal=negT.filter(function(t){return t.step==NF;}).length;
+ var nOver=negT.filter(function(t){return t.st=="red";}).length;
+ var nSla=negT.filter(function(t){return t.step!=NF&&t.st!="none";}).length;
+ // ================= อ.1 =================
+ var PREP="เตรียมเอกสาร / รอยื่น",SUB="ยื่น + ติดตาม อ.1",OF="ได้ / อนุโลม อ.1 (จบ)";
+ var RAT_STEPS=[{ico:"📝",stp:PREP,task:"รวบรวมเอกสารทั้งหมดที่ต้องใช้ยื่น อ.1",sla:"เตรียมก่อนยื่น (ไม่จับ SLA)"},
+   {ico:"📨",stp:SUB,task:"ยื่น อ.1 แล้ว · ติดตามผล / ขออนุโลมก่อสร้างก่อน",sla:"ตจว. 45 / กทม. 60 วัน (จากวันยื่น)"},
+   {ico:"✅",stp:OF,task:"ได้ อ.1 / อนุโลมแล้ว · ส่งต่อทีมก่อสร้าง",sla:"จบงาน อ.1"}];
+ var ratT=[];
+ for(var c2 in SSUB){if(opened[c2]||SGOT[c2])continue;var prov=rkProv[c2]||cprov[c2]||"";var own=rkOwn[c2]||"(ไม่ระบุ)";var sd=pdate(SSUB[c2]);var lim=bkk(prov)?60:45;var dl=sd?daysBetween(new Date(sd.getTime()+lim*86400000),TODAY):null;var st,sx,sk;
+   if(dl==null){st="none";sx="—";sk=[2,0];}else if(dl<0){st="red";sx="เกิน SLA "+(-dl)+" วัน";sk=[0,dl];}else if(dl<=7){st="amber";sx="เหลือ "+dl+" วัน";sk=[1,dl];}else{st="green";sx="เหลือ "+dl+" วัน";sk=[1,dl];}
+   ratT.push({code:c2,name:cname[c2]||c2,prov:prov,owner:own,step:SUB,st:st,slatxt:sx,sk:sk,why:(SWAI[c2]?"ได้รับอนุโลม · รอใบจริง":"ยื่นแล้ว รอใบอนุญาต"),kt:"",w:{track:"o1",field:"got",lbl:"✅ ได้ อ.1 แล้ว"},w2:{track:"o1",field:"waiver",lbl:"🏗️ ได้รับอนุโลม (ก่อสร้างก่อน)"}});}
+ for(k=0;k<negRows.length;k++){var r=negRows[k];var c3=cc(r,0);if((gm(r)=="3"||gm(r)=="4")&&!SSUB[c3]&&!SGOT[c3]&&!SWAI[c3]&&!opened[c3]){ratT.push({code:c3,name:cc(r,1),prov:cc(r,2),owner:rkOwn[c3]||"(ไม่ระบุ)",step:PREP,st:"none",slatxt:"รอยื่น อ.1",sk:[2,0],why:"เซ็นแล้ว · เตรียมเอกสารยื่น อ.1",kt:"",w:{track:"o1",field:"submit",lbl:"📨 ยื่น อ.1 แล้ว (ลงวันนี้)"}});}}
+ var gotset={};for(var g1 in SGOT)gotset[g1]=1;for(var w1 in SWAI)gotset[w1]=1;
+ var oGot=0,oWai=0;Object.keys(SGOT).forEach(function(c){if(!opened[c])oGot++;});Object.keys(SWAI).forEach(function(c){if(!opened[c]&&!SGOT[c])oWai++;});
+ Object.keys(gotset).sort().forEach(function(c){if(opened[c])return;ratT.push({code:c,name:cname[c]||c,prov:rkProv[c]||cprov[c]||"",owner:rkOwn[c]||"(ไม่ระบุ)",step:OF,st:"done",slatxt:(SWAI[c]&&!SGOT[c]?"อนุโลม ✓":"ได้ อ.1 ✓"),sk:[3,0],why:"",kt:""});});
+ var rOver=ratT.filter(function(t){return t.st=="red";}).length;
+ var rPrep=ratT.filter(function(t){return t.step==PREP;}).length;
+ var rSub=ratT.filter(function(t){return t.step==SUB;}).length;
+ // ================= ทะเบียน =================
+ var RG=[{ico:"🏠",stp:"ขอทะเบียนบ้าน",done:15,d:19,task:"ยื่นขอ (D-19) → ได้รับ ทะเบียนบ้าน (D-9) — งานแรกของทีมทะเบียน"},
+   {ico:"🏢",stp:"จดเพิ่มสาขา ภ.พ.09",done:17,d:16,task:"ยื่นจดทะเบียนเพิ่มสาขา ภ.พ.09 (D-16) — หลังได้ทะเบียนบ้าน"},
+   {ico:"📄",stp:"ใบอนุญาตอื่นๆ",done:32,d:8,task:"เสียง/สุรา/ป้าย/ซากสัตว์/อาหาร/วัตถุอันตราย/ภพ.06 (D-11~D-8) — ทำตาม D- หลังทะเบียนบ้าน"}];
+ var RGF="จดทะเบียนครบ (จบ)";
+ var REG_STEPS=RG.map(function(g){return {ico:g.ico,stp:g.stp,task:g.task,sla:g.d?("ยื่นก่อน D-"+g.d+" จากวันเปิด"):"—"};});
+ REG_STEPS.push({ico:"✅",stp:RGF,task:"งานทะเบียนครบทุกใบ · เปิดร้านได้",sla:"จบงานทะเบียน"});
+ var regT=[];
+ for(i=1;i<reg.length;i++){var r=reg[i];var c=cc(r,0);if(!c)continue;var act=false;for(var j=14;j<34;j++)if(cc(r,j)){act=true;break;}if(!act)continue;
+   var opd=pdate(cc(r,4));
+   function rdone(g){return !!cc(r,g.done)||(reg_done[c]&&reg_done[c][g.done]);}
+   var cur=null;for(j=0;j<RG.length;j++){if(!rdone(RG[j])){cur=RG[j];break;}}
+   var st,sx,sk,stp;
+   if(!cur){stp=RGF;st="done";sx="ครบ ✓";sk=[3,0];}
+   else{stp=cur.stp;if(cur.d&&opd){var dl=daysBetween(new Date(opd.getTime()-cur.d*86400000),TODAY);if(dl<0){st="red";sx="เลยเดดไลน์ "+(-dl)+" วัน";sk=[0,dl];}else if(dl<=7){st="amber";sx="เหลือ "+dl+" วัน (D-"+cur.d+")";sk=[1,dl];}else{st="green";sx="เหลือ "+dl+" วัน";sk=[1,dl];}}else{st="none";sx="เตรียมเอกสาร";sk=[2,0];}}
+   var dn=0;for(j=0;j<RG.length;j++)if(rdone(RG[j]))dn++;
+   var w=cur?{track:"reg",field:"done",value:cur.done,lbl:"✅ "+cur.stp+" เสร็จ (ลงวันนี้)"}:null;
+   regT.push({code:c,name:cc(r,1),prov:cc(r,2),owner:cc(r,3)||"(ไม่ระบุ)",step:stp,st:st,slatxt:sx,sk:sk,why:"เปิด "+(cc(r,4)||"?")+" · เสร็จ "+dn+"/3 กลุ่ม",kt:"",w:w});}
+ var regOver=regT.filter(function(t){return t.st=="red";}).length;
+ // ================= perf =================
+ function owners(arr){var s={};arr.forEach(function(t){if(t.owner&&t.owner!="(ไม่ระบุ)")s[t.owner]=1;});return Object.keys(s).sort();}
+ var probc={};negT.forEach(function(t){if(t.step!=NF)probc[t.step]=(probc[t.step]||0)+1;});
+ var pn=[];Object.keys(nowner).sort(function(a,b){return nowner[b]-nowner[a];}).forEach(function(o){if(o=="(ไม่ระบุ)")return;var tot=nowner[o],s=nsigned[o]||0,ov=negT.filter(function(t){return t.owner==o&&t.st=="red";}).length;pn.push({nm:o,hold:tot,pct:tot?Math.round(100*s/tot):0,over:ov});});
+ var rown={};ratT.forEach(function(t){if(t.step==SUB)rown[t.owner]=(rown[t.owner]||0)+1;});
+ var pr=[];Object.keys(rown).sort(function(a,b){return rown[b]-rown[a];}).forEach(function(o){if(o=="(ไม่ระบุ)")return;var ov=ratT.filter(function(t){return t.owner==o&&t.st=="red";}).length;pr.push({nm:o,hold:rown[o],over:ov});});
+ return {updated:iso(TODAY),wh:NOTES_WH,
+   nego:{owners:owners(negT),tasks:negT,steps:NEGO_STEPS,final:NF},
+   ratkit:{o1:{owners:owners(ratT),tasks:ratT,steps:RAT_STEPS,final:OF},reg:{owners:owners(regT),tasks:regT,steps:REG_STEPS,final:RGF}},
+   perf:{nego:{total:nTotal,signed:nSignedAll,pending:nPending,final:nFinal,at_sign:negT.filter(function(t){return t.step=="ติดขัด / แก้ปัญหา";}).length,over:nOver,close_pct:nTotal?Math.round(100*nSignedAll/nTotal):0,sla_pct:nSla?Math.round(100*(nSla-nOver)/nSla):100},
+     ratkit:{got:oGot,wait:rSub,prep:rPrep,waiver:oWai,over:rOver,reg_wait:regT.length,reg_over:regOver,sla_pct:rSub?Math.round(100*(rSub-rOver)/rSub):100},
+     problems:RG?[]:[],persons_nego:pn,persons_rat:pr}};
+}
+
+async function boot(silent){
+ if(!silent)document.getElementById("body").innerHTML='<div style="text-align:center;padding:70px 20px;color:var(--muted)"><div style="font-size:34px">⏳</div><div style="font-family:IBM Plex Sans Thai;font-weight:700;font-size:16px;margin-top:10px">กำลังโหลดข้อมูลสดจากชีต…</div><div style="font-size:12px;margin-top:6px">ดึงเจรจา · อ.1 · ทะเบียน · ผลที่ทีมกรอก</div></div>';
+ try{
+   var res=await Promise.all([getCsv(SS_NEG),getCsv(SS_SLA),getCsv(gv(ID_REG,"0")),getCsv(gv(ID_MIR,"1005640128")),getCsv(SS_RATOWN),getUpdates()]);
+   DATA=compute(res[0],res[1],res[2],res[3],res[4],res[5]);
+   // problems (คอขวด) = per step count
+   var pc={};DATA.nego.tasks.forEach(function(t){if(t.step!=DATA.nego.final)pc[t.step]=(pc[t.step]||0)+1;});
+   DATA.perf.problems=DATA.nego.steps.filter(function(s){return s.stp!=DATA.nego.final;}).map(function(s){return [s.ico+" "+s.stp,pc[s.stp]||0];});
+   DATA.perf.nego.at_sign=0;
+   fillWho();render();
+ }catch(e){
+   if(!silent)document.getElementById("body").innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--bad)"><div style="font-size:30px">⚠️</div><div style="font-family:IBM Plex Sans Thai;font-weight:700;margin-top:10px">โหลดข้อมูลไม่สำเร็จ</div><div style="font-size:12px;color:var(--muted);margin-top:6px">'+esc(e.message||e)+'</div><button onclick="boot()" style="margin-top:14px;padding:9px 18px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:9px;font-family:IBM Plex Sans Thai;font-weight:600;cursor:pointer">ลองใหม่</button></div>';
+ }
+}
+boot();
+setInterval(function(){if(document.getElementById("scrim").className.indexOf("on")<0)boot(true);},300000);   /* auto-refresh ทุก 5 นาที (ถ้าไม่ได้เปิด drawer) */
+</script>
