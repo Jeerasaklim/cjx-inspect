@@ -1531,6 +1531,7 @@ function evidTile(m){
   return `<span class="thw${m.pending?' pend':''}${m.err?' err':''}"><img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">${badge}${del}</span>`
 }
 function renderPhase(){
+  const _keepY=window.scrollY   // จำตำแหน่งเลื่อนหน้า — กันหน้า "เด้ง" กลับตอนแนบรูป/ติ๊ก/อัปเสร็จ
   const {cps, phase, storeName}=pctx
   const total=cps.length, done=cps.filter(c=>curStatus(c.id)).length, pct=total?Math.round(done/total*100):0
   const failN=cps.filter(c=>curStatus(c.id)==='fail').length
@@ -1643,6 +1644,7 @@ function renderPhase(){
     if(error) return alert('อนุมัติไม่สำเร็จ: '+error.message)
     await reloadSignoffs(); renderPhase(); toast('อนุมัติงวดงานแล้ว ✓')
   })
+  window.scrollTo(0,_keepY)   // คืนตำแหน่งเลื่อนหน้าเดิม (ไม่เด้งขึ้นบน)
 }
 async function saveTick(cpId, status){
   if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว (เซ็นครบ 2 ฝ่าย) — แก้ไข/ตรวจซ้ำไม่ได้'); return }
@@ -1744,8 +1746,9 @@ async function handlePhotos(cpId, files){
     let qid=null; try{ qid=await queueAdd({storeCode:P.code, phase:P.phase, cpId:String(cpId), round, gps, ts, blob, tblob, kind}) }catch(e){}
     const rec={checkpoint:String(cpId), path:null, kind, url:URL.createObjectURL(blob), turl:(tblob?URL.createObjectURL(tblob):null), pending:true, qid}
     if(!isV && !rec.turl) rec.turl=rec.url
-    P.media.push(rec); if(pctx===P) renderPhase()
+    P.media.push(rec)
   }
+  if(pctx===P) renderPhase()   // render ครั้งเดียวหลังแนบครบ (ไม่เด้งทุกใบ)
   toast(navigator.onLine?`แนบ ${files.length} ไฟล์แล้ว · กำลังส่งขึ้นระบบ`:`เก็บ ${files.length} ไฟล์ในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต`,'ok')
   syncQueue()
 }
@@ -1759,14 +1762,14 @@ async function _ensureInsp(code, phase, cache){
     cache[k]=id; return id
   }catch(e){ cache[k]=null; return null }
 }
-let _syncing=false
+let _syncing=false, _syncTouched=false
 const QMAXTRY=8   // รูปที่ส่งไม่ขึ้นเกินนี้ = ข้ามไว้ (ไม่บล็อกรูปอื่น) จนกว่าจะกด retry ใหม่
 // อัปทีละรูป · รูปไหนพลาด "ข้าม" ไปตัวถัดไป (ไม่ break ทั้งคิว) · นับ retry ต่อรูป
 async function syncQueue(force){
   updatePendBadge()
   if(_syncing || !navigator.onLine) return
   const { data:{ session } } = await sb.auth.getSession(); if(!session) return
-  _syncing=true
+  _syncing=true; _syncTouched=false
   try{
     const items=await queueAll(); const cache={}
     for(const r of items){
@@ -1780,16 +1783,16 @@ async function syncQueue(force){
         let thumbOk=false; if(r.tblob){ const {error:up2}=await sb.storage.from('media').upload(tpath, r.tblob, {contentType:'image/jpeg',upsert:true}); thumbOk=!up2 }
         const {error}=await sb.from('media').insert({inspection_id:inspId, checkpoint:r.cpId, round:r.round, kind:(r.kind||'image'), path, gps:r.gps, thumb_path:(thumbOk?tpath:null)}); if(error){ await _qFail(r); continue }
         await queueDel(r.id)
-        if(pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ m.pending=false; m.err=false; m.path=path } }
+        if(pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ m.pending=false; m.err=false; m.path=path; _syncTouched=true } }
       }catch(e){ await _qFail(r) }
     }
   }catch(e){}
   _syncing=false
   updatePendBadge()
-  if(pctx&&$('viewPhase')&&!$('viewPhase').classList.contains('hide')) renderPhase()
+  if(_syncTouched && pctx&&$('viewPhase')&&!$('viewPhase').classList.contains('hide')) renderPhase()
 }
 async function _qFail(r){ r.tries=(r.tries||0)+1; try{ await queuePut(r) }catch(e){}
-  if(r.tries>=QMAXTRY && pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ m.err=true; m.pending=false } } }
+  if(r.tries>=QMAXTRY && pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ m.err=true; m.pending=false; _syncTouched=true } } }
 // ล้างคิวรูปที่ค้าง (ผู้ใช้กดเอง) — ใช้ตอนคิวค้าง/รูปเทสต์ค้าง
 async function clearPhotoQueue(){
   const n=await queueCount(); if(!n){ toast('ไม่มีรูปค้างในเครื่อง'); return }
