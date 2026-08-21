@@ -52,8 +52,26 @@
   .detcnt{font-size:11px;color:var(--mut);font-weight:600}
   .detfail{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
   .dfl{font-size:12px;color:var(--fail);font-weight:600}
-  .dfph{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .dfph{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .dfph img,.dthumb{width:56px;height:56px;object-fit:cover;border-radius:7px;border:1px solid var(--line);cursor:pointer}
+  /* modal สรุปเป็นข้อ (ผ่าน/ไม่ผ่าน) */
+  .detsum{font-size:14px;font-weight:800;padding:10px 13px;background:#141519;border:1px solid var(--line);border-radius:11px;margin-bottom:12px}
+  .detgrp{margin-bottom:12px}
+  .detgh{font-size:13px;font-weight:800;margin-bottom:8px;cursor:default}
+  details.detgrp>summary.detgh{cursor:pointer;list-style:none;padding:11px 13px;background:#141519;border:1px solid var(--line);border-radius:11px;user-select:none}
+  details.detgrp>summary::-webkit-details-marker{display:none}
+  details.detgrp[open]>summary.detgh{border-radius:11px 11px 0 0;margin-bottom:0}
+  .gfail{border:1px solid #4a2a2a;background:#1c1416;border-radius:12px;padding:11px 13px}
+  .ditem{border-top:1px solid #33232a;padding:10px 0}.ditem:first-of-type{border-top:0}
+  .ditl{font-size:13px;font-weight:700;color:var(--ink);line-height:1.4}.ditl b{font-family:ui-monospace,monospace;color:var(--fail)}
+  .dtag{font-size:9.5px;font-weight:800;padding:1px 7px;border-radius:5px;white-space:nowrap;margin-left:4px}
+  .dtag.fl{color:var(--fail);background:#3a1a1a}.dtag.fx{color:var(--build);background:#332411}
+  .dph{font-size:10.5px;color:var(--faint);margin-top:2px}
+  .dnote{font-size:12px;color:#e6b8b8;margin-top:4px}
+  details.gpass{border:1px solid var(--line);border-radius:12px;background:var(--card)}
+  .dpass{padding:8px 13px;border-top:1px solid var(--line)}
+  .dpassh{font-size:11px;font-weight:800;color:var(--mut);margin-bottom:5px}
+  .dpi{font-size:12.5px;color:var(--pass);padding:2px 0}
   .detitem{border-top:1px solid var(--line);padding:9px 0}
   .dtop{display:flex;gap:8px;align-items:flex-start}
   .dst{font-weight:800;font-size:13px;flex:0 0 auto;line-height:1.35}
@@ -133,7 +151,6 @@
     <button class="tbtn" id="outBtn">ออกจากระบบ</button>
     <div class="meta" id="meta" style="width:100%"></div>
   </div>
-  <div class="searchbar"><span>⌕</span><input id="q" placeholder="ค้นหาสาขา / รหัส / จังหวัด / ผรม."><span class="qx" id="qx">✕</span></div>
   <div id="body"><div class="spin">กำลังโหลดข้อมูล…</div></div>
 </div>
 
@@ -185,10 +202,21 @@ $('outBtn').onclick=async()=>{ await sb.auth.signOut(); if(_auto)clearInterval(_
 $('refBtn').onclick=()=>load()
 $('autoBtn').onclick=()=>{ if(_auto){ clearInterval(_auto); _auto=null; $('autoBtn').classList.remove('on'); $('autoBtn').textContent='⟳ อัปเดตอัตโนมัติ: ปิด' }
   else { _auto=setInterval(load,60000); $('autoBtn').classList.add('on'); $('autoBtn').textContent='⟳ อัปเดตอัตโนมัติ: เปิด (60วิ)'; load() } }
-async function enter(){ show('dash')
-  $('q').oninput=e=>{ _q=e.target.value; $('qx').style.display=_q?'flex':'none'; render() }
-  $('qx').onclick=()=>{ _q=''; $('q').value=''; $('qx').style.display='none'; $('q').focus(); render() }
-  await load() }
+async function enter(){ show('dash'); await load() }
+// ช่องค้นหา (อยู่เหนือตารางสาขา) — พิมพ์แล้วรีเฟรชเฉพาะตาราง ไม่กระพริบทั้งหน้า
+function searchBarHtml(){
+  return `<div class="searchbar"><span>⌕</span><input id="q" placeholder="ค้นหาสาขา / รหัส / จังหวัด${_mode==='con'?' / ผรม.':''}" value="${esc(_q)}"><span class="qx" id="qx" style="display:${_q?'flex':'none'}">✕</span></div>`
+}
+function wireSearch(){
+  const q=$('q'); if(q){ q.oninput=e=>{ _q=e.target.value; const x=$('qx'); if(x) x.style.display=_q?'flex':'none'; refreshList() } }
+  const x=$('qx'); if(x){ x.onclick=()=>{ _q=''; const qq=$('q'); if(qq){ qq.value=''; qq.focus() } x.style.display='none'; refreshList() } }
+}
+function wireList(){
+  document.querySelectorAll('#listWrap tr.clk').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.code))
+  const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
+  const eb=$('expBtn'); if(eb) eb.onclick=()=>exportCSV(_mode==='setup')
+}
+function refreshList(){ const lw=$('listWrap'); if(!lw) return; lw.innerHTML = _mode==='setup'?setupListHtml():conListHtml(); wireList() }
 
 async function load(){
   const [{data:stores},{data:cps},{data:insps},{data:evs},{data:sgs},{data:profs}] = await Promise.all([
@@ -259,7 +287,13 @@ function render(){
   </div>`
   const bar=['done','progress','fail','idle'].map(k=>cnt[k]?`<i style="width:${cnt[k]/tot*100}%;background:${DCOL[k]}"></i>`:'').join('')
   const lg=[['done','เสร็จ'],['progress','กำลังตรวจ'],['fail','มีปัญหา'],['idle','ยังไม่เริ่ม']].map(([k,l])=>`<span><i style="background:${DCOL[k]}"></i>${l} ${cnt[k]}</span>`).join('')
-  let list=[...rows]
+  $('body').innerHTML = toggle + kpis + `<div class="statusbar">${bar}</div><div class="lg">${lg}</div>`
+    + insightsHtml(false) + searchBarHtml() + `<div id="listWrap">${conListHtml()}</div>`
+  $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
+  wireSearch(); wireList(); wireMode()
+}
+function conListHtml(){
+  let list=[..._rows]
   if(_q){ const q=_q.trim().toLowerCase(); list=list.filter(r=>[r.name,r.code,r.prov,r.contractor].some(v=>(v||'').toLowerCase().includes(q))) }
   if(_filter==='fail') list=list.filter(r=>r.fail>0)
   else if(_filter==='near') list=list.filter(r=>r.days!=null&&r.days<=7&&!r.closed)
@@ -275,18 +309,12 @@ function render(){
       <td class="num">${r.done}/${r.total}</td>
       <td class="num">${r.fail?`<span class="fail">${r.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
       <td class="hidecol" style="color:var(--mut);font-size:11.5px">${r.last?esc(_names[r.last.by]||'—')+'<br>'+fmtDate(r.last.at):'—'}</td>
-    </tr>`}).join('') : '<tr><td colspan="8" class="empty">ไม่มีสาขาในกลุ่มนี้</td></tr>'
-  $('body').innerHTML = toggle + kpis + `<div class="statusbar">${bar}</div><div class="lg">${lg}</div>`
-    + insightsHtml(false)
-    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา${_filter!=='all'?' · กรอง':''}</div><div style="display:flex;gap:10px;align-items:center">${_filter!=='all'?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
-       <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th class="hidecol">ผรม.</th><th>เปิดใน</th><th class="hidecol">งวดล่าสุด</th><th>ความคืบหน้า</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol">อัปเดตล่าสุด</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
-  $('body').querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
-  const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
-  wireMode()
+    </tr>`}).join('') : `<tr><td colspan="8" class="empty">${(_q||_filter!=='all')?'ไม่พบสาขาที่ตรงเงื่อนไข':'ยังไม่มีสาขา'}</td></tr>`
+  const flab=_filter!=='all'?' · กรอง':''
+  return `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา${flab}</div><div style="display:flex;gap:10px;align-items:center">${_filter!=='all'?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
+     <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th class="hidecol">ผรม.</th><th>เปิดใน</th><th class="hidecol">งวดล่าสุด</th><th>ความคืบหน้า</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol">อัปเดตล่าสุด</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
 }
-function wireMode(){ document.querySelectorAll('.modebar b').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; render() })
-  document.querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.code))
-  const eb=$('expBtn'); if(eb) eb.onclick=()=>exportCSV(_mode==='setup') }
+function wireMode(){ document.querySelectorAll('.modebar b').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; _q=''; render() }) }
 
 // ===== Insights (ข้อมูลเชิงลึก) =====
 function curOfStore(code){ const cur={}; (_evsByStore[code]||[]).forEach(e=>{ if(!cur[e.checkpoint]||e.round>cur[e.checkpoint].round) cur[e.checkpoint]=e }); return cur }
@@ -344,23 +372,35 @@ async function openDetail(code){
       m.forEach((x,i)=>{ (mByCp[x.checkpoint]||(mByCp[x.checkpoint]=[])).push({full:(fu&&fu[i]&&fu[i].signedUrl)||'', thumb:(tu&&tu[i]&&tu[i].signedUrl)||''}) }) } }
   const inMode = _mode==='setup' ? (p=>p>=201&&p<=208) : (p=>p<200)   // detail แยกตามโหมด (Set-Up เห็นแต่ตรวจรับ)
   const phases=[...new Set(_cps.map(c=>c.phase))].filter(inMode).sort((a,b)=>a-b)
-  const stCol=st=>st==='pass'?'var(--pass)':st==='fail'?'var(--fail)':st==='fixed'?'var(--build)':'var(--faint)'
-  const stIco=st=>st==='pass'?'✓':st==='fail'?'✕':st==='fixed'?'🔧':st==='na'?'–':'•'
-  _detImgs=[]; let html=''
+  // แยกเป็น ต้องแก้(fail/fixed) กับ ผ่านแล้ว — สรุปเป็นข้อ ไม่โชว์รูปรก
+  let totPass=0, totFail=0, totFix=0
+  const failItems=[], passByPhase={}
   phases.forEach(ph=>{
     const items=_cps.filter(c=>c.phase===ph).sort((a,b)=>(a.sort||0)-(b.sort||0))
-    const withEv=items.filter(c=>cur[String(c.id)]); if(!withEv.length) return
-    const pass=withEv.filter(c=>cur[String(c.id)].status==='pass').length
-    const fail=withEv.filter(c=>cur[String(c.id)].status==='fail').length
     const pn=(items[0]&&items[0].phase_name)||('งวด '+ph)
-    html+=`<div class="detsec"><div class="detsh">${esc(pn)}<span class="detcnt">${withEv.length}/${items.length} · <b style="color:var(--pass)">ผ่าน ${pass}</b>${fail?` · <b style="color:var(--fail)">ไม่ผ่าน ${fail}</b>`:''}</span></div>`
-    html+=withEv.map(c=>{ const e=cur[String(c.id)], ps=mByCp[String(c.id)]||[]
+    items.forEach(c=>{ const e=cur[String(c.id)]; if(!e) return
+      if(e.status==='pass'){ totPass++; (passByPhase[pn]||(passByPhase[pn]=[])).push(c) }
+      else if(e.status==='fail'){ totFail++; failItems.push({c,e,pn}) }
+      else if(e.status==='fixed'){ totFix++; failItems.push({c,e,pn}) } })
+  })
+  _detImgs=[]
+  let html=`<div class="detsum"><b style="color:var(--pass)">✓ ผ่าน ${totPass}</b>${totFail?` · <b style="color:var(--fail)">✕ ไม่ผ่าน ${totFail}</b>`:''}${totFix?` · <b style="color:var(--build)">🔧 รอตรวจซ้ำ ${totFix}</b>`:''}</div>`
+  if(failItems.length){
+    html+=`<div class="detgrp gfail"><div class="detgh" style="color:var(--fail)">🔴 งานที่ต้องแก้ / ไม่ผ่าน (${failItems.length} ข้อ)</div>`
+    html+=failItems.map(({c,e,pn})=>{ const ps=mByCp[String(c.id)]||[]
       const thumbs=ps.map(p=>{ _detImgs.push(p.full||p.thumb); return `<img class="dthumb" src="${p.thumb||p.full}" data-i="${_detImgs.length-1}">` }).join('')
-      return `<div class="detitem"><div class="dtop"><span class="dst" style="color:${stCol(e.status)}">${stIco(e.status)}</span><span class="dfl2">${c.no?esc(c.no)+' ':''}${esc(c.label)}</span></div>${thumbs?`<div class="dfph">${thumbs}</div>`:''}</div>`
+      const tag=e.status==='fixed'?'<span class="dtag fx">CM แก้แล้ว·รอตรวจซ้ำ</span>':'<span class="dtag fl">ไม่ผ่าน</span>'
+      return `<div class="ditem"><div class="ditl">${c.no?`<b>${esc(c.no)}</b> `:''}${esc(c.label)} ${tag}</div><div class="dph">${esc(pn)}</div>${e.note?`<div class="dnote">✕ ${esc(e.note)}</div>`:''}${thumbs?`<div class="dfph">${thumbs}</div>`:''}</div>`
     }).join('')
     html+=`</div>`
-  })
-  $('detBody').innerHTML = html||'<div class="spin">ยังไม่มีการตรวจในสาขานี้</div>'
+  }
+  if(totPass){
+    html+=`<details class="detgrp gpass"${failItems.length?'':' open'}><summary class="detgh" style="color:var(--pass)">✅ ผ่านแล้ว (${totPass} ข้อ) — แตะดูรายการ</summary>`
+    html+=Object.keys(passByPhase).map(pn=>`<div class="dpass"><div class="dpassh">${esc(pn)} · ${passByPhase[pn].length} ข้อ</div>`
+      + passByPhase[pn].map(c=>`<div class="dpi">✓ ${c.no?esc(c.no)+' ':''}${esc(c.label)}</div>`).join('')+`</div>`).join('')
+    html+=`</details>`
+  }
+  $('detBody').innerHTML = (totPass||failItems.length) ? html : '<div class="spin">ยังไม่มีการตรวจในสาขานี้</div>'
   $('detBody').querySelectorAll('.dthumb').forEach(im=> im.onclick=()=>openDetLb(+im.dataset.i))
 }
 function openDetLb(i){ _detLbI=i
@@ -389,7 +429,12 @@ function renderSetup(toggle){
     <div class="kpi${on('done')}" data-f="done"><div class="v" style="color:var(--pass)">${passStores}</div><div class="k">ผ่านครบ</div></div>
     <div class="kpi kpiflat"><div class="v" style="color:var(--y)">${avg}</div><div class="k">คะแนนเฉลี่ย /100</div></div>
   </div>`
-  let list=[...rows]
+  $('body').innerHTML = toggle + kpis + insightsHtml(true) + searchBarHtml() + `<div id="listWrap">${setupListHtml()}</div>`
+  $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
+  wireSearch(); wireList(); wireMode()
+}
+function setupListHtml(){
+  let list=[..._suRows]
   if(_q){ const q=_q.trim().toLowerCase(); list=list.filter(r=>[r.name,r.code,r.prov].some(v=>(v||'').toLowerCase().includes(q))) }
   if(_filter==='progress') list=list.filter(r=>r.done>0&&!(r.allDone&&r.fail===0))
   else if(_filter==='fail') list=list.filter(r=>r.fail>0)
@@ -404,15 +449,10 @@ function renderSetup(toggle){
       <td class="num">${r.fail?`<span class="fail">${r.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
       <td class="hidecol num" style="font-size:11.5px"><span style="color:var(--main)">หลัก ${r.mainPct.toFixed(0)}%</span> · <span style="color:var(--sub)">ย่อย ${r.subPct.toFixed(0)}%</span></td>
       <td class="hidecol">${r.signed?'<span style="color:var(--pass);font-weight:700">เซ็นแล้ว ✓</span>':'<span style="color:var(--faint)">—</span>'}</td>
-    </tr>`}).join(''):`<tr><td colspan="7" class="empty">${_filter!=='all'?'ไม่มีสาขาในกลุ่มนี้':'ยังไม่มีสาขาตรวจรับ'}</td></tr>`
+    </tr>`}).join(''):`<tr><td colspan="7" class="empty">${(_q||_filter!=='all')?'ไม่พบสาขาที่ตรงเงื่อนไข':'ยังไม่มีสาขาตรวจรับ'}</td></tr>`
   const flab={progress:'กำลังตรวจรับ',fail:'มีจุดไม่ผ่าน',done:'ผ่านครบ'}[_filter]||''
-  $('body').innerHTML = toggle + kpis
-    + insightsHtml(true)
-    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา · ตรวจรับ${flab?' · '+flab:''}</div><div style="display:flex;gap:10px;align-items:center">${flab?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
-       <div style="overflow-x:auto"><table><thead><tr><th>สาขา · เกรด</th><th>เปิดใน</th><th>คะแนน</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol num">แยกซัพ</th><th class="hidecol">รับร้าน</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
-  $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
-  const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
-  wireMode()
+  return `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา · ตรวจรับ${flab?' · '+flab:''}</div><div style="display:flex;gap:10px;align-items:center">${flab?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
+     <div style="overflow-x:auto"><table><thead><tr><th>สาขา · เกรด</th><th>เปิดใน</th><th>คะแนน</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol num">แยกซัพ</th><th class="hidecol">รับร้าน</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
 }
 // ====== ใบตรวจรับ / รายงาน (เปิดแท็บใหม่ → พิมพ์/เซฟ PDF) ======
 const nameOf=u=>u&&_names[u]?_names[u]:'—'
