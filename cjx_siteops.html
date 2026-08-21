@@ -152,7 +152,7 @@ var NOTES_WH="https://script.google.com/macros/s/AKfycbwpSe8-xhAr7sT24kVUZc8FAWx
 var WRITE_URL="https://script.google.com/macros/s/AKfycbwcTzrkPICy3E2cZuJA93_OWNSg0ezNzs8zV4S_4n8XvoMRcJRM2aMQq3HfIn7nTUdS/exec";var WSECRET="cjx-siteops-write-2026";
 var DATA={updated:"—",wh:NOTES_WH,nego:{owners:[],tasks:[],steps:[],final:""},ratkit:{o1:{owners:[],tasks:[],steps:[],final:""},reg:{owners:[],tasks:[],steps:[],final:""}},perf:{nego:{over:0,pending:0,signed:0,final:0,at_sign:0,close_pct:0,sla_pct:0,total:0},ratkit:{over:0,reg_over:0,got:0,wait:0,prep:0,waiver:0,sla_pct:0},problems:[],persons_nego:[],persons_rat:[]}};
 var MODE="nego",RATSUB="o1",VIEW="flow",ACTIVE=null,WH=NOTES_WH,SEARCH="",FSTAT="";
-var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → ติดขัด/KT → รอเซ็น → กฎหมายตรวจ → เซ็นแล้ว · จาก Pipeline Commit Nego-2026"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},boss:{t:"📊 Performance Team",s:"ภาพรวมผลงาน + SLA ทุกส่วน"}};
+var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → เสนอ KT → รอเซ็น → รอส่งตรวจ → รอกฎหมายตรวจ → เซ็นแล้ว · (สถานะติดขัด/นำเสนอใหม่ = ตัวกรอง)"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},boss:{t:"📊 Performance Team",s:"ภาพรวมผลงาน + SLA ทุกส่วน"}};
 function esc(s){s=(s==null?"":String(s));return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function md(){return MODE==="ratkit"?DATA.ratkit[RATSUB]:DATA[MODE];}
 function steps(){return md().steps;}
@@ -180,7 +180,7 @@ function fillWho(){var sel=document.getElementById("who");document.getElementByI
  if(!showSel)return;
  var ow=md().owners;var h='<option value="__all__">👥 ทั้งทีม ('+md().tasks.length+' งาน)</option>';for(var i=0;i<ow.length;i++){var n=md().tasks.filter(function(x){return x.owner===ow[i];}).length;h+='<option value="'+esc(ow[i])+'">👤 '+esc(ow[i])+' ('+n+')</option>';}sel.innerHTML=h;}
 function kpis(team){var p=DATA.perf;var over=team.filter(function(t){return t.st==="red";}).length;
- if(MODE==="nego")return [{v:p.nego.pending,l:"📄 สัญญาที่ต้องทำ (ค้าง)"},{v:over,l:"🔴 ค้างเกิน 90 วัน",c:"bad"},{v:p.nego.at_sign,l:"⚠️ ติดขัด",c:"warn"},{v:p.nego.final,l:"✅ เซ็นแล้ว (จบ)",c:"good"},{v:p.nego.close_pct+"%",l:"อัตราเซ็นสะสม"}];
+ if(MODE==="nego")return [{v:p.nego.pending,l:"📄 สัญญาที่ต้องทำ (ค้าง)"},{v:over,l:"🔴 ค้างเกิน 90 วัน",c:"bad"},{v:p.nego.at_sign,l:"✍️ รอเซ็นสัญญา"},{v:p.nego.final,l:"✅ เซ็นแล้ว (จบ)",c:"good"},{v:p.nego.close_pct+"%",l:"อัตราเซ็นสะสม"}];
  var near=team.filter(function(t){return t.st==="amber";}).length;
  if(MODE==="ratkit"&&RATSUB==="reg"){var done=team.filter(function(t){return t.st==="done";}).length;return [{v:team.length,l:"📋 สาขากำลังทำทะเบียน"},{v:over,l:"🔴 เลยเดดไลน์ D-day",c:"bad"},{v:near,l:"🟠 ใกล้ D-day ≤7 วัน",c:"warn"},{v:done,l:"✅ ทะเบียนครบ",c:"good"},{v:team.length-done,l:"ยังไม่จบ"}];}
  return [{v:p.ratkit.prep,l:"📝 เตรียมยื่น อ.1"},{v:p.ratkit.wait,l:"📨 ยื่นแล้ว รอผล"},{v:over,l:"🔴 เกิน SLA",c:"bad"},{v:p.ratkit.got,l:"✅ ได้ อ.1",c:"good"},{v:p.ratkit.waiver,l:"🏗️ อนุโลม",c:"warn"}];}
@@ -288,9 +288,13 @@ async function getCsvFb(cen,src){try{var r=await fetch(cen);if(r.ok){var rows=cs
 async function getConstr(){  /* ก่อสร้าง normalize → [code,name,prov,open,active,hide] */
  try{var r=await fetch(CEN+"src_constr");if(r.ok){var rows=csv(await r.text());if(rows.length>1&&rows[0].length>=6)return rows.slice(1);}}catch(e){}
  var raw=await getCsv(gv(ID_MIR,"1005640128"));return raw.slice(3).map(function(x){return [cc(x,2),cc(x,3),cc(x,5),cc(x,137),cc(x,138),cc(x,139)];});}
+async function getFlow(){  /* milestone normalize → [name,kt,ktok,sign_owner,send_check,legal,signed] */
+ try{var r=await fetch(CEN+"src_flow");if(r.ok){var rows=csv(await r.text());if(rows.length>1&&rows[0].length>=7)return rows;}}catch(e){}
+ var raw=await getCsv("https://docs.google.com/spreadsheets/d/1cVFBJpP_C6XY5hM15pu71ioQO7JZ7pihRq1FJ-v-k1g/gviz/tq?tqx=out:csv&gid=1302290821");
+ return [["name","kt","ktok","sign_owner","send_check","legal","signed"]].concat(raw.slice(1).map(function(x){return [cc(x,2),cc(x,15),cc(x,16),cc(x,47),cc(x,21),cc(x,22),cc(x,17)];}));}
 async function getUpdates(){for(var t=0;t<3;t++){try{var r=await fetch(WRITE_URL+"?key="+WSECRET);if(!r.ok)continue;var j=JSON.parse(await r.text());return (j.rows||[]).slice(1).filter(function(x){return x.length>=5&&x[1];}).map(function(x){return {code:x[1],track:x[2],field:x[3],value:x[4]};});}catch(e){}}return [];}
 
-function compute(neg,sla,reg,constr,ratown,upd){
+function compute(neg,sla,reg,constr,ratown,upd,flow){
  // ---- SLA sheet (อ.1) ----
  var hr=0;for(var i=0;i<8&&i<sla.length;i++){if(sla[i].join("|").indexOf("Site Code")>=0){hr=i;break;}}
  var SGOT={},SWAI={},SSUB={};function okv(v){return v&&v.indexOf("1899")<0&&v.indexOf("1900")<0;}
@@ -308,27 +312,40 @@ function compute(neg,sla,reg,constr,ratown,upd){
  // ================= เจรจา (Main Status 4 กล่อง) =================
  var negRows=neg.slice(1).filter(function(r){return cc(r,0);});
  function gm(r){var m=cc(r,5);return (m&&/[0-9]/.test(m[0]))?m[0]:"?";}
+ // FLOWMAP: ชื่อสาขา → milestone วันที่ (จากแท็บ master) ใช้แกะ 6 step
+ function nmk(s){return (s||"").split(/\s+/).join(" ").trim();}
+ var FLOW={};for(var fi=1;fi<flow.length;fi++){var fr=flow[fi];var nn=nmk(fr[0]);if(nn)FLOW[nn]={kt:cc(fr,1),ktok:cc(fr,2),so:cc(fr,3),sc:cc(fr,4),lg:cc(fr,5),sg:cc(fr,6)};}
+ function fhas(x){return x&&x.indexOf("1899")<0&&x.indexOf("1900")<0&&x.trim()!=="";}
  var NF="เซ็นแล้ว (จบเจรจา)";
- var NEGO_STEPS=[{ico:"🤝",stp:"เจรจากับเจ้าของที่",task:"เข้าพบ ตกลงราคา/เงื่อนไข (Potential)",sla:"ค้างเกิน 90 วัน = เร่ง"},
-   {ico:"📋",stp:"ดำเนินการ / เสนอ KT",task:"กำลังดำเนินการ · ทำใบปะหน้าเสนอ KT",sla:"ค้างเกิน 90 วัน = เร่ง"},
-   {ico:"⚠️",stp:"ติดขัด / แก้ปัญหา",task:"ติดปัญหา (โฉนด/CF/ราคา) รอแก้",sla:"ค้างเกิน 90 วัน = เร่ง"},
+ var NEGO_STEPS=[{ico:"🤝",stp:"เจรจากับเจ้าของที่",task:"เข้าพบ ตกลงราคา/เงื่อนไข กับเจ้าของที่ดิน",sla:"ค้างเกิน 90 วัน = เร่ง"},
+   {ico:"📋",stp:"ดำเนินการ / เสนอ KT",task:"ทำใบปะหน้า เสนอ KT อนุมัติราคา/เงื่อนไข",sla:"ค้างเกิน 90 วัน = เร่ง"},
+   {ico:"✍️",stp:"รอเซ็นสัญญา",task:"KT อนุมัติแล้ว · ส่งสัญญาให้เจ้าของที่ดินเซ็น",sla:"ค้างเกิน 90 วัน = เร่ง"},
+   {ico:"📤",stp:"รอส่งตรวจสอบสัญญา",task:"ส่งเอกสารสัญญาเข้าตรวจสอบ",sla:"ค้างเกิน 90 วัน = เร่ง"},
+   {ico:"⚖️",stp:"รอกฎหมายตรวจสอบสัญญา",task:"ฝ่ายกฎหมาย (LG) ตรวจสอบสัญญา ก่อนไฟนอล",sla:"ค้างเกิน 90 วัน = เร่ง"},
    {ico:"✅",stp:NF,task:"เซ็นสัญญาแล้ว · ส่งต่อ รัฐกิจ/ก่อสร้าง",sla:"จบงานเจรจา"}];
- var STMAP={"0":"เจรจากับเจ้าของที่","1":"ดำเนินการ / เสนอ KT","2":"ติดขัด / แก้ปัญหา"};
+ var SORD={"เจรจากับเจ้าของที่":0,"ดำเนินการ / เสนอ KT":1,"รอเซ็นสัญญา":2,"รอส่งตรวจสอบสัญญา":3,"รอกฎหมายตรวจสอบสัญญา":4};
+ function stepOf(g,name){var f=FLOW[nmk(name)]||{};
+   if(g=="3"||g=="4"||fhas(f.sg))return NF;
+   if(fhas(f.lg))return "รอกฎหมายตรวจสอบสัญญา";
+   if(fhas(f.sc))return "รอส่งตรวจสอบสัญญา";
+   if(fhas(f.so)||fhas(f.ktok))return "รอเซ็นสัญญา";
+   if(fhas(f.kt)||g=="1")return "ดำเนินการ / เสนอ KT";
+   return "เจรจากับเจ้าของที่";}
  var negT=[],nowner={},nsigned={},nTotal=negRows.length,nSignedAll=0;
  for(var k=0;k<negRows.length;k++){var r=negRows[k];var c=cc(r,0),g=gm(r);var own=cc(r,3)||"(ไม่ระบุ)";
    nowner[own]=(nowner[own]||0)+1;if(g=="3"||g=="4"){nsigned[own]=(nsigned[own]||0)+1;nSignedAll++;}
    if(g=="5"||g=="?")continue;
-   var signed=(g=="3"||g=="4"||nego_signed[c]);var stp=signed?NF:STMAP[g];
+   var name=cc(r,1);var stp=nego_signed[c]?NF:stepOf(g,name);var signed=(stp==NF);var ord=signed?5:SORD[stp];
    var ag=cc(r,24);ag=/^\d+$/.test(ag)?parseInt(ag,10):null;var st,sx,sk;
-   if(signed){st="done";sx="เซ็นแล้ว ✓";sk=[3,0];}
-   else if(ag==null){st="none";sx="—";sk=[2,0];}
+   if(signed){st="done";sx="เซ็นแล้ว ✓";sk=[9,0];}
+   else if(ag==null){st="none";sx="—";sk=[3,ord];}
    else if(ag>90){st="red";sx="ค้าง "+ag+" วัน (เกิน 90)";sk=[0,-ag];}
    else if(ag>60){st="amber";sx="ค้าง "+ag+" วัน";sk=[1,-ag];}
-   else{st="green";sx="ค้าง "+ag+" วัน";sk=[1,-ag];}
+   else{st="green";sx="ค้าง "+ag+" วัน";sk=[2,-ag];}
    var prob=cc(r,7).replace(/^[0-9.]+\s*/,"");var sub=cc(r,6).replace(/^[0-9.]+\s*/,"");var note=cc(r,8).replace(/\s+/g," ").trim();
-   var stat=prob||sub||"—";   // สถานะสัญญาละเอียด (อุปสรรค/sub-status)
+   var stat=prob||sub||"—";
    var why=stat+(note?" · "+note.slice(0,45):"");
-   var task={code:c,name:cc(r,1),prov:cc(r,2),owner:own,step:stp,st:st,slatxt:sx,sk:sk,why:why||stp,stat:stat,note:note,kt:cc(r,25)};
+   var task={code:c,name:name,prov:cc(r,2),owner:own,step:stp,st:st,slatxt:sx,sk:sk,why:why||stp,stat:stat,note:note,kt:cc(r,25)};
    if(!signed)task.w={track:"nego",field:"signed",lbl:"✅ เซ็นสัญญาแล้ว (จบเจรจา)"};
    negT.push(task);}
  var nPending=negT.filter(function(t){return t.step!=NF;}).length;
@@ -379,7 +396,7 @@ function compute(neg,sla,reg,constr,ratown,upd){
  return {updated:iso(TODAY),wh:NOTES_WH,
    nego:{owners:owners(negT),tasks:negT,steps:NEGO_STEPS,final:NF},
    ratkit:{o1:{owners:owners(ratT),tasks:ratT,steps:RAT_STEPS,final:OF},reg:{owners:owners(regT),tasks:regT,steps:REG_STEPS,final:RGF}},
-   perf:{nego:{total:nTotal,signed:nSignedAll,pending:nPending,final:nFinal,at_sign:negT.filter(function(t){return t.step=="ติดขัด / แก้ปัญหา";}).length,over:nOver,close_pct:nTotal?Math.round(100*nSignedAll/nTotal):0,sla_pct:nSla?Math.round(100*(nSla-nOver)/nSla):100},
+   perf:{nego:{total:nTotal,signed:nSignedAll,pending:nPending,final:nFinal,at_sign:negT.filter(function(t){return t.step=="รอเซ็นสัญญา";}).length,over:nOver,close_pct:nTotal?Math.round(100*nSignedAll/nTotal):0,sla_pct:nSla?Math.round(100*(nSla-nOver)/nSla):100},
      ratkit:{got:oGot,wait:rSub,prep:rPrep,waiver:oWai,over:rOver,reg_wait:regT.length,reg_over:regOver,sla_pct:rSub?Math.round(100*(rSub-rOver)/rSub):100},
      problems:RG?[]:[],persons_nego:pn,persons_rat:pr}};
 }
@@ -387,8 +404,8 @@ function compute(neg,sla,reg,constr,ratown,upd){
 async function boot(silent){
  if(!silent)document.getElementById("body").innerHTML='<div style="text-align:center;padding:70px 20px;color:var(--muted)"><div style="font-size:34px">⏳</div><div style="font-family:IBM Plex Sans Thai;font-weight:700;font-size:16px;margin-top:10px">กำลังโหลดข้อมูลสดจากชีต…</div><div style="font-size:12px;margin-top:6px">ดึงเจรจา · อ.1 · ทะเบียน · ผลที่ทีมกรอก</div></div>';
  try{
-   var res=await Promise.all([getCsvFb(CEN+"src_nego",SS_NEG),getCsvFb(CEN+"src_sla",SS_SLA),getCsvFb(CEN+"src_reg",gv(ID_REG,"0")),getConstr(),getCsvFb(CEN+"src_ratown",SS_RATOWN),getUpdates()]);
-   DATA=compute(res[0],res[1],res[2],res[3],res[4],res[5]);
+   var res=await Promise.all([getCsvFb(CEN+"src_nego",SS_NEG),getCsvFb(CEN+"src_sla",SS_SLA),getCsvFb(CEN+"src_reg",gv(ID_REG,"0")),getConstr(),getCsvFb(CEN+"src_ratown",SS_RATOWN),getUpdates(),getFlow()]);
+   DATA=compute(res[0],res[1],res[2],res[3],res[4],res[5],res[6]);
    // problems (คอขวด) = per step count
    var pc={};DATA.nego.tasks.forEach(function(t){if(t.step!=DATA.nego.final)pc[t.step]=(pc[t.step]||0)+1;});
    DATA.perf.problems=DATA.nego.steps.filter(function(s){return s.stp!=DATA.nego.final;}).map(function(s){return [s.ico+" "+s.stp,pc[s.stp]||0];});
