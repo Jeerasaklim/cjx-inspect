@@ -483,14 +483,14 @@ async function genReport(code){
         rows+=`<tr><td>${esc(c.label)} ${sup}${e&&e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td><td class="st" style="color:${rStatusCol(e&&e.status)}">${rStatusTxt(e&&e.status)}</td><td class="mt">${e?nameOf(e.by)+'<br><small>'+fmtDate(e.created_at)+'</small>':'—'}</td><td class="im">${imgs(ims)}</td></tr>` })
       body+=`<h2>${esc(name)} <span class="okpill">${ss.earned.toFixed(1)}/${weight}</span></h2><table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ/เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>` })
     const passAll=sc.allDone&&sc.failItems===0&&sc.fixedItems===0
-    const nsa=pick('setup_nsa'), cmName=rSetupCmName(sgs), ho=sgs.find(x=>x.scope==='store'&&x.kind==='handover')
+    const nsa=pick('setup_nsa'), cmSig=pick('setup_cm'), cmName=rSetupCmName(sgs), ho=sgs.find(x=>x.scope==='store'&&x.kind==='handover')
     head=`<h1>ใบตรวจรับร้าน (Set-Up · NSA)</h1><div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
       <div class="scope">ตรวจรับอาคารจากทีมก่อสร้าง · ให้คะแนน 8 หมวด (100)${s.province?' · '+esc(s.province):''}</div>
       <div class="scorebox ${passAll?'':'f'}"><div class="g">${sc.doneItems?sc.grade:'—'}</div><div><div class="num">${sc.total.toFixed(0)} / 100 คะแนน</div><div class="sub">${passAll?'✓ ผ่าน 100% พร้อมรับร้าน':`ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?' · '+sc.failItems+' ไม่ผ่าน':''}${sc.fixedItems?' · '+sc.fixedItems+' รอตรวจซ้ำ':''}`}</div></div></div>
       <div class="split"><div class="m">ซัพหลัก ${sc.mainPct.toFixed(0)}%</div><div class="y">ซัพย่อย ${sc.subPct.toFixed(0)}%</div></div>
       <div class="issued">ออกเอกสาร ${today} โดย ${esc(meName)}</div>`
     signHtml=`<div class="sign"><div>${nsa&&nsa.image?`<img src="${nsa.image}">`:'<div class="sigsp"></div>'}<div class="slab">ผู้ตรวจรับ (Set-Up / NSA)</div>${nsa?`<div class="sby">${esc(nameOf(nsa.by))}<br>${fmtDate(nsa.created_at)}</div>`:''}</div>
-      <div><div class="sigsp" style="display:flex;align-items:flex-end;justify-content:center;color:#137a43;font-weight:800;font-size:11.5px">✓ รับรองจากงานก่อสร้าง</div><div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${cmName?esc(cmName):'—'}${ho?'<br>รับมอบงาน '+fmtDate(ho.created_at):''}</div></div></div>`
+      <div>${cmSig&&cmSig.image?`<img src="${cmSig.image}">`:'<div class="sigsp"></div>'}<div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${(cmSig?(nameOf(cmSig.by)||cmName):cmName)?esc(cmSig?(nameOf(cmSig.by)||cmName):cmName):'—'}${cmSig?'<br>'+fmtDate(cmSig.created_at):(ho?'<br>รับมอบงาน '+fmtDate(ho.created_at):'')}</div></div></div>`
   } else {
     const phs=[...new Set(_cps.filter(c=>c.phase<200).map(c=>c.phase))].sort((a,b)=>a-b)
     let totIn=0,totPass=0,totFail=0

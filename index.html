@@ -1345,20 +1345,29 @@ async function openSite(code){
         const sec=sc.sections.find(x=>x.phase===n)||{earned:0}
         return `<div class="step" data-phase="${n}"><div class="n suN">${n-200}</div>
           <div style="flex:1"><div class="snm">${esc(name)}</div><div class="st" style="color:${st.color}">${st.label} · <span class="scpill" style="color:var(--setup)">${sec.earned.toFixed(1)}/${w}</span></div></div><span class="chev">›</span></div>` }).join('')
-      if(!_isCM){
+      {
         const suLatest=(k)=>{ const a=signoffs.filter(x=>x.scope==='setup'&&x.kind===k); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
-        const nsaS=suLatest('setup_nsa')
-        const cmName=setupCmName(signoffs)   // ชื่อ CM ตัวจริงจากงานก่อสร้าง (auto)
-        html += `<div class="apanel sigwrap" style="margin-top:14px"><div class="ap-t">ลายเซ็นใบตรวจรับร้าน</div>
-          <div class="ap-d">Set-Up (NSA) เซ็นสด · ทีมก่อสร้าง (CM) ระบบรับรองให้อัตโนมัติจากผู้ที่ตรวจ+รับมอบงานก่อสร้างจริง</div>
+        const nsaS=suLatest('setup_nsa'), suCmS=suLatest('setup_cm'), cmName=setupCmName(signoffs)
+        const isSetupSide=['setup','head_setup','admin'].includes(profile.role)   // ฝั่งผู้ตรวจรับ (NSA)
+        const isConSide=['cm','head_cm','head_construction','admin'].includes(profile.role)   // ฝั่งก่อสร้าง (CM)
+        const bothSigned=!!nsaS&&!!suCmS
+        const slot=(kind,sig,label,canSign,nameShown,waitTxt)=>{
+          const inner=sig&&sig.image?`<img src="${sig.image}">`:(canSign?'<span>แตะเพื่อเซ็น</span>':`<span style="color:var(--faint);font-size:11px">${waitTxt}</span>`)
+          const nm=sig?`<i>${esc(nameShown)}</i>`:(nameShown?`<i style="color:var(--faint)">${esc(nameShown)}</i>`:'')
+          return `<div class="sigslot ${sig?'signed':''}"${canSign?` data-susig="${kind}"`:''}>${inner}<b>${esc(label)}</b>${nm}</div>` }
+        html += `<div class="apanel sigwrap" style="margin-top:14px"><div class="ap-t">ลายเซ็นใบตรวจรับร้าน (ต้องครบ 2 ฝ่าย)</div>
+          <div class="ap-d">ตรวจพร้อมกันหน้างาน — <b>แต่ละฝ่ายเซ็นด้วยบัญชีของตัวเอง</b> · เซ็นครบ 2 ฝ่ายแล้ว Set-Up จึงออกใบตรวจรับได้</div>
           <div class="sigrow">
-            <div class="sigslot ${nsaS?'signed':''}" data-susig="setup_nsa">${nsaS&&nsaS.image?`<img src="${nsaS.image}">`:'<span>แตะเพื่อเซ็น</span>'}<b>ผู้ตรวจรับ (Set-Up/NSA)</b>${nsaS?`<i>${esc(nameOf(nsaS.by))}</i>`:''}</div>
-            <div class="sigslot ${cmName?'signed':''}"><div class="cmauto">✓ รับรองโดยงานก่อสร้าง</div><b>ทีมก่อสร้าง (CM)</b>${cmName?`<i>${esc(cmName)}</i>`:'<i style="color:var(--faint)">รอ CM ตรวจ/รับมอบงาน</i>'}</div>
+            ${slot('setup_nsa',nsaS,'ผู้ตรวจรับ (Set-Up/NSA)',isSetupSide,nsaS?nameOf(nsaS.by):'',isSetupSide?'':'รอผู้ตรวจรับเซ็น')}
+            ${slot('setup_cm',suCmS,'ทีมก่อสร้าง (CM)',isConSide,suCmS?nameOf(suCmS.by):cmName,isConSide?'':'รอ CM เข้าบัญชีมาเซ็น')}
           </div></div>`
-        html += `<div class="actbtn" style="margin-top:12px"><button class="btn pri" id="btnSetupReport">🧾 ออกใบตรวจรับร้าน (Set-Up)</button></div>`
-        html += `<div class="hint">ใบตรวจรับ = คะแนน/เกรด + รายการ 8 หมวด + ลายเซ็น 2 ฝ่าย · ${sc.allDone&&!sc.failItems&&!sc.fixedItems?'<b style="color:var(--pass)">ครบ 100% พร้อมออกใบ ✓</b>':'ควรตรวจครบ 100% ไม่มีข้อไม่ผ่าน/รอตรวจซ้ำ ก่อนออกใบจริง'}</div>`
-      } else {
-        html += `<div class="hint">คุณเห็นเฉพาะสาขาที่คุณดูแล · <b style="color:var(--fail)">ไม่ผ่าน</b> = Set-Up ตีกลับ ต้องแก้แล้วแนบรูป · <b style="color:var(--build)">รอตรวจซ้ำ</b> = ส่งให้ Set-Up แล้ว รอเขาตรวจซ้ำ</div>`
+        if(isSetupSide){
+          if(bothSigned) html += `<div class="actbtn" style="margin-top:12px"><button class="btn pri" id="btnSetupReport">🧾 ออกใบตรวจรับร้าน (Set-Up)</button></div>
+            <div class="hint">${sc.allDone&&!sc.failItems&&!sc.fixedItems?'<b style="color:var(--pass)">เซ็นครบ 2 ฝ่าย + ครบ 100% พร้อมออกใบ ✓</b>':'เซ็นครบ 2 ฝ่ายแล้ว · ควรตรวจให้ครบ 100% ก่อนออกใบจริง'}</div>`
+          else html += `<div class="hint">⏳ <b>ยังออกใบไม่ได้</b> — ต้องเซ็นครบ 2 ฝ่าย: ${nsaS?'✓ Set-Up':'▢ Set-Up'} · ${suCmS?'✓ CM':'▢ CM (ให้ CM เข้าบัญชีตัวเองมาเซ็น)'}</div>`
+        } else if(isConSide){
+          html += `<div class="hint">แตะช่อง <b>ทีมก่อสร้าง (CM)</b> เพื่อเซ็นด้วยบัญชีของคุณ${suCmS?' — <b style="color:var(--pass)">เซ็นแล้ว ✓</b>':''}${sc.failItems?` · ยังมี <b style="color:var(--fail)">${sc.failItems} ข้อไม่ผ่าน</b> แก้ก่อน`:''} · ครบ 2 ฝ่ายแล้ว Set-Up จะออกใบตรวจรับ</div>`
+        }
       }
     } else if(profile.role==='admin'){
       html += `<div class="sec">ตรวจรับร้าน (Set-Up)</div><div class="hint">ยังไม่ได้โหลด checklist ตรวจรับ — ไปที่ Admin › Checklist กด “โหลด checklist ตรวจรับ (Set-Up)”</div>`
@@ -2279,9 +2288,11 @@ async function generateSetupReport(code){
       const tag = e.status==='fixed'?'<span class="ftag fx">CM แก้แล้ว · รอตรวจซ้ำ</span>':'<span class="ftag">ไม่ผ่าน</span>'
       return `<div class="fitem"><div class="fhd"><span class="fno">•</span> ${esc(c.label)} <span class="fph">${esc(name)}</span> ${tag}</div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
     }).join('')+`</div>` : ''
-  const nsaSig=pickSig('setup_nsa')
+  const nsaSig=pickSig('setup_nsa'), cmSig=pickSig('setup_cm')
   const sigCell=(sig,label)=>`<div>${sig&&sig.image?`<img src="${sig.image}">`:'<div class="sigsp"></div>'}<div class="slab">${label}</div>${sig?`<div class="sby">${esc(nameOf(sig.by))}<br>${fmtDate(sig.created_at)}</div>`:''}</div>`
-  const cmCell=`<div><div class="sigsp" style="display:flex;align-items:flex-end;justify-content:center;color:#137a43;font-weight:800;font-size:11.5px">✓ รับรองจากงานก่อสร้าง</div><div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${cmName?esc(cmName):'—'}${cmDate?'<br>รับมอบงาน '+cmDate:''}</div></div>`
+  // ช่อง CM: ลายเซ็นที่ CM เซ็นหน้างาน + ชื่อ CM ตัวจริงเสมอ (จากงานก่อสร้าง ไม่ใช่ชื่อคนล็อกอิน)
+  const cmDisp=cmSig?(nameOf(cmSig.by)||cmName):cmName
+  const cmCell=`<div>${cmSig&&cmSig.image?`<img src="${cmSig.image}">`:'<div class="sigsp"></div>'}<div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${cmDisp?esc(cmDisp):'—'}${cmSig?'<br>'+fmtDate(cmSig.created_at):(cmDate?'<br>รับมอบงาน '+cmDate:'')}</div></div>`
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ใบตรวจรับร้าน ${esc(s.name||code)}</title><style>
   *{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
