@@ -45,6 +45,7 @@
   .deth{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:#141519}
   .detn{font-size:16px;font-weight:800}.detm{font-size:12px;color:var(--mut);margin-top:3px}
   .detx{font-size:18px;color:var(--mut);cursor:pointer;line-height:1;padding:2px 8px}
+  .repbtn{background:var(--y,#F5C518);color:#1A1500;border:0;border-radius:9px;padding:8px 13px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap}
   .detbody{padding:14px 18px 20px;max-height:72vh;overflow-y:auto}
   .detsec{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px}
   .detsh{font-size:13px;font-weight:800;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
@@ -70,6 +71,20 @@
   .statusbar i{height:100%}
   .lg{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-bottom:22px}
   .lg span{display:flex;align-items:center;gap:6px}.lg i{width:10px;height:10px;border-radius:3px}
+  /* insight panels */
+  .ins{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  @media(max-width:820px){.ins{grid-template-columns:1fr}}
+  .inscard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 17px}
+  .inst{font-size:13px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .inssub{font-size:11px;color:var(--faint);margin-bottom:8px}
+  .insrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
+  .insrow:first-of-type{border-top:0}
+  .insrow .rk{font-family:ui-monospace,monospace;color:var(--faint);font-size:11px;width:16px;flex:0 0 auto}
+  .insrow .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .insrow .lbl small{color:var(--faint);font-weight:400}
+  .insrow .insbar{width:64px;height:7px;border-radius:99px;background:#26262b;overflow:hidden;flex:0 0 auto}.insbar i{display:block;height:100%;border-radius:99px}
+  .insrow .cnt{font-weight:800;font-family:ui-monospace,monospace;flex:0 0 auto;min-width:20px;text-align:right}
+  .insempty{font-size:12px;color:var(--faint);padding:10px 0}
 
   .tablewrap{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden}
   .thead{display:flex;justify-content:space-between;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
@@ -259,29 +274,75 @@ function render(){
       <td class="hidecol" style="color:var(--mut);font-size:11.5px">${r.last?esc(_names[r.last.by]||'—')+'<br>'+fmtDate(r.last.at):'—'}</td>
     </tr>`}).join('') : '<tr><td colspan="8" class="empty">ไม่มีสาขาในกลุ่มนี้</td></tr>'
   $('body').innerHTML = toggle + kpis + `<div class="statusbar">${bar}</div><div class="lg">${lg}</div>`
-    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา${_filter!=='all'?' · กรอง':''}</div>${_filter!=='all'?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}</div>
+    + insightsHtml(false)
+    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา${_filter!=='all'?' · กรอง':''}</div><div style="display:flex;gap:10px;align-items:center">${_filter!=='all'?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
        <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th class="hidecol">ผรม.</th><th>เปิดใน</th><th class="hidecol">งวดล่าสุด</th><th>ความคืบหน้า</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol">อัปเดตล่าสุด</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
   $('body').querySelectorAll('.kpi').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
   const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
   wireMode()
 }
 function wireMode(){ document.querySelectorAll('.modebar b').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; render() })
-  document.querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.code)) }
+  document.querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.code))
+  const eb=$('expBtn'); if(eb) eb.onclick=()=>exportCSV(_mode==='setup') }
+
+// ===== Insights (ข้อมูลเชิงลึก) =====
+function curOfStore(code){ const cur={}; (_evsByStore[code]||[]).forEach(e=>{ if(!cur[e.checkpoint]||e.round>cur[e.checkpoint].round) cur[e.checkpoint]=e }); return cur }
+function topFails(setup){ const cnt={}, st={}
+  Object.keys(_evsByStore).forEach(code=>{ const cur=curOfStore(code)
+    Object.keys(cur).forEach(cid=>{ const cp=_cpMap[cid]; if(!cp) return; const isSu=cp.phase>=201&&cp.phase<=208; if(setup!==isSu) return
+      if(cur[cid].status==='fail'){ cnt[cid]=(cnt[cid]||0)+1; (st[cid]||(st[cid]=new Set())).add(code) } }) })
+  return Object.keys(cnt).map(cid=>({cp:_cpMap[cid],n:cnt[cid],stores:st[cid].size})).sort((a,b)=>b.n-a.n).slice(0,7)
+}
+function contractorSummary(){ const m={}
+  _rows.forEach(r=>{ const c=r.contractor||'— ไม่ระบุ —'; const a=m[c]||(m[c]={n:0,fail:0,pctSum:0}); a.n++; a.fail+=r.fail; a.pctSum+=r.pct })
+  return Object.keys(m).map(c=>({name:c,n:m[c].n,fail:m[c].fail,avgPct:Math.round(m[c].pctSum/m[c].n)})).sort((a,b)=>b.fail-a.fail||b.n-a.n).slice(0,7)
+}
+function insRows(items, render){ return items.length? items.map((x,i)=>render(x,i)).join('') : '<div class="insempty">— ยังไม่มีข้อมูล —</div>' }
+function insightsHtml(setup){
+  const tf=topFails(setup); const maxN=Math.max(1,...tf.map(x=>x.n))
+  const left=`<div class="inscard"><div class="inst">🔧 จุดที่ไม่ผ่านบ่อยสุด</div><div class="inssub">นับสาขาที่ข้อนี้กำลัง “ไม่ผ่าน” — ${setup?'งานตรวจรับ':'งานก่อสร้าง'}</div>`+
+    insRows(tf,(x,i)=>`<div class="insrow"><span class="rk">${i+1}</span><span class="lbl">${esc(x.cp.label)}${x.cp.phase_name?` <small>· ${esc((x.cp.phase_name||'').replace('ตรวจรับ · ',''))}</small>`:''}</span><span class="insbar"><i style="width:${x.n/maxN*100}%;background:var(--fail)"></i></span><span class="cnt" style="color:var(--fail)">${x.n}</span></div>`)+`</div>`
+  let right
+  if(setup){ const rows=[..._suRows].filter(r=>r.done>0).sort((a,b)=>a.score-b.score).slice(0,7); const gc=g=>gradeColor(g)
+    right=`<div class="inscard"><div class="inst">⚠ สาขาคะแนนตรวจรับต่ำสุด</div><div class="inssub">ควรตามงานก่อน</div>`+
+      insRows(rows,(r)=>`<div class="insrow"><span class="lbl">${esc(r.name)} <small>· ${r.fail} ไม่ผ่าน</small></span><span class="insbar"><i style="width:${r.score}%;background:${gc(r.grade)}"></i></span><span class="cnt" style="color:${gc(r.grade)}">${r.score.toFixed(0)}</span></div>`)+`</div>`
+  } else { const cs=contractorSummary(); const maxF=Math.max(1,...cs.map(x=>x.fail))
+    right=`<div class="inscard"><div class="inst">🏢 สรุปตามผู้รับเหมา (ผรม.)</div><div class="inssub">จำนวนสาขา · จุดที่ต้องแก้ · ความคืบหน้าเฉลี่ย</div>`+
+      insRows(cs,(x)=>`<div class="insrow"><span class="lbl">${esc(x.name)} <small>· ${x.n} สาขา · เฉลี่ย ${x.avgPct}%</small></span><span class="insbar"><i style="width:${x.fail/maxF*100}%;background:var(--fail)"></i></span><span class="cnt" style="color:${x.fail?'var(--fail)':'var(--faint)'}">${x.fail}</span></div>`)+`</div>`
+  }
+  return `<div class="ins">${left}${right}</div>`
+}
+function exportCSV(setup){
+  const rows=setup?_suRows:_rows
+  const head=setup?['รหัส','สาขา','จังหวัด','เกรด','คะแนน','ตรวจ','เต็ม','ไม่ผ่าน','ซัพหลัก%','ซัพย่อย%','เปิดในกี่วัน','เซ็นรับ']
+    :['รหัส','สาขา','จังหวัด','ผรม.','งวดล่าสุด','คืบหน้า%','ตรวจ','เต็ม','ไม่ผ่าน','เปิดในกี่วัน']
+  const line=a=>a.map(v=>{ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s }).join(',')
+  const body=rows.map(r=>setup
+    ? line([r.code,r.name,r.prov,r.done?r.grade:'',r.done?r.score.toFixed(0):'',r.done,r.total,r.fail,r.mainPct.toFixed(0),r.subPct.toFixed(0),r.days==null?'':r.days,r.signed?'เซ็นแล้ว':''])
+    : line([r.code,r.name,r.prov,r.contractor,r.phase||'',r.pct,r.done,r.total,r.fail,r.days==null?'':r.days]))
+  const csv='﻿'+line(head)+'\n'+body.join('\n')
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob)
+  const a=document.createElement('a'); const d=new Date(),p=n=>String(n).padStart(2,'0')
+  a.href=url; a.download=`CJX_${setup?'ตรวจรับ':'ก่อสร้าง'}_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.csv`
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000)
+}
 async function openDetail(code){
   const s=_storeMap[code]||{code}; const evsAll=_evsByStore[code]||[]
   const cur={}; evsAll.forEach(e=>{ if(!cur[e.checkpoint]||e.round>cur[e.checkpoint].round) cur[e.checkpoint]=e })
   let ov=$('detOv'); if(!ov){ ov=document.createElement('div'); ov.id='detOv'; ov.className='detov'; document.body.appendChild(ov); ov.onclick=e=>{ if(e.target===ov) ov.remove() } }
-  ov.innerHTML=`<div class="detcard"><div class="deth"><div><div class="detn">${esc(s.name||code)}</div><div class="detm">${esc(code)}${s.province?' · '+esc(s.province):''}${s.contractor?' · '+esc(s.contractor):''}</div></div><div class="detx" id="detClose">✕</div></div><div class="detbody" id="detBody"><div class="spin">กำลังโหลด…</div></div></div>`
+  ov.innerHTML=`<div class="detcard"><div class="deth"><div><div class="detn">${esc(s.name||code)}</div><div class="detm">${esc(code)}${s.province?' · '+esc(s.province):''}${s.contractor?' · '+esc(s.contractor):''}</div></div><div style="display:flex;gap:8px;align-items:center"><button class="repbtn" id="detReport">🧾 ใบตรวจรับ</button><div class="detx" id="detClose">✕</div></div></div><div class="detbody" id="detBody"><div class="spin">กำลังโหลด…</div></div></div>`
   $('detClose').onclick=()=>ov.remove()
+  $('detReport').onclick=()=>genReport(code)
   const ids=_inspByStore[code]||[]; const mByCp={}
   if(ids.length){ const {data:m}=await sb.from('media').select('checkpoint,path,thumb_path').in('inspection_id',ids)
     if(m&&m.length){
       const {data:fu}=await sb.storage.from('media').createSignedUrls(m.map(x=>x.path),3600)
       const {data:tu}=await sb.storage.from('media').createSignedUrls(m.map(x=>x.thumb_path||x.path),3600)
       m.forEach((x,i)=>{ (mByCp[x.checkpoint]||(mByCp[x.checkpoint]=[])).push({full:(fu&&fu[i]&&fu[i].signedUrl)||'', thumb:(tu&&tu[i]&&tu[i].signedUrl)||''}) }) } }
-  const phases=[...new Set(_cps.map(c=>c.phase))].sort((a,b)=>a-b)
-  const stCol=st=>st==='pass'?'var(--pass)':st==='fail'?'var(--fail)':'var(--faint)'
-  const stIco=st=>st==='pass'?'✓':st==='fail'?'✕':st==='na'?'–':'•'
+  const inMode = _mode==='setup' ? (p=>p>=201&&p<=208) : (p=>p<200)   // detail แยกตามโหมด (Set-Up เห็นแต่ตรวจรับ)
+  const phases=[...new Set(_cps.map(c=>c.phase))].filter(inMode).sort((a,b)=>a-b)
+  const stCol=st=>st==='pass'?'var(--pass)':st==='fail'?'var(--fail)':st==='fixed'?'var(--build)':'var(--faint)'
+  const stIco=st=>st==='pass'?'✓':st==='fail'?'✕':st==='fixed'?'🔧':st==='na'?'–':'•'
   _detImgs=[]; let html=''
   phases.forEach(ph=>{
     const items=_cps.filter(c=>c.phase===ph).sort((a,b)=>(a.sort||0)-(b.sort||0))
@@ -338,10 +399,127 @@ function renderSetup(toggle){
       <td class="hidecol">${r.signed?'<span style="color:var(--pass);font-weight:700">เซ็นแล้ว ✓</span>':'<span style="color:var(--faint)">—</span>'}</td>
     </tr>`}).join(''):'<tr><td colspan="7" class="empty">ยังไม่มีสาขาตรวจรับ</td></tr>'
   $('body').innerHTML = toggle + kpis
-    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา · ตรวจรับ (Set-Up)</div></div>
+    + insightsHtml(true)
+    + `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา · ตรวจรับ (Set-Up)</div><button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div>
        <div style="overflow-x:auto"><table><thead><tr><th>สาขา · เกรด</th><th>เปิดใน</th><th>คะแนน</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol num">แยกซัพ</th><th class="hidecol">รับร้าน</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
   wireMode()
 }
+// ====== ใบตรวจรับ / รายงาน (เปิดแท็บใหม่ → พิมพ์/เซฟ PDF) ======
+const nameOf=u=>u&&_names[u]?_names[u]:'—'
+const rStatusTxt=s=>s==='pass'?'ผ่าน':s==='fail'?'ไม่ผ่าน':s==='fixed'?'CM แก้แล้ว · รอตรวจซ้ำ':s==='na'?'ไม่มีงานนี้':'ยังไม่ตรวจ'
+const rStatusCol=s=>s==='pass'?'#137a43':s==='fail'?'#c0392b':s==='fixed'?'#b06a00':s==='na'?'#777':'#999'
+const SETUP_SEC=[[201,'หมวด 1 · ป้ายไฟ / Tower Sign',5],[202,'หมวด 2 · ภายนอกร้าน',10],[203,'หมวด 3 · พื้นที่ขาย',30],[204,'หมวด 4 · พื้นที่สต๊อก',30],[205,'หมวด 5 · ห้องผู้จัดการ',5],[206,'หมวด 6 · ห้องน้ำ',10],[207,'หมวด 7 · จุดซักล้าง',5],[208,'หมวด 8 · ประปา/สุขาภิบาล',5]]
+function rSetupCmName(sgs){ const ho=(sgs||[]).find(x=>x.scope==='store'&&x.kind==='handover'&&x.by); if(ho) return nameOf(ho.by)
+  const cm=(sgs||[]).filter(x=>x.kind==='sign_cm'&&x.by); if(cm.length) return nameOf(cm.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)).by); return null }
+function rSetupScore(cur){
+  let total=0,gotMain=0,maxMain=0,gotSub=0,maxSub=0,doneItems=0,failItems=0,fixedItems=0,totalItems=0
+  const sections=SETUP_SEC.map(([ph,name,weight])=>{ const items=_setupCps.filter(c=>c.phase===ph)
+    const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1; let earned=0,done=0,fail=0,fixed=0
+    items.forEach(c=>{ const w=(+c.points||1)/raw*weight, isSub=c.supplier==='ซัพย่อย'
+      if(isSub)maxSub+=w; else maxMain+=w; totalItems++
+      const e=cur[String(c.id)]; if(e){ done++;doneItems++
+        if(e.status==='fail'){fail++;failItems++} else if(e.status==='fixed'){fixed++;fixedItems++}
+        else if(e.status==='pass'){earned+=w; if(isSub)gotSub+=w; else gotMain+=w} } })
+    total+=earned; return {ph,name,weight,earned,done,fail,fixed,total:items.length} })
+  return {total,grade:setupGrade(total),sections,doneItems,totalItems,failItems,fixedItems,
+    mainPct:maxMain?gotMain/maxMain*100:0, subPct:maxSub?gotSub/maxSub*100:0, allDone:doneItems===totalItems&&totalItems>0}
+}
+const R_CSS=`*{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
+.cert{border:2px solid #F5C518;border-radius:14px;padding:22px 24px;margin-bottom:22px}.cert.su{border-color:#37A06B}
+.brand{font-weight:800;font-size:15px;letter-spacing:1px;color:#111}.brand b{color:#E0A800}
+h1{font-size:21px;margin:6px 0 12px}.site{font-size:18px;font-weight:800}.site span{color:#888;font-weight:600;font-size:14px}
+.scope{color:#555;margin:2px 0 14px}
+.verdict{display:inline-block;font-weight:800;font-size:15px;padding:9px 16px;border-radius:10px}
+.verdict.p{background:#e6f7ee;color:#137a43;border:1px solid #9ad9b8}.verdict.f{background:#fdeeee;color:#c0392b;border:1px solid #e6b0b0}
+.scorebox{display:flex;align-items:center;gap:20px;background:#f2fbf6;border:1px solid #bfe6d0;border-radius:12px;padding:16px 20px;margin:6px 0}
+.scorebox .g{font-size:46px;font-weight:800;color:#137a43;min-width:56px;text-align:center}.scorebox.f .g{color:#c0392b}
+.scorebox .num{font-size:20px;font-weight:800}.scorebox .sub{color:#555;font-size:12.5px}
+.split{display:flex;gap:10px;margin:10px 0}.split div{flex:1;border-radius:9px;padding:9px 12px;font-size:12.5px;font-weight:700}
+.split .m{background:#eef4ff;border:1px solid #cdddff;color:#2d5bb8}.split .y{background:#fff6e8;border:1px solid #f0dcae;color:#a5701a}
+.issued{color:#777;font-size:12px;margin-top:12px}
+.failbox{border:1.5px solid #e6b0b0;background:#fdf5f5;border-radius:12px;padding:14px 16px;margin-bottom:22px}
+.failh{font-weight:800;font-size:14px;color:#c0392b;margin-bottom:10px}
+.fitem{padding:9px 0;border-top:1px solid #f0d5d5}.fitem:first-of-type{border-top:0}
+.fhd{font-weight:700;font-size:12.5px;color:#333}.fno{color:#c0392b;font-weight:800;margin-right:4px}.fph{color:#999;font-weight:600;font-size:11px}
+.ftag{font-size:10px;font-weight:800;color:#c0392b;background:#fdeaea;border-radius:5px;padding:1px 7px;margin-left:4px}.ftag.fx{color:#a5701a;background:#fff6e8}
+.fnt{color:#b06a00;font-size:11.5px;margin:3px 0}.fimgs img{width:74px;height:74px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #e0b0b0}.fnoimg{color:#c0392b;font-size:11px}
+h2{font-size:15px;margin:24px 0 8px;padding-bottom:6px;border-bottom:2px solid #eee;page-break-after:avoid}
+.okpill{font-size:11px;font-weight:700;color:#137a43;background:#e6f7ee;border-radius:99px;padding:2px 9px;float:right}
+table{width:100%;border-collapse:collapse;margin-bottom:8px}th{background:#f4f4f4;text-align:left;font-size:11px;color:#555;padding:7px 8px;border:1px solid #e2e2e2}
+td{padding:7px 8px;border:1px solid #e8e8e8;vertical-align:top;font-size:12px}td.st{font-weight:800;white-space:nowrap;width:74px}td.mt{color:#666;font-size:11px;width:118px}
+td.im{width:160px}td.im img{width:70px;height:70px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #ddd}
+.grp{background:#fafafa;font-weight:800;color:#444;font-size:11.5px}.nt{color:#b06a00;font-size:11px;margin-top:3px}
+.sign{display:flex;gap:24px;margin-top:40px;page-break-inside:avoid}.sign>div{flex:1;text-align:center;font-size:12px;color:#555}
+.sign img{max-height:60px;max-width:92%;object-fit:contain;display:block;margin:0 auto 2px}.sign .sigsp{height:48px}
+.sign .slab{border-top:1px solid #999;padding-top:6px;margin:0 8px;font-weight:700;color:#333}.sign .sby{font-size:10px;color:#888;margin-top:4px}
+.noprint{margin-bottom:16px}.noprint button{background:#F5C518;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
+@media print{.noprint{display:none}body{padding:0}}`
+
+async function genReport(code){
+  const s=_storeMap[code]||{code}; const setup=_mode==='setup'
+  const ids=_inspByStore[code]||[]
+  let events=[],media=[]
+  if(ids.length){
+    const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
+    const {data:m}=await sb.from('media').select('checkpoint,path,kind').in('inspection_id',ids); media=m||[]
+    if(media.length){ const {data:u}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600); media.forEach((x,i)=>x.url=(u&&u[i]&&u[i].signedUrl)||'') }
+  }
+  const {data:sg}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code); const sgs=sg||[]
+  const {data:{user}}=await sb.auth.getUser(); const meName=(user&&user.email)||''
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  const mBy={}; media.forEach(m=>{ (mBy[m.checkpoint]||(mBy[m.checkpoint]=[])).push(m) })
+  const dd=new Date(),p2=n=>String(n).padStart(2,'0'),today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543}`
+  const imgs=arr=>arr.map(m=>m.kind==='video'?`<a href="${m.url||''}" target="_blank">🎥 วิดีโอ</a>`:`<a href="${m.url||''}" target="_blank"><img src="${m.url||''}"></a>`).join('')||'—'
+  const pick=(kind,scope)=>{ const a=sgs.filter(x=>x.kind===kind&&(scope==null||String(x.scope)===String(scope))); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
+  let body='', failList=[], head='', signHtml=''
+  if(setup){
+    const sc=rSetupScore(cur)
+    SETUP_SEC.forEach(([pn,name,weight])=>{ const items=_setupCps.filter(c=>c.phase===pn).sort((a,b)=>(a.sort||0)-(b.sort||0))
+      const ss=sc.sections.find(x=>x.ph===pn)||{earned:0,done:0,total:items.length}
+      let rows=''
+      items.forEach(c=>{ const e=cur[String(c.id)]; const ims=mBy[String(c.id)]||[]
+        if(e&&(e.status==='fail'||e.status==='fixed')) failList.push({c,e,name})
+        const sup=c.supplier==='ซัพย่อย'?'<span style="color:#a5701a">·ย่อย</span>':(c.supplier?'<span style="color:#2d5bb8">·หลัก</span>':'')
+        rows+=`<tr><td>${esc(c.label)} ${sup}${e&&e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td><td class="st" style="color:${rStatusCol(e&&e.status)}">${rStatusTxt(e&&e.status)}</td><td class="mt">${e?nameOf(e.by)+'<br><small>'+fmtDate(e.created_at)+'</small>':'—'}</td><td class="im">${imgs(ims)}</td></tr>` })
+      body+=`<h2>${esc(name)} <span class="okpill">${ss.earned.toFixed(1)}/${weight}</span></h2><table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ/เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>` })
+    const passAll=sc.allDone&&sc.failItems===0&&sc.fixedItems===0
+    const nsa=pick('setup_nsa'), cmName=rSetupCmName(sgs), ho=sgs.find(x=>x.scope==='store'&&x.kind==='handover')
+    head=`<h1>ใบตรวจรับร้าน (Set-Up · NSA)</h1><div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
+      <div class="scope">ตรวจรับอาคารจากทีมก่อสร้าง · ให้คะแนน 8 หมวด (100)${s.province?' · '+esc(s.province):''}</div>
+      <div class="scorebox ${passAll?'':'f'}"><div class="g">${sc.doneItems?sc.grade:'—'}</div><div><div class="num">${sc.total.toFixed(0)} / 100 คะแนน</div><div class="sub">${passAll?'✓ ผ่าน 100% พร้อมรับร้าน':`ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?' · '+sc.failItems+' ไม่ผ่าน':''}${sc.fixedItems?' · '+sc.fixedItems+' รอตรวจซ้ำ':''}`}</div></div></div>
+      <div class="split"><div class="m">ซัพหลัก ${sc.mainPct.toFixed(0)}%</div><div class="y">ซัพย่อย ${sc.subPct.toFixed(0)}%</div></div>
+      <div class="issued">ออกเอกสาร ${today} โดย ${esc(meName)}</div>`
+    signHtml=`<div class="sign"><div>${nsa&&nsa.image?`<img src="${nsa.image}">`:'<div class="sigsp"></div>'}<div class="slab">ผู้ตรวจรับ (Set-Up / NSA)</div>${nsa?`<div class="sby">${esc(nameOf(nsa.by))}<br>${fmtDate(nsa.created_at)}</div>`:''}</div>
+      <div><div class="sigsp" style="display:flex;align-items:flex-end;justify-content:center;color:#137a43;font-weight:800;font-size:11.5px">✓ รับรองจากงานก่อสร้าง</div><div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${cmName?esc(cmName):'—'}${ho?'<br>รับมอบงาน '+fmtDate(ho.created_at):''}</div></div></div>`
+  } else {
+    const phs=[...new Set(_cps.filter(c=>c.phase<200).map(c=>c.phase))].sort((a,b)=>a-b)
+    let totIn=0,totPass=0,totFail=0
+    phs.forEach(pn=>{ const items=_cps.filter(c=>c.phase===pn).sort((a,b)=>(a.sort||0)-(b.sort||0))
+      const withEv=items.filter(c=>cur[String(c.id)]); if(!withEv.length) return
+      const pName=(items[0]&&items[0].phase_name)||('ครั้งที่ '+pn); let rows=''
+      withEv.forEach(c=>{ const e=cur[String(c.id)]; const ims=mBy[String(c.id)]||[]; totIn++
+        if(e.status==='pass')totPass++; else if(e.status==='fail'){totFail++; failList.push({c,e,name:pName})}
+        rows+=`<tr><td class="mt" style="width:40px;color:#888;font-family:monospace">${esc(c.no||'')}</td><td>${esc(c.label)}${e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td><td class="st" style="color:${rStatusCol(e.status)}">${rStatusTxt(e.status)}</td><td class="mt">${nameOf(e.by)}<br><small>${fmtDate(e.created_at)}</small></td><td class="im">${imgs(ims)}</td></tr>` })
+      body+=`<h2>${esc(pName)}</h2><table><thead><tr><th>ข้อ</th><th>รายการตรวจ</th><th>ผล</th><th>ผู้ตรวจ/เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>` })
+    const passAll=totIn>0&&totFail===0
+    const cmS=pick('sign_cm',null), conS=pick('sign_contractor',null), ho=pick('handover','store')
+    head=`<h1>ใบรับรองการตรวจงานก่อสร้าง</h1><div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
+      <div class="scope">รายงานตรวจงานทั้งโครงการ${s.province?' · '+esc(s.province):''}${s.contractor?' · ผรม. '+esc(s.contractor):''}</div>
+      <div class="verdict ${passAll?'p':'f'}">${passAll?`✓ ผ่าน 100% (${totPass}/${totIn})`:`ผ่าน ${totPass} · ไม่ผ่าน ${totFail} · ตรวจแล้ว ${totIn}`}</div>
+      <div class="issued">ออกเอกสาร ${today} โดย ${esc(meName)}${ho?' · รับมอบงานแล้ว '+fmtDate(ho.created_at):''}</div>`
+    signHtml=`<div class="sign"><div>${cmS&&cmS.image?`<img src="${cmS.image}">`:'<div class="sigsp"></div>'}<div class="slab">ผู้ตรวจ (CM)</div>${cmS?`<div class="sby">${esc(nameOf(cmS.by))}</div>`:''}</div><div>${conS&&conS.image?`<img src="${conS.image}">`:'<div class="sigsp"></div>'}<div class="slab">ผู้รับเหมา (ผรม.)</div><div class="sby">${esc(s.contractor||'')}</div></div></div>`
+  }
+  const failHtml=failList.length?`<div class="failbox"><div class="failh">⚠ สรุปจุดที่ไม่ผ่าน ${failList.length} รายการ</div>`+failList.map(({c,e,name})=>{ const ims=mBy[String(c.id)]||[]
+      const tag=e.status==='fixed'?'<span class="ftag fx">CM แก้แล้ว · รอตรวจซ้ำ</span>':'<span class="ftag">ไม่ผ่าน</span>'
+      return `<div class="fitem"><div class="fhd"><span class="fno">•</span> ${esc(c.label)} <span class="fph">${esc(name)}</span> ${tag}</div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.length?imgs(ims):'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>` }).join('')+`</div>`:''
+  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ใบตรวจรับ ${esc(s.name||code)}</title><style>${R_CSS}</style></head><body>
+    <div class="noprint"><button onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button></div>
+    <div class="cert ${setup?'su':''}"><div class="brand">CJ<b>X</b> INSPECT</div>${head}</div>
+    ${failHtml}${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจ</p>'}${signHtml}</body></html>`
+  const w=window.open('','_blank'); if(!w){ alert('เปิดแท็บใหม่ไม่ได้ — โปรดอนุญาต popup ของเว็บนี้'); return }
+  w.document.write(html); w.document.close()
+}
+
 boot()
 </script>
 </body></html>
