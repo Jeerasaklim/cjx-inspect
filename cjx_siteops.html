@@ -215,7 +215,7 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .srt td.l{font-family:"IBM Plex Sans Thai";font-weight:700}
 .srt .srsub{font-size:10.5px;color:var(--faint);font-weight:400;margin-left:6px}
 .srt .srwip{color:var(--faint);font-size:11px}.srt .z{color:var(--faint)}
-.srt td.tot{background:var(--surface2)}.srt td.ov{color:var(--bad);font-weight:700}
+.srt td.tot{background:var(--surface2)}.srt td.ov{color:var(--bad);font-weight:700}.srt td.dn,.srt th.dn{color:var(--good)}
 .srt tr.srtot td{border-top:2px solid var(--border);background:var(--surface2);font-weight:700}
 .srt tr.srg td{cursor:pointer;font-weight:700;background:var(--surface2)}
 .srt tr.srg:hover td{background:var(--track)}
@@ -590,20 +590,21 @@ function agingTableHtml(){
  function cells(rs){var b=[0,0,0,0,0,0,0,0];rs.forEach(function(t){b[buck(t.ag)]++;});return b;}
  function avg(rs){if(!rs.length)return null;var s=0;rs.forEach(function(t){s+=t.ag;});return Math.round(s/rs.length);}
  function over(rs){var n=0;rs.forEach(function(t){if(t.ag>90)n++;});return n;}
- function tail(rs){return '<td class="tot"><b>'+rs.filter(function(t){return t.signed;}).length+'</b>'+(rs.filter(function(t){return !t.signed;}).length?' <span class="srwip">('+rs.filter(function(t){return !t.signed;}).length+')</span>':'')+'</td><td>'+(avg(rs)==null?'–':avg(rs)+'D')+'</td><td class="'+(over(rs)>0?'ov':'')+'">'+(over(rs)||'–')+'</td>';}
+ function pair(done,wip,g){return (done?'<b class="sr'+g+'">'+done+'</b>':'<span class="z">–</span>')+(wip?' <span class="srwip">('+wip+')</span>':'');}
+ function tail(rs){var d=rs.filter(function(t){return t.signed;}).length,w=rs.length-d;return '<td class="tot">'+(d?'<b>'+d+'</b>':'<span class="z">–</span>')+(w?' <span class="srwip">('+w+')</span>':'')+'</td><td>'+(avg(rs)==null?'–':avg(rs)+'D')+'</td><td class="'+(over(rs)>0?'ov':'')+'">'+(over(rs)||'–')+'</td>';}
  function monthRow(key){var m=byM[key];var done=[],wip=[];m.rows.forEach(function(t){(t.signed?done:wip).push(t);});var cd=cells(done),cw=cells(wip);var open=SR_ALLOPEN||SR_OPEN["r:"+key];
-   var s='<tr class="srg" onclick="srToggle(\'r:'+key+'\')"><td class="l"><span class="sscar'+(open?" open":"")+'">▸</span>'+esc(m.lbl)+'<span class="srsub2">'+m.rows.length+' ไซต์</span></td>';
-   for(var i=0;i<8;i++){s+='<td>'+(cd[i]?'<b class="sr'+SR[i][2]+'">'+cd[i]+'</b>':'<span class="z">–</span>')+(cw[i]?' <span class="srwip">('+cw[i]+')</span>':'')+'</td>';}
+   var s='<tr class="srg" onclick="srToggle(\'r:'+key+'\')"><td class="l"><span class="sscar'+(open?" open":"")+'">▸</span>'+esc(m.lbl)+'<span class="srsub2">'+m.rows.length+' ไซท์</span></td>';
+   for(var i=0;i<8;i++)s+='<td>'+pair(cd[i],cw[i],SR[i][2])+'</td>';
    s+=tail(m.rows)+'</tr>';
-   if(open){var sub=function(lbl,rs){var c=cells(rs);var x='<tr class="srsub"><td class="l">'+lbl+'</td>';for(var i=0;i<8;i++)x+='<td>'+(c[i]?c[i]:'<span class="z">–</span>')+'</td>';x+='<td class="tot">'+rs.length+'</td><td>'+(avg(rs)==null?'–':avg(rs)+'D')+'</td><td class="'+(over(rs)>0?'ov':'')+'">'+(over(rs)||'–')+'</td></tr>';return x;};
-     s+=sub("✅ เซ็นแล้ว",done)+sub("⏳ ยังไม่เซ็น",wip);}
+   if(open){var sub=function(lbl,rs,g){var c=cells(rs);var x='<tr class="srsub"><td class="l">'+lbl+'</td>';for(var i=0;i<8;i++)x+='<td>'+(c[i]?'<span class="sr'+SR[i][2]+'">'+c[i]+'</span>':'<span class="z">–</span>')+'</td>';x+='<td class="tot">'+rs.length+'</td><td>'+(avg(rs)==null?'–':avg(rs)+'D')+'</td><td class="'+(over(rs)>0?'ov':'')+'">'+(over(rs)||'–')+'</td></tr>';return x;};
+     s+=sub("เซ็นสัญญาแล้ว (Complete)",done)+sub("ยังไม่เซ็น (In progress)",wip);}
    return s;}
- function totRow(){var done=[],wip=[];rows.forEach(function(t){(t.signed?done:wip).push(t);});var cd=cells(done),cw=cells(wip);var s='<tr class="srtot"><td class="l">รวมทุกเดือน</td>';for(var i=0;i<8;i++){s+='<td>'+(cd[i]?'<b class="sr'+SR[i][2]+'">'+cd[i]+'</b>':'<span class="z">–</span>')+(cw[i]?' <span class="srwip">('+cw[i]+')</span>':'')+'</td>';}return s+tail(rows)+'</tr>';}
+ function totRow(){var done=[],wip=[];rows.forEach(function(t){(t.signed?done:wip).push(t);});var cd=cells(done),cw=cells(wip);var s='<tr class="srtot"><td class="l">รวมทุกเดือน</td>';for(var i=0;i<8;i++)s+='<td>'+pair(cd[i],cw[i],SR[i][2])+'</td>';return s+tail(rows)+'</tr>';}
  var h='<div class="sract"><button onclick="srAll(true)">ขยายทั้งหมด</button><button onclick="srAll(false)">ย่อทั้งหมด</button></div>';
- h+='<div class="srwrap"><table class="srt"><thead><tr><th class="l">เดือน</th>'+SR.map(function(r){return '<th class="'+r[2]+'">'+r[0]+'</th>';}).join("")+'<th class="tot">รวม</th><th>aging<br>เฉลี่ย</th><th>เกิน<br>SLA</th></tr></thead><tbody>';
+ h+='<div class="srwrap"><table class="srt"><thead><tr><th class="l">เดือน / สถานะ</th>'+SR.map(function(r){return '<th class="'+r[2]+'">'+r[0]+'</th>';}).join("")+'<th class="tot">รวม</th><th>aging<br>เฉลี่ย</th><th>เกิน<br>SLA</th></tr></thead><tbody>';
  order.forEach(function(k){h+=monthRow(k);});
  h+=totRow()+'</tbody></table></div>';
- h+='<div class="srnote">คลิกเดือนเพื่อกางดู <b>เซ็นแล้ว</b> / <b>ยังไม่เซ็น</b> · ช่วงอายุ = วันทำการโดยประมาณ (5/10/20/30/40/60/80 วัน) นับจากเริ่มเจรจา · ตัวเลขหลัก = เซ็นแล้ว · <span class="srwip">(ยังไม่เซ็น)</span> ในวงเล็บ ไม่รวมกัน · เกิน SLA = ค้าง > 90 วัน</div>';
+ h+='<div class="srnote">แถวเดือนแสดง <b>เซ็นสัญญาแล้ว</b> เป็นตัวเลขหลัก และ <span class="srwip">(ยังไม่เซ็น)</span> ในวงเล็บสีเทา — ไม่รวมกัน · คลิกเดือนเพื่อกางดูแยก Complete / In progress · ช่วง aging = วันทำการ (5/10/20/30/40/60/80) นับจากวันเริ่มเจรจา · เกิน SLA = ค้าง > 90 วัน</div>';
  return h;}
 function perfAll(p){
  var o1t=DATA.ratkit.o1.tasks.length,o1got=p.ratkit.got,regt=DATA.ratkit.reg.tasks.length,regDone=pcnt(DATA.ratkit.reg.tasks,DATA.ratkit.reg.final);
