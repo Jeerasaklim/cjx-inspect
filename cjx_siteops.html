@@ -186,6 +186,14 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .pchips{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 .pchip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer}.pchip:hover{border-color:var(--yd)}.pchip b{font-family:"IBM Plex Sans Thai";font-weight:700}
 @media(max-width:820px){.fstep{min-width:82px}}
+.dacc{border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
+.dacc.on{border-color:var(--accent);border-width:2px}
+.dacch{display:flex;align-items:center;gap:11px;padding:14px 17px;cursor:pointer}
+.dacch:hover{background:var(--surface2)}
+.dacch .dai{font-size:13px;color:var(--muted);width:14px;flex-shrink:0}
+.dacch .dat{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:15.5px}
+.dacch .das{margin-left:auto;font-size:12.5px;color:var(--muted);font-family:"IBM Plex Sans Thai";font-weight:600}
+.daccb{padding:6px 17px 18px;border-top:1px solid var(--line)}
 .hbwrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
 .hb{display:flex;align-items:center;gap:11px;margin-bottom:9px}.hb:last-child{margin-bottom:0}
 .hb.clk{cursor:pointer;border-radius:8px;padding:3px 6px;margin-left:-6px;margin-right:-6px}.hb.clk:hover{background:var(--surface2)}
@@ -268,7 +276,7 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
     <nav class="tabs">
       <a id="mb-nego" class="on" onclick="setMode('nego')"><span class="ni">🤝</span> เจรจา <span class="nc" id="nc-nego"></span></a>
       <a id="mb-ratkit" onclick="setMode('ratkit')"><span class="ni">🏛️</span> รัฐกิจ <span class="nc" id="nc-ratkit"></span></a>
-      <a id="mb-boss" onclick="setMode('boss')"><span class="ni">📊</span> Performance</a>
+      <a id="mb-boss" onclick="setMode('boss')"><span class="ni">📊</span> Dashboard</a>
       <a id="mb-cal" onclick="setMode('cal')"><span class="ni">📅</span> Calendar</a>
     </nav>
     <div class="right">
@@ -296,8 +304,8 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 var NOTES_WH="https://script.google.com/macros/s/AKfycbwpSe8-xhAr7sT24kVUZc8FAWxBPOWyD-a5EiTjqZ9dvK8P7u97mcKqYnDn5WAjy7k_rg/exec";
 var WRITE_URL="https://script.google.com/macros/s/AKfycbwcTzrkPICy3E2cZuJA93_OWNSg0ezNzs8zV4S_4n8XvoMRcJRM2aMQq3HfIn7nTUdS/exec";var WSECRET="cjx-siteops-write-2026";
 var DATA={updated:"—",wh:NOTES_WH,nego:{owners:[],tasks:[],steps:[],final:""},ratkit:{o1:{owners:[],tasks:[],steps:[],final:""},reg:{owners:[],tasks:[],steps:[],final:""}},perf:{nego:{over:0,pending:0,signed:0,final:0,at_sign:0,close_pct:0,sla_pct:0,total:0},ratkit:{over:0,reg_over:0,got:0,wait:0,prep:0,waiver:0,sla_pct:0},problems:[],persons_nego:[],persons_rat:[]}};
-var MODE="nego",RATSUB="o1",PSUB="all",VIEW="flow",ACTIVE=null,WH=NOTES_WH,SEARCH="",FSTAT="",FCAT="",FOWN="";
-var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → เสนอ KT → รอเซ็น → รอส่งตรวจ → รอกฎหมายตรวจ → เซ็นแล้ว · (สถานะติดขัด/นำเสนอใหม่ = ตัวกรอง)"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},boss:{t:"📊 Performance Team",s:"ภาพรวมผลงาน + SLA ทุกส่วน"},cal:{t:"📅 ปฏิทินงาน — ดูรายวัน",s:"งานครบกำหนดแต่ละวัน · เขียว/เหลือง/แดง ตาม SLA · D-day"}};
+var MODE="nego",RATSUB="o1",PSUB="all",OPENTRK="",VIEW="flow",ACTIVE=null,WH=NOTES_WH,SEARCH="",FSTAT="",FCAT="",FOWN="";
+var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → เสนอ KT → รอเซ็น → รอส่งตรวจ → รอกฎหมายตรวจ → เซ็นแล้ว · (สถานะติดขัด/นำเสนอใหม่ = ตัวกรอง)"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},boss:{t:"📊 Dashboard — ภาพรวมทุกสายงาน",s:"KPI + เส้นทางเปิดสาขา + เรื่องต้องเร่ง · คลิกกางดูรายสายงานได้ในหน้านี้"},cal:{t:"📅 ปฏิทินงาน — ดูรายวัน",s:"งานครบกำหนดแต่ละวัน · เขียว/เหลือง/แดง ตาม SLA · D-day"}};
 function esc(s){s=(s==null?"":String(s));return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function md(){return MODE==="ratkit"?DATA.ratkit[RATSUB]:DATA[MODE];}
 function steps(){return md().steps;}
@@ -490,13 +498,15 @@ function perfReg(p){var rg=DATA.ratkit.reg.tasks;var agg={},order=[];
  b+=pdelay("📋","สาขาถึงวันเปิดแต่เอกสารไม่ครบ ("+complete+"/"+N+" ครบ)","ตัวฉุดหลัก = ใบที่ค้างเยอะสุดข้างบน → เปิดแล้วเสี่ยงโดนปรับ/ระงับ");
  return b;}
 function renderBoss(){var p=DATA.perf;
- var T=[["all","🌐","ภาพรวม"],["neg","🤝","สัญญา"],["o1","🎫","อ.1"],["reg","📋","ทะเบียน"]];
- var b='<div class="ptseg">';
- T.forEach(function(x){b+='<button class="'+(PSUB===x[0]?"on":"")+'" onclick="setPSub(\''+x[0]+'\')"><span class="pi">'+x[1]+'</span><span>'+x[2]+'</span></button>';});
- b+='</div>';
- b+='<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="clr" onclick="exportPerf()">⬇️ Export CSV</button></div>';
- b+=(PSUB==="all"?perfAll(p):(PSUB==="neg"?perfNeg(p):(PSUB==="o1"?perfO1(p):perfReg(p))));
+ var b='<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="clr" onclick="exportPerf()">⬇️ Export CSV</button></div>';
+ b+=perfAll(p);   // ภาพรวมอยู่บนสุดเสมอ
+ b+='<div class="sec" style="margin-top:24px"><span class="dot"></span>📂 เจาะรายสายงาน — คลิกกางดูในหน้านี้ได้เลย</div>';
+ var T=[["neg","🤝 สัญญา (เจรจา)","รับ "+p.nego.total+" · เซ็น "+p.nego.close_pct+"%"],["o1","🎫 อ.1","งาน "+DATA.ratkit.o1.tasks.length+" · ออก "+p.ratkit.got],["reg","📋 ทะเบียน","สาขา "+DATA.ratkit.reg.tasks.length+" · เลย D-day "+p.ratkit.reg_over]];
+ T.forEach(function(x){var open=(OPENTRK===x[0]);
+   b+='<div class="dacc'+(open?" on":"")+'"><div class="dacch" onclick="dashToggle(\''+x[0]+'\')"><span class="dai">'+(open?"▾":"▸")+'</span><span class="dat">'+x[1]+'</span><span class="das">'+x[2]+'</span></div>'+(open?'<div class="daccb">'+(x[0]==="neg"?perfNeg(p):(x[0]==="o1"?perfO1(p):perfReg(p)))+'</div>':'')+'</div>';
+ });
  return b;}
+function dashToggle(t){OPENTRK=(OPENTRK===t?"":t);render();}
 function perfAll(p){
  var o1t=DATA.ratkit.o1.tasks.length,o1got=p.ratkit.got,regt=DATA.ratkit.reg.tasks.length,regDone=pcnt(DATA.ratkit.reg.tasks,DATA.ratkit.reg.final);
  var pend=DATA.nego.tasks.filter(function(t){return t.step!==DATA.nego.final;});
@@ -605,9 +615,9 @@ function exportCSV(){var list=visRows();var hdr,rows;
  }
  var tag=(MODE==="nego"?"เจรจา":(MODE==="ratkit"?(RATSUB==="o1"?"อ.1":"ทะเบียน"):"perf"));
  downloadCSV("CJX_SiteOps_"+tag+"_"+DATA.updated+".csv",rows);}
-function exportPerf(){var rows;
- if(PSUB==="neg"){rows=[["อันดับ","ชื่อ","งานในมือ","% เซ็น","เกิน SLA"]];DATA.perf.persons_nego.forEach(function(x,i){rows.push([i+1,x.nm,x.hold,x.pct+"%",x.over]);});downloadCSV("CJX_Perf_เจรจา_รายคน_"+DATA.updated+".csv",rows);}
- else{var arr=(PSUB==="o1"?DATA.ratkit.o1.tasks:DATA.ratkit.reg.tasks);rows=[["Site Code","ชื่อสาขา","จังหวัด","ผู้รับผิดชอบ","ขั้นตอน","สถานะ SLA"]];arr.forEach(function(t){rows.push([t.code,t.name,t.prov,t.owner,t.step,t.slatxt]);});downloadCSV("CJX_Perf_"+(PSUB==="o1"?"อ.1":"ทะเบียน")+"_"+DATA.updated+".csv",rows);}}
+function exportPerf(){var rows;var trk=OPENTRK||"neg";
+ if(trk==="neg"){rows=[["อันดับ","ชื่อ","งานในมือ","% เซ็น","เกิน SLA"]];DATA.perf.persons_nego.forEach(function(x,i){rows.push([i+1,x.nm,x.hold,x.pct+"%",x.over]);});downloadCSV("CJX_Perf_เจรจา_รายคน_"+DATA.updated+".csv",rows);}
+ else{var arr=(trk==="o1"?DATA.ratkit.o1.tasks:DATA.ratkit.reg.tasks);rows=[["Site Code","ชื่อสาขา","จังหวัด","ผู้รับผิดชอบ","ขั้นตอน","สถานะ SLA"]];arr.forEach(function(t){rows.push([t.code,t.name,t.prov,t.owner,t.step,t.slatxt]);});downloadCSV("CJX_Perf_"+(trk==="o1"?"อ.1":"ทะเบียน")+"_"+DATA.updated+".csv",rows);}}
 function setMode(m){MODE=m;RATSUB="o1";PSUB="all";VIEW="flow";ACTIVE=null;SEARCH="";FSTAT="";FCAT="";FOWN="";document.getElementById("app").setAttribute("data-mode",m);["nego","ratkit","boss","cal"].forEach(function(x){var e=document.getElementById("mb-"+x);if(e)e.className=(x===m?"on":"");});var sd=document.getElementById("side");if(sd)sd.classList.remove("open");fillWho();render();}
 
 /* ============ LIVE DATA LAYER (ดึงสด + คำนวณในเบราว์เซอร์) ============ */
