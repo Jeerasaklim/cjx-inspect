@@ -285,7 +285,8 @@ async function load(){
 }
 
 function render(){
-  const toggle=`<div class="modebar"><b class="${_mode==='con'?'on':''}" data-m="con">🏗️ ก่อสร้าง</b><b class="${_mode==='setup'?'on':''}" data-m="setup">🏪 ตรวจรับ (Set-Up)</b></div>`
+  const toggle=`<div class="modebar"><b class="${_mode==='con'?'on':''}" data-m="con">🏗️ ก่อสร้าง</b><b class="${_mode==='setup'?'on':''}" data-m="setup">🏪 ตรวจรับ (Set-Up)</b><b class="${_mode==='report'?'on':''}" data-m="report">📄 รายงาน</b></div>`
+  if(_mode==='report') return renderReports(toggle)
   if(_mode==='setup') return renderSetup(toggle)
   const rows=_rows
   const near=rows.filter(r=>r.days!=null&&r.days<=7&&!r.closed).length
@@ -307,6 +308,35 @@ function render(){
     + insightsHtml(false) + searchBarHtml() + `<div id="listWrap">${conListHtml()}</div>`
   $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
   wireSearch(); wireList(); wireMode(); wireInsights()
+}
+function renderReports(toggle){
+  const byCode={}
+  _rows.forEach(r=>{ const b=byCode[r.code]||(byCode[r.code]={code:r.code,name:r.name,prov:r.prov,con:false,su:false}); b.con=true })
+  _suRows.forEach(r=>{ const b=byCode[r.code]||(byCode[r.code]={code:r.code,name:r.name,prov:r.prov,con:false,su:false}); b.su=true })
+  const all=Object.values(byCode)
+  function rowsHtml(){ const q=_q.trim().toLowerCase()
+    let list=all.filter(x=>!q||[x.name,x.code,x.prov].some(v=>(v||'').toLowerCase().includes(q)))
+    list.sort((a,b)=>(''+a.code).localeCompare(''+b.code))
+    return list.length?list.map(x=>`<tr><td><span class="stname">${esc(x.name)}</span><div class="stmeta"><span class="cd">${esc(x.code)}</span>${x.prov?' · '+esc(x.prov):''}</div></td>
+      <td class="c">${x.con?`<button class="tbtn rpt" data-code="${esc(x.code)}" data-rm="con">🏗️ ก่อสร้าง</button>`:'<span style="color:var(--faint)">—</span>'}</td>
+      <td class="c">${x.su?`<button class="tbtn rpt" data-code="${esc(x.code)}" data-rm="setup">🏪 ตรวจรับ</button>`:'<span style="color:var(--faint)">—</span>'}</td></tr>`).join('')
+      :`<tr><td colspan="3" class="empty">${_q?'ไม่พบสาขา':'ยังไม่มีสาขาที่มีข้อมูลตรวจ'}</td></tr>` }
+  function wireRpt(){ document.querySelectorAll('#repRows .rpt').forEach(b=>b.onclick=()=>genReport(b.dataset.code,b.dataset.rm)) }
+  const hub=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:16px">
+      <div class="inscard"><div style="font-weight:800;font-size:14px">🏢 รายงานประเมินผู้รับเหมา (ผรม.)</div><div style="font-size:12px;color:var(--mut);margin:5px 0 12px">สรุปผลงานก่อสร้างรายบริษัท · จำนวนสาขา · จุดไม่ผ่าน · คะแนนตรวจรับเฉลี่ย</div><button class="tbtn" id="repDoContractor" style="width:100%;padding:11px;font-weight:800">เปิดรายงาน →</button></div>
+      <div class="inscard"><div style="font-weight:800;font-size:14px">🔧 รายงานปัญหางานตรวจรับ (Set-Up)</div><div style="font-size:12px;color:var(--mut);margin:5px 0 12px">จุดที่ “ไม่ผ่าน” บ่อยสุด · ใช้เตรียมก่อนไปตรวจงาน</div><button class="tbtn" id="repDoProblem" style="width:100%;padding:11px;font-weight:800">เปิดรายงาน →</button></div>
+    </div>
+    <div class="tablewrap"><div class="thead"><div class="tt">🧾 ใบตรวจรับ / ใบรับรอง รายสาขา</div></div>
+      ${searchBarHtml()}
+      <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th class="c">งานก่อสร้าง</th><th class="c">ตรวจรับ Set-Up</th></tr></thead><tbody id="repRows">${rowsHtml()}</tbody></table></div></div>`
+  $('body').innerHTML = toggle + hub
+  wireMode()
+  $('repDoContractor').onclick=genContractorReport
+  $('repDoProblem').onclick=genSetupProblemReport
+  const q=$('q'); if(q) q.oninput=e=>{ _q=e.target.value; const x=$('qx'); if(x)x.style.display=_q?'flex':'none'; const rr=$('repRows'); if(rr){ rr.innerHTML=rowsHtml(); wireRpt() } }
+  const qx=$('qx'); if(qx) qx.onclick=()=>{ _q=''; const qq=$('q'); if(qq){qq.value='';qq.focus()} qx.style.display='none'; const rr=$('repRows'); if(rr){ rr.innerHTML=rowsHtml(); wireRpt() } }
+  wireRpt()
 }
 function conListHtml(){
   let list=[..._rows]
@@ -530,8 +560,8 @@ td.im{width:160px}td.im img{width:70px;height:70px;object-fit:cover;border-radiu
 .ba{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}.bacol{flex:1;min-width:150px}.balb{font-size:11px;font-weight:800;margin-bottom:4px}.balb.bef{color:#c0392b}.balb.aft{color:#137a43}.baimgs{display:flex;flex-wrap:wrap}.baimgs img{width:84px;height:84px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #cfe0d4}
 @media print{.noprint{display:none}body{padding:0;max-width:none}}`
 
-async function genReport(code){
-  const s=_storeMap[code]||{code}; const setup=_mode==='setup'
+async function genReport(code, forceMode){
+  const s=_storeMap[code]||{code}; const setup = forceMode ? forceMode==='setup' : _mode==='setup'
   const ids=_inspByStore[code]||[]
   let events=[],media=[]
   if(ids.length){
