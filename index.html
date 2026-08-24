@@ -2263,6 +2263,12 @@ function repImg(m){ const u=m&&m.url||''; if(!u) return ''
   const dl=u+(u.includes('?')?'&':'?')+'download='+encodeURIComponent(fname)
   if(m.kind==='video') return `<span class="iw vid"><a href="${u}" target="_blank" rel="noopener">🎥 วิดีโอ</a><a class="dlt" href="${dl}">⬇ โหลด</a></span>`
   return `<span class="iw"><a href="${u}" target="_blank" rel="noopener"><img src="${u}"></a><a class="dl" href="${dl}" title="โหลดรูปลงเครื่อง">⬇</a></span>` }
+// Before/After: แยกรูปด้วย "คนถ่าย" — รูปของ CM (คนแก้ = ผู้ส่ง fixed) = หลังแก้ · รูปคนอื่น = ก่อนแก้ (Set-Up ตีกลับ)
+const BA_CSS = '.ba{display:flex;gap:12px;margin-top:7px;flex-wrap:wrap}.bacol{flex:1;min-width:150px}.balb{font-size:11px;font-weight:800;margin-bottom:4px}.balb.bef{color:#c0392b}.balb.aft{color:#137a43}.baimgs{display:flex;flex-wrap:wrap}.baempty{color:#999;font-size:11px}'
+function baHtml(ims, cmUid){
+  const after=ims.filter(m=>m.by&&m.by===cmUid), before=ims.filter(m=>!m.by||m.by!==cmUid)
+  const col=(arr)=>arr.length?arr.map(repImg).join(''):'<span class="baempty">— ไม่มีรูป —</span>'
+  return `<div class="ba"><div class="bacol"><div class="balb bef">📸 ก่อนแก้ (Set-Up ตีกลับ)</div><div class="baimgs">${col(before)}</div></div><div class="bacol"><div class="balb aft">✅ หลังแก้ (CM)</div><div class="baimgs">${col(after)}</div></div></div>` }
 $('reportBack').onclick = ()=>{ if(_reportReturn) _reportReturn(); else goHome() }
 $('reportPrint').onclick = ()=>{ const f=$('reportFrame'); try{ f.contentWindow.focus(); f.contentWindow.print() }catch(e){ window.print() } }
 async function generateReport(code, phase){
@@ -2363,6 +2369,10 @@ async function generateReport(code, phase){
   .fnt{color:#b06a00;font-size:11.5px;margin:3px 0}
   .fimgs{margin-top:5px}.fimgs img{width:76px;height:76px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #e0b0b0}
   .fnoimg{color:#c0392b;font-size:11px}
+  .fixhist{border:1.5px solid #bfe0cc;background:#f4fbf7;border-radius:12px;padding:14px 16px;margin:0 0 22px;page-break-inside:avoid}
+  .fhh{font-weight:800;font-size:14px;color:#137a43;margin-bottom:10px}
+  .fhi{padding:10px 0;border-top:1px solid #d9eee2}.fhi:first-of-type{border-top:0}
+  .fhl{font-weight:700;font-size:12.5px;color:#333}.fhp{color:#999;font-weight:600;font-size:11px}
   .sign{display:flex;gap:24px;margin-top:40px;page-break-inside:avoid}
   .sign>div{flex:1;text-align:center;font-size:12px;color:#555}
   .sign img{max-height:60px;max-width:92%;object-fit:contain;display:block;margin:0 auto 2px}
@@ -2371,7 +2381,7 @@ async function generateReport(code, phase){
   .sign .sby{font-size:10px;color:#888;margin-top:4px;line-height:1.4}
   .noprint button{background:#F5C518;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
   @media print{.noprint{display:none}body{padding:0}}
-  ${REP_IMG_CSS}
+  ${REP_IMG_CSS} ${BA_CSS}
   </style></head><body>
   <div class="cert">
     <div class="brand">CJ<b>X</b> INSPECT</div>
@@ -2445,6 +2455,12 @@ async function generateSetupReport(code){
   let roundHist=''
   if(suN>1){ const rr=[]; for(let i=1;i<=suN;i++){ const rsc=computeSetupScore(events,i); rr.push(`<li>รอบ ${i}${i===suN?' (สุดท้าย)':''}: เกรด <b>${rsc.doneItems?rsc.curGrade:'—'}</b> · ${rsc.curPct.toFixed(0)}/100${rsc.failItems?` · <span style="color:#c0392b">${rsc.failItems} ไม่ผ่าน</span>`:' · ผ่านครบ'}</li>`) }
     roundHist=`<div class="rhist"><b>🔁 Set-Up ตรวจทั้งหมด ${suN} รอบ (แก้ไป ${suN-1} รอบ)</b><ul>${rr.join('')}</ul></div>` }
+  // ---- บันทึกการแก้ไข: ข้อที่เคยถูก CM แก้ (มี event 'fixed') → โชว์ ก่อน→หลัง ----
+  const fixedByCp={}; events.forEach(e=>{ if(e.status==='fixed'){ const p=fixedByCp[e.checkpoint]; if(!p||(e.created_at||'')>=(p.created_at||'')) fixedByCp[e.checkpoint]=e } })
+  const fixCps=[]
+  SETUP_SECTIONS.forEach(([pn,name])=>{ checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const fe=fixedByCp[String(c.id)]; if(fe) fixCps.push({c,fe,name}) }) })
+  const fixHistHtml = fixCps.length ? `<div class="fixhist"><div class="fhh">🔧 บันทึกการแก้ไข (ก่อน → หลัง) · ${fixCps.length} จุด</div>`+fixCps.map(({c,fe,name})=>
+      `<div class="fhi"><div class="fhl">${esc(c.label)} <span class="fhp">${esc(name)}</span></div>${baHtml(mediaByCp[String(c.id)]||[], fe.by)}</div>`).join('')+`</div>` : ''
   // ---- สรุปจุดที่ไม่ผ่าน (รวม "รอตรวจซ้ำ") + รูป ----
   const suFail=[]
   SETUP_SECTIONS.forEach(([pn,name])=>{ checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')) suFail.push({c,e,name}) }) })
@@ -2498,6 +2514,10 @@ async function generateSetupReport(code){
   .fnt{color:#b06a00;font-size:11.5px;margin:3px 0}
   .fimgs{margin-top:5px}.fimgs img{width:72px;height:72px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #e0b0b0}
   .fnoimg{color:#c0392b;font-size:11px}
+  .fixhist{border:1.5px solid #bfe0cc;background:#f4fbf7;border-radius:12px;padding:14px 16px;margin:0 0 22px;page-break-inside:avoid}
+  .fhh{font-weight:800;font-size:14px;color:#137a43;margin-bottom:10px}
+  .fhi{padding:10px 0;border-top:1px solid #d9eee2}.fhi:first-of-type{border-top:0}
+  .fhl{font-weight:700;font-size:12.5px;color:#333}.fhp{color:#999;font-weight:600;font-size:11px}
   .sign{display:flex;gap:24px;margin-top:40px;page-break-inside:avoid}
   .sign>div{flex:1;text-align:center;font-size:12px;color:#555}
   .sign img{max-height:60px;max-width:92%;object-fit:contain;display:block;margin:0 auto 2px}
@@ -2506,7 +2526,7 @@ async function generateSetupReport(code){
   .sign .sby{font-size:10px;color:#888;margin-top:4px;line-height:1.4}
   .noprint button{background:#37A06B;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
   @media print{.noprint{display:none}body{padding:0}}
-  ${REP_IMG_CSS}
+  ${REP_IMG_CSS} ${BA_CSS}
   </style></head><body>
   <div class="cert">
     <div class="brand">CJ<b>X</b> INSPECT</div>
@@ -2522,6 +2542,7 @@ async function generateSetupReport(code){
     <div class="issued">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}</div>
     ${passAll?'<div class="stmt">ขอรับรองว่าร้านนี้ผ่านการตรวจรับจากทีม Set-Up (NSA) ครบถ้วน 100% — ใช้แนบประกอบการจ่ายงวดสุดท้าย คู่กับเอกสารตรวจ Check Point งานก่อสร้าง</div>':''}
   </div>
+  ${fixHistHtml}
   ${suFailHtml}
   ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจรับ</p>'}
   <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${cmCell}</div>
@@ -2556,10 +2577,13 @@ async function generateSetupPunch(code){
       const ims=(mediaByCp[String(c.id)]||[])
       const sup=c.supplier==='ซัพย่อย'?'<span class="sup y">ซัพย่อย</span>':(c.supplier?'<span class="sup m">ซัพหลัก</span>':'')
       const tag=e.status==='fixed'?'<span class="tg fx">CM แก้แล้ว · รอ Set-Up ตรวจซ้ำ</span>':'<span class="tg fl">ต้องแก้</span>'
+      const imgBlock = e.status==='fixed'
+        ? baHtml(ims, e.by)   // CM แก้แล้ว → เทียบ ก่อน/หลัง (รูป CM = ผู้ส่ง fixed)
+        : `<div class="ims">${ims.map(repImg).join('')||'<span class="noimg">— ไม่มีรูป —</span>'}</div>`
       rows.push(`<div class="it"><div class="ith"><div class="itl">${c.group_title?`<span class="grp">${esc(c.group_title)}</span> `:''}${esc(c.label)} ${sup}</div>${tag}</div>
         ${e.note?`<div class="rsn">✕ เหตุที่ตีกลับ: ${esc(e.note)}</div>`:''}
         <div class="by">โดย ${esc(nameOf(e.by))} · ${fmtDate(e.created_at)}</div>
-        <div class="ims">${ims.map(repImg).join('')||'<span class="noimg">— ไม่มีรูป —</span>'}</div></div>`)
+        ${imgBlock}</div>`)
     })
     if(rows.length) body+=`<h2>${esc(name)} <span class="cnt">${rows.length} จุด</span></h2>${rows.join('')}`
   })
@@ -2588,7 +2612,7 @@ async function generateSetupPunch(code){
     .how b{color:#1c3d7a}
     .noprint{margin-bottom:14px}.noprint button{background:#E67E22;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
     @media print{.noprint{display:none}body{padding:0}}
-  ${REP_IMG_CSS}
+  ${REP_IMG_CSS} ${BA_CSS}
   </style></head><body>
     <div class="noprint"><button onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button></div>
     <div class="cert"><div class="brand">CJ<b>X</b> INSPECT</div>
