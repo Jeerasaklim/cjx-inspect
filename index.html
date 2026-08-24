@@ -1997,14 +1997,14 @@ function dqMatch(r){ const q=_dashQuery.trim().toLowerCase(); if(!q) return true
 function drows(){ const base=_dashFilter==='all'?_dashRows : _dashRows.filter(r=> _dashFilter==='near'?(r.days!=null&&r.days<=7):dstt(r)===_dashFilter); return base.filter(dqMatch) }
 const DCOL={fail:'var(--fail)',done:'var(--pass)',progress:'var(--build)',idle:'#5a5a55'}
 async function openDash(filter){
-  _dashQuery=''
+  _dashQuery=''; _suFilter='all'
   hideAllViews(); show($('viewDash'),true); showTabbar(true); markTab('dash'); window.scrollTo(0,0)
   $('dashBody').innerHTML='<div class="spin">กำลังโหลด…</div>'
   if(isSetup()){ await loadSetupDash(); renderSetupDash(); return }   // ทีม Set-Up = แดชบอร์ดตรวจรับ
   if(profile.role==='admin' && _dashMode==='setup'){ await loadSetupDash(); renderSetupDash(); return }   // Admin สลับดูตรวจรับได้
   await loadDashData(); _dashFilter=filter||'all'; renderDash()
 }
-let _suRows=[], _suScope='ทุกสาขา', _dashMode='con'
+let _suRows=[], _suScope='ทุกสาขา', _dashMode='con', _suFilter='all'
 function gradeColor(g){ return g==='A'?'#37D98B':g==='B'?'#8FD14F':g==='C'?'#F5C518':'#FF6B6B' }
 function adminDashToggle(){ if(!profile||profile.role!=='admin') return ''
   return `<div class="dseg dmtoggle" style="margin:0 0 12px"><b class="${_dashMode!=='setup'?'on':''}" data-dm="con">ก่อสร้าง</b><b class="${_dashMode==='setup'?'on':''}" data-dm="setup">ตรวจรับ (Set-Up)</b></div>` }
@@ -2037,14 +2037,16 @@ function renderSetupDash(){
   const graded=rows.filter(r=>r.done>0)
   const avg=graded.length?Math.round(graded.reduce((n,r)=>n+r.score,0)/graded.length):0
   const head=`<div class="heroC"><div class="t">แดชบอร์ดตรวจรับ${_suScope==='งานของฉัน'?'ของฉัน':' (Set-Up)'}</div><div class="r"><span>${_suScope} · ${ROLE_TH[profile.role]}</span></div></div>`
+  const on=f=>_suFilter===f?' on':''
   const kpi=`<div class="dgrid">
-    <div class="dt2"><div class="v" style="color:var(--build)">${inProg}</div><div class="k">กำลังตรวจรับ</div></div>
-    <div class="dt2"><div class="v" style="color:var(--fail)">${failN}</div><div class="k">มีจุดไม่ผ่าน</div></div>
-    <div class="dt2"><div class="v" style="color:var(--pass)">${passN}</div><div class="k">ผ่านครบ</div></div>
+    <div class="dt2 tf${on('prog')}" data-sf="prog"><div class="v" style="color:var(--build)">${inProg}</div><div class="k">กำลังตรวจรับ</div></div>
+    <div class="dt2 tf${on('fail')}" data-sf="fail"><div class="v" style="color:var(--fail)">${failN}</div><div class="k">มีจุดไม่ผ่าน</div></div>
+    <div class="dt2 tf${on('pass')}" data-sf="pass"><div class="v" style="color:var(--pass)">${passN}</div><div class="k">ผ่านครบ</div></div>
     <div class="dt2"><div class="v" style="color:var(--yellow)">${avg}</div><div class="k">คะแนนเฉลี่ย</div></div>
   </div>`
   const searchBar = rows.length ? `<div class="search" style="margin:2px 0 12px"><span style="color:var(--faint)">⌕</span><input id="dq" placeholder="ค้นหาสาขา / รหัส / จังหวัด" value="${esc(_dashQuery)}"></div>` : ''
   $('dashBody').innerHTML = head+adminDashToggle()+kpi+searchBar+`<div id="dashListWrap"></div>`
+  $('dashBody').querySelectorAll('[data-sf]').forEach(t=> t.onclick=()=>{ const f=t.dataset.sf; _suFilter=(_suFilter===f?'all':f); renderSetupDash() })
   const dq=$('dq'); if(dq) dq.oninput=e=>{ _dashQuery=e.target.value; renderSetupList() }
   renderSetupList()
   wireDashToggle()
@@ -2052,14 +2054,20 @@ function renderSetupDash(){
 function renderSetupList(){
   const w=$('dashListWrap'); if(!w) return
   if(!_suRows.length){ w.innerHTML=`<div class="spin">${isHead()?'ยังไม่มีสาขาให้ตรวจรับ':'ยังไม่มีงาน — เลือกสาขาเริ่มตรวจรับ'}</div>`; return }
-  const list=[..._suRows].filter(dqMatch).sort((a,b)=>(b.fail-a.fail)||((a.days==null?999:a.days)-(b.days==null?999:b.days)))
-  if(!list.length){ w.innerHTML=`<div class="spin">ไม่พบสาขาที่ค้นหา</div>`; return }
-  w.innerHTML = `<div class="dlab" style="margin:2px 2px 10px">รายสาขา · เรียงตามความเร่งด่วน</div>`+list.map(r=>{ const gc=r.done?gradeColor(r.grade):'var(--faint)'
+  const pred={ prog:r=>r.done>0&&!(r.allDone&&r.fail===0), fail:r=>r.fail>0, pass:r=>r.allDone&&r.fail===0&&r.done>0 }[_suFilter]
+  let list=[..._suRows].filter(dqMatch); if(pred) list=list.filter(pred)
+  list.sort((a,b)=>(b.fail-a.fail)||((a.days==null?999:a.days)-(b.days==null?999:b.days)))
+  const flab={prog:'กำลังตรวจรับ',fail:'มีจุดไม่ผ่าน',pass:'ผ่านครบ'}[_suFilter]||''
+  const label = flab ? `รายสาขา · <span style="color:var(--yellow)">${flab} ✕ ล้างตัวกรอง</span>` : 'รายสาขา · เรียงตามความเร่งด่วน'
+  if(!list.length){ w.innerHTML=`<div class="dlab" id="sfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div><div class="spin">${flab?'ไม่มีสาขาในกลุ่มนี้':'ไม่พบสาขาที่ค้นหา'}</div>`
+    const s0=$('sfl'); if(s0&&flab) s0.onclick=()=>{ _suFilter='all'; renderSetupDash() }; return }
+  w.innerHTML = `<div class="dlab" id="sfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div>`+list.map(r=>{ const gc=r.done?gradeColor(r.grade):'var(--faint)'
       return `<div class="urow2" data-code="${esc(r.code)}"><div class="sugrd" style="color:${gc};border-color:${gc}44">${r.done?r.grade:'—'}</div>
         <div class="um"><div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
           <div style="font-size:10px;color:var(--faint)">${r.done?r.score.toFixed(0)+'/100 · ตรวจ '+r.done+'/'+r.total:'ยังไม่เริ่มตรวจรับ'}${r.fail?' · <span style="color:var(--fail)">'+r.fail+' ไม่ผ่าน</span>':''}${r.signed?' · <span style="color:var(--pass)">เซ็นแล้ว ✓</span>':''}</div></div>
         <div style="font-size:10px;color:var(--faint);text-align:right;white-space:nowrap">${r.days!=null?'เปิดใน '+r.days+' วัน':''}</div></div>` }).join('')
   w.querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
+  const s1=$('sfl'); if(s1&&flab) s1.onclick=()=>{ _suFilter='all'; renderSetupDash() }
 }
 async function loadDashData(){
   await loadChecklist()
