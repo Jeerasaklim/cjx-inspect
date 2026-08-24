@@ -809,6 +809,8 @@ async function getFlow(){  /* milestone กฎหมาย normalize → [code,s
  var raw=await getCsv("https://docs.google.com/spreadsheets/d/1cVFBJpP_C6XY5hM15pu71ioQO7JZ7pihRq1FJ-v-k1g/gviz/tq?tqx=out:csv&sheet="+encodeURIComponent("ตารางรับส่งสัญญา กฎหมาย"));
  return [["code","send_legal","legal_back","sign_owner","signed"]].concat(raw.slice(1).map(function(x){return [cc(x,0),cc(x,11),cc(x,12),cc(x,16),cc(x,8)];}));}
 async function getUpdates(){for(var t=0;t<3;t++){try{var r=await fetch(WRITE_URL+"?key="+WSECRET);if(!r.ok)continue;var j=JSON.parse(await r.text());return (j.rows||[]).slice(1).filter(function(x){return x.length>=5&&x[1];}).map(function(x){return {code:x[1],track:x[2],field:x[3],value:x[4]};});}catch(e){}}return [];}
+/* ดึงข้อมูลชีตกลางผ่าน Apps Script (script.google.com) — เลี่ยง CORS ของ docs.google.com บน GitHub Pages */
+async function getTab(tab){for(var t=0;t<3;t++){try{var r=await fetch(WRITE_URL+"?tab="+encodeURIComponent(tab));if(!r.ok)continue;var j=JSON.parse(await r.text());if(j&&j.rows)return j.rows;}catch(e){}}return [];}
 
 function compute(neg,sla,reg,constr,ratown,upd,flow){
  // ---- SLA sheet (อ.1) ----
@@ -971,12 +973,12 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
 async function boot(silent){
  if(!silent)document.getElementById("body").innerHTML='<div style="text-align:center;padding:70px 20px;color:var(--muted)"><div style="font-size:34px">⏳</div><div style="font-family:IBM Plex Sans Thai;font-weight:700;font-size:16px;margin-top:10px">กำลังโหลดข้อมูลสดจากชีต…</div><div style="font-size:12px;margin-top:6px">ดึงเจรจา · อ.1 · ทะเบียน · ผลที่ทีมกรอก</div></div>';
  try{
-   var res=await Promise.all([getCsvFb(CEN+"src_nego",SS_NEG),getSla(),getCsvFb(CEN+"src_reg",gv(ID_REG,"0")),getConstr(),getCsvFb(CEN+"src_ratown",SS_RATOWN),getUpdates(),getFlow()]);
+   var res=await Promise.all([getTab("src_nego"),getTab("src_sla"),getTab("src_reg"),getTab("src_constr"),getTab("src_ratown"),getUpdates(),getTab("src_flow")]);
    DATA=compute(res[0],res[1],res[2],res[3],res[4],res[5],res[6]);
    // problems (คอขวด) = per step count
    var pc={};DATA.nego.tasks.forEach(function(t){if(t.step!=DATA.nego.final)pc[t.step]=(pc[t.step]||0)+1;});
    DATA.perf.problems=DATA.nego.steps.filter(function(s){return s.stp!=DATA.nego.final;}).map(function(s){return [s.ico+" "+s.stp,pc[s.stp]||0];});
-   try{var prc=await getCsv(CEN+"people");PEOPLE={};for(var pi=1;pi<prc.length;pi++){var pe=(cc(prc[pi],0)||"").toLowerCase();if(pe)PEOPLE[pe]={name:cc(prc[pi],1),role:(cc(prc[pi],2)||"").toLowerCase()};}}catch(e){}
+   try{var prc=await getTab("people");PEOPLE={};for(var pi=1;pi<prc.length;pi++){var pe=(cc(prc[pi],0)||"").toLowerCase();if(pe)PEOPLE[pe]={name:cc(prc[pi],1),role:(cc(prc[pi],2)||"").toLowerCase()};}}catch(e){}
    if(GOOGLE_CLIENT_ID){
      if(SITE_EMAIL&&PEOPLE[SITE_EMAIL]){var mm=PEOPLE[SITE_EMAIL];CURRENT_ROLE=roleKind(mm.role);CURRENT_USER=(CURRENT_ROLE==="member"?mm.name:"__boss__");applyUserUI();fillWho();render();}
      else{render();showLogin();}
