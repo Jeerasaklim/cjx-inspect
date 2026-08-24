@@ -86,6 +86,15 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .bstat .s.bad .v{color:var(--bad)}.bstat .s.good .v{color:var(--good)}.bstat .s.warn .v{color:var(--warn)}
 .pgrid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .prow{display:flex;align-items:center;gap:11px;font-size:13px;padding:9px 0;border-top:1px solid var(--line)}.prow:first-of-type{border-top:none}.prow .pn{width:150px;font-weight:600;display:flex;align-items:center;gap:8px}.prow .tk{flex:1;height:14px;background:var(--track);border-radius:5px;overflow:hidden}.prow .tk>i{display:block;height:100%;border-radius:5px;background:var(--accent)}.prow .tk>i.red{background:var(--bad)}.prow .pf{width:110px;text-align:right;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}.prow .pf small{color:var(--faint);font-weight:400}
+.dqbar{position:relative;margin-bottom:14px}
+.dqbar .qbox{width:100%}
+#dqres{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20}
+.dqlist{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.18);overflow:hidden;max-height:360px;overflow-y:auto}
+.dqrow{display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.dqrow:last-child{border-bottom:none}.dqrow:hover{background:var(--surface2)}
+.dqi{font-size:16px}.dqx{flex:1}.dqc{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:13px}.dqs{font-size:11.5px;color:var(--muted)}
+.dqgo{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12px;color:var(--accent);white-space:nowrap}
+.dqempty{padding:11px 14px;color:var(--faint);font-size:12.5px}
 .ptseg{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
 .ptseg button{flex:1;min-width:140px;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;gap:9px;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:14px;color:var(--ink)}
 .ptseg button .pi{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;background:var(--surface2)}
@@ -225,6 +234,18 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .srt .sscar.open{transform:rotate(90deg)}
 .srt .srsub2{font-size:10.5px;color:var(--faint);font-weight:400;margin-left:8px}
 .srt b.srg1,.srt th.g1{color:var(--good)}.srt b.srg2,.srt th.g2{color:var(--yd)}.srt b.srg3,.srt th.g3{color:var(--warn)}.srt b.srg4,.srt th.g4{color:var(--bad)}
+.slaleg{display:flex;gap:16px;font-size:12px;color:var(--muted);margin:6px 0 10px;flex-wrap:wrap}
+.slaleg i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:5px}
+.slaleg .lg-done{background:#0a8a5f}.slaleg .lg-wip{background:#5b86d6}
+.slawrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px;padding:16px 14px 12px;background:var(--surface)}
+.slabars{display:flex;align-items:flex-end;gap:14px;min-height:210px}
+.slacol{flex:1;min-width:66px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.slabar{width:52px;display:flex;flex-direction:column;justify-content:flex-end}
+.slabar .segwip{background:#5b86d6;color:#fff;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12.5px;display:flex;align-items:center;justify-content:center;border-radius:7px 7px 0 0}
+.slabar .segdone{background:#0a8a5f;color:#fff;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12.5px;display:flex;align-items:center;justify-content:center}
+.slaxl{margin-top:8px;text-align:center;display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--muted)}
+.slaxl b{font-family:"IBM Plex Sans Thai";font-size:12.5px;color:var(--ink)}
+.slaxl .ov{color:var(--bad);font-weight:700}.slaxl .okk{color:var(--good);font-weight:600}
 .sract{display:flex;gap:12px;justify-content:flex-end;margin-bottom:8px}
 .sract button{border:none;background:none;color:var(--accent);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12px;cursor:pointer;text-decoration:underline}
 .hbwrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
@@ -543,16 +564,49 @@ function perfReg(p){var rg=DATA.ratkit.reg.tasks;var agg={},order=[];
  return b;}
 function renderBoss(){var p=DATA.perf;
  var cur=(PSUB==="o1"||PSUB==="reg")?PSUB:"neg";
+ var b='<div class="dqbar"><input id="dq" class="qbox" placeholder="🔍 ค้นหาทุกท่อน: Site Code / ชื่อสาขา / ผู้รับผิดชอบ / จังหวัด" oninput="dashSearch(this.value)"><div id="dqres"></div></div>';
  var T=[["neg","🤝","สัญญา"],["o1","🎫","อ.1"],["reg","📋","ทะเบียน"]];
- var b='<div class="ptseg">'+T.map(function(x){return '<button class="'+(cur===x[0]?"on":"")+'" onclick="setPSub(\''+x[0]+'\')"><span class="pi">'+x[1]+'</span><span>'+x[2]+'</span></button>';}).join("")+'</div>';
+ b+='<div class="ptseg">'+T.map(function(x){return '<button class="'+(cur===x[0]?"on":"")+'" onclick="setPSub(\''+x[0]+'\')"><span class="pi">'+x[1]+'</span><span>'+x[2]+'</span></button>';}).join("")+'</div>';
  b+='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="clr" onclick="exportPerf()">⬇️ Export CSV</button></div>';
  b+=(cur==="neg"?dashNeg(p):(cur==="o1"?dashO1(p):dashReg(p)));
  return b;}
+function dashSearch(q){var box=document.getElementById("dqres");if(!box)return;q=(q||"").trim().toLowerCase();
+ if(!q){box.innerHTML="";return;}
+ var all=[],ic={neg:"🤝",o1:"🎫",reg:"📋"};
+ DATA.nego.tasks.forEach(function(t){all.push({t:t,k:"neg"});});
+ DATA.ratkit.o1.tasks.forEach(function(t){all.push({t:t,k:"o1"});});
+ DATA.ratkit.reg.tasks.forEach(function(t){all.push({t:t,k:"reg"});});
+ var hits=all.filter(function(x){return ((x.t.code||"")+" "+(x.t.name||"")+" "+(x.t.owner||"")+" "+(x.t.prov||"")).toLowerCase().indexOf(q)>=0;});
+ var tot=hits.length;hits=hits.slice(0,30);
+ if(!tot){box.innerHTML='<div class="dqempty">ไม่พบ "'+esc(q)+'"</div>';return;}
+ box.innerHTML='<div class="dqlist">'+hits.map(function(x){return '<div class="dqrow" onclick="calOpen(\''+x.k+'\',\''+esc(x.t.code)+'\')"><span class="dqi">'+ic[x.k]+'</span><div class="dqx"><div class="dqc">'+esc(x.t.code)+' · '+esc(x.t.name)+'</div><div class="dqs">'+esc(x.t.step)+(x.t.owner?" · "+esc(x.t.owner):"")+'</div></div><span class="dqgo">เปิด ›</span></div>';}).join("")+(tot>30?'<div class="dqempty">+ อีก '+(tot-30)+' — พิมพ์ให้เจาะขึ้น</div>':"")+'</div>';}
 function drillRk(sub,name){perfDrill("ratkit",sub,{search:name});}
+function slaBarChart(){
+ var EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+ var rows=DATA.nego.tasks.filter(function(t){return t.ag!=null&&t.ag>=0&&t.ag<=1000;});
+ var byM={},order=[];
+ rows.forEach(function(t){var d=new Date(TODAY.getTime()-t.ag*86400000);if(d.getFullYear()<2026)return;var key=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2);if(!byM[key]){byM[key]={lbl:EN[d.getMonth()]+"-"+(d.getFullYear()%100),rows:[]};order.push(key);}byM[key].rows.push(t);});
+ order.sort();
+ var mx=1;order.forEach(function(k){if(byM[k].rows.length>mx)mx=byM[k].rows.length;});
+ var b='<div class="sec" style="margin-top:22px"><span class="dot"></span>📈 SLA เซ็นสัญญา — รายเดือน (เซ็น / รอเซ็น)</div>';
+ b+='<div class="slaleg"><span><i class="lg-done"></i>เซ็นสัญญาแล้ว</span><span><i class="lg-wip"></i>รอเซ็นสัญญา</span><span class="cmut">ตัวเลขในแท่ง = จำนวนสัญญา · ล่าง = เกิน SLA + aging เฉลี่ย</span></div>';
+ b+='<div class="slawrap"><div class="slabars">';
+ order.forEach(function(k){var m=byM[k];var done=m.rows.filter(function(t){return t.signed;}).length,wip=m.rows.length-done;
+   var ov=m.rows.filter(function(t){return t.ag>90&&!t.signed;}).length;
+   var avg=m.rows.length?Math.round(m.rows.reduce(function(s,t){return s+t.ag;},0)/m.rows.length):0;
+   var hd=Math.round(done/mx*170),hw=Math.round(wip/mx*170);
+   b+='<div class="slacol"><div class="slabar">'
+     +(wip?'<div class="segwip" style="height:'+Math.max(18,hw)+'px">'+wip+'</div>':'')
+     +(done?'<div class="segdone" style="height:'+Math.max(18,hd)+'px">'+done+'</div>':'')
+     +'</div><div class="slaxl"><b>'+esc(m.lbl)+'</b>'+(ov?'<span class="ov">🔴 เกิน SLA '+ov+'</span>':'<span class="okk">✓ ตรงเวลา</span>')+'<span>aging '+avg+' วัน</span></div></div>';});
+ b+='</div></div>';
+ return b;}
 function dashNeg(p){
  var b='<div class="kpis k4">'+kpiC(p.nego.close_pct+"%","✅ เซ็นสะสม","good")+kpiC(p.nego.sla_pct+"%","🎯 ตรง SLA","good")+kpiC(p.nego.pending,"📄 สัญญาค้าง","warn")+kpiC(p.nego.over,"🔴 เกิน 90 วัน","bad")+'</div>';
  b+='<div class="sec"><span class="dot"></span>📊 AGING RANGE — SLA เซ็นสัญญา (เดือน × ช่วงอายุงาน)</div>';
- b+=agingTableHtml();return b;}
+ b+=agingTableHtml();
+ b+=slaBarChart();
+ return b;}
 function dashO1(p){var o=DATA.ratkit.o1.tasks;
  var b='<div class="kpis k4">'+kpiC(p.ratkit.prep,"📑 ติดตามเอกสาร","")+kpiC(p.ratkit.wait,"🔎 ยื่น/ติดตาม อ.1","warn")+kpiC(p.ratkit.got,"✅ อ.1 ออก","good")+kpiC(p.ratkit.waiver,"🏗️ อนุโลม","warn")+'</div>';
  var ow={};o.forEach(function(t){var k=t.owner||"(ไม่ระบุ)";if(!ow[k])ow[k]={h:0,g:0,ov:0};ow[k].h++;if(t.step===DATA.ratkit.o1.final)ow[k].g++;if(t.st==="red")ow[k].ov++;});
@@ -585,7 +639,7 @@ function agingTableHtml(){
  var EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
  var rows=DATA.nego.tasks.filter(function(t){return t.ag!=null&&t.ag>=0&&t.ag<=1000;});
  var byM={},order=[];
- rows.forEach(function(t){var d=new Date(TODAY.getTime()-t.ag*86400000);var key=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2);if(!byM[key]){byM[key]={lbl:EN[d.getMonth()]+"-"+(d.getFullYear()%100),rows:[]};order.push(key);}byM[key].rows.push(t);});
+ rows.forEach(function(t){var d=new Date(TODAY.getTime()-t.ag*86400000);if(d.getFullYear()<2026)return;var key=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2);if(!byM[key]){byM[key]={lbl:EN[d.getMonth()]+"-"+(d.getFullYear()%100),rows:[]};order.push(key);}byM[key].rows.push(t);});
  order.sort();order.reverse();
  function cells(rs){var b=[0,0,0,0,0,0,0,0];rs.forEach(function(t){b[buck(t.ag)]++;});return b;}
  function avg(rs){if(!rs.length)return null;var s=0;rs.forEach(function(t){s+=t.ag;});return Math.round(s/rs.length);}
