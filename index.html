@@ -2629,12 +2629,13 @@ async function generateSetupPunch(code){
   frame.onload=null   // ความสูงคงที่ + scroll ภายใน iframe (เมาส์บนคอมเลื่อนได้)
 }
 
-// เมาส์: ลูกกลิ้งแนวตั้ง = เลื่อนแถบแท็บแนวนอน (เผื่อจอคอมแคบที่ยังปัดไม่ได้)
-document.addEventListener('wheel', e=>{ const s=e.target.closest&&e.target.closest('.tabs')
+// เมาส์: ลูกกลิ้งแนวตั้ง = เลื่อนแถบแนวนอน (แท็บ + การ์ดรอบ) เผื่อคอมที่ปัดไม่ได้
+const HSTRIP='.tabs,.srchips'
+document.addEventListener('wheel', e=>{ const s=e.target.closest&&e.target.closest(HSTRIP)
   if(s && s.scrollWidth>s.clientWidth+2 && !e.shiftKey){ s.scrollLeft+=e.deltaY; e.preventDefault() } }, {passive:false})
-// เมาส์: ลาก (คลิกค้างแล้วลาก) เพื่อเลื่อนแถบแท็บ — เลียนแบบการปัดนิ้วบนคอม
+// เมาส์: ลาก (คลิกค้างแล้วลาก) เพื่อเลื่อนแถบแนวนอน — เลียนแบบการปัดนิ้วบนคอม
 ;(function(){ let el=null,sx=0,sl=0,drag=false
-  document.addEventListener('mousedown', e=>{ const s=e.target.closest&&e.target.closest('.tabs'); if(!s||s.scrollWidth<=s.clientWidth+2) return; el=s; sx=e.pageX; sl=s.scrollLeft; drag=false })
+  document.addEventListener('mousedown', e=>{ const s=e.target.closest&&e.target.closest(HSTRIP); if(!s||s.scrollWidth<=s.clientWidth+2) return; el=s; sx=e.pageX; sl=s.scrollLeft; drag=false })
   document.addEventListener('mousemove', e=>{ if(!el) return; const dx=e.pageX-sx; if(Math.abs(dx)>4){drag=true; el.scrollLeft=sl-dx; el.style.cursor='grabbing'} })
   document.addEventListener('mouseup', e=>{ if(el&&drag){ e.preventDefault(); const b=e.target.closest&&e.target.closest('.tabs b'); if(b){ const stop=ev=>{ev.stopPropagation(); b.removeEventListener('click',stop,true)}; b.addEventListener('click',stop,true) } } if(el)el.style.cursor=''; el=null })
 })();
