@@ -491,7 +491,11 @@ function rSetupScore(cur){
   return {total,grade:setupGrade(total),curPct,curGrade:setupGrade(curPct),sections,doneItems,totalItems,failItems,fixedItems,
     mainPct:maxMain?gotMain/maxMain*100:0, subPct:maxSub?gotSub/maxSub*100:0, allDone:doneItems===totalItems&&totalItems>0}
 }
-const R_CSS=`*{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
+const R_CSS=`*{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0 auto;padding:22px 26px;font-size:13px;line-height:1.5;background:#fff;max-width:920px}
+.rnav{position:sticky;top:0;z-index:5;display:flex;gap:8px;flex-wrap:wrap;background:#fff;padding:10px 0;margin-bottom:8px;border-bottom:1px solid #eee}
+.rnav a{font-size:12.5px;font-weight:700;color:#444;background:#f1f1f1;border:1px solid #e2e2e2;border-radius:99px;padding:7px 14px;text-decoration:none}
+.rnav a:hover{background:#F5C518;color:#1a1500;border-color:#F5C518}
+#r-sum,#r-fail,#r-detail,#r-sign{scroll-margin-top:64px}
 .cert{border:2px solid #F5C518;border-radius:14px;padding:22px 24px;margin-bottom:22px}.cert.su{border-color:#37A06B}
 .brand{font-weight:800;font-size:15px;letter-spacing:1px;color:#111}.brand b{color:#E0A800}
 h1{font-size:21px;margin:6px 0 12px}.site{font-size:18px;font-weight:800}.site span{color:#888;font-weight:600;font-size:14px}
@@ -524,7 +528,7 @@ td.im{width:160px}td.im img{width:70px;height:70px;object-fit:cover;border-radiu
 .iw .dl{position:absolute;right:3px;bottom:3px;width:20px;height:20px;border-radius:5px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;line-height:1}
 .iw.vid{margin-right:8px}.iw .dlt{margin-left:6px;font-size:11px;color:#2d5bb8;text-decoration:none;font-weight:700;white-space:nowrap}
 .ba{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}.bacol{flex:1;min-width:150px}.balb{font-size:11px;font-weight:800;margin-bottom:4px}.balb.bef{color:#c0392b}.balb.aft{color:#137a43}.baimgs{display:flex;flex-wrap:wrap}.baimgs img{width:84px;height:84px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #cfe0d4}
-@media print{.noprint{display:none}body{padding:0}}`
+@media print{.noprint{display:none}body{padding:0;max-width:none}}`
 
 async function genReport(code){
   const s=_storeMap[code]||{code}; const setup=_mode==='setup'
@@ -589,10 +593,12 @@ async function genReport(code){
       const tag=e.status==='fixed'?'<span class="ftag fx">CM แก้แล้ว · รอตรวจซ้ำ</span>':'<span class="ftag">ไม่ผ่าน</span>'
       const imgBlock = e.status==='fixed' ? baImgs(ims, e.by) : `<div class="fimgs">${ims.length?imgs(ims):'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div>`
       return `<div class="fitem"><div class="fhd"><span class="fno">•</span> ${esc(c.label)} <span class="fph">${esc(name)}</span> ${tag}</div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}${imgBlock}</div>` }).join('')+`</div>`:''
+  const rnav=`<div class="rnav noprint"><a href="#r-sum">📋 ภาพรวม</a>${failList.length?'<a href="#r-fail">⚠ จุดไม่ผ่าน ('+failList.length+')</a>':''}<a href="#r-detail">📑 รายหมวด</a><a href="#r-sign">✍ ลายเซ็น</a></div>`
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ใบตรวจรับ ${esc(s.name||code)}</title><style>${R_CSS}</style></head><body>
     <div class="noprint"><button onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button></div>
-    <div class="cert ${setup?'su':''}"><div class="brand">CJ<b>X</b> INSPECT</div>${head}</div>
-    ${failHtml}${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจ</p>'}${signHtml}</body></html>`
+    ${rnav}
+    <div class="cert ${setup?'su':''}" id="r-sum"><div class="brand">CJ<b>X</b> INSPECT</div>${head}</div>
+    <div id="r-fail">${failHtml}</div><div id="r-detail">${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจ</p>'}</div><div id="r-sign">${signHtml}</div></body></html>`
   const w=window.open('','_blank'); if(!w){ alert('เปิดแท็บใหม่ไม่ได้ — โปรดอนุญาต popup ของเว็บนี้'); return }
   w.document.write(html); w.document.close()
 }
