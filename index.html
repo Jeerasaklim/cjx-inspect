@@ -1583,7 +1583,8 @@ async function openPhase(code, phase){
   renderPhase(); hideAllViews(); showTabbar(false); show($('viewPhase'),true); window.scrollTo(0,0)
 }
 function latestEvent(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); if(!es.length) return null
-  const mr=Math.max(...es.map(e=>e.round)); let last=null; es.forEach(e=>{ if(e.round===mr) last=e }); return last }   // รอบล่าสุด + event สุดท้ายในรอบนั้น (แก้ที่ติ๊กผิดทับได้ ไม่ค้างของเก่า)
+  const mr=Math.max(...es.map(e=>e.round)); let last=null
+  es.forEach(e=>{ if(e.round===mr && (!last || (e.created_at||'')>=(last.created_at||''))) last=e }); return last }   // รอบล่าสุด + event created_at ล่าสุดในรอบนั้น (ตรงกับการ์ด/แดชบอร์ด/รายงาน)
 function curStatus(id){ const e=latestEvent(id); return e?e.status:null }
 function curNote(id){ const e=latestEvent(id); return e?(e.note||''):'' }
 function maxRound(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); return es.length?Math.max(...es.map(e=>e.round)):0 }
