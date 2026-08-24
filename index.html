@@ -2248,6 +2248,13 @@ function drawUsers(){
 function statusTxt(s){ return s==='pass'?'ผ่าน':s==='fail'?'ไม่ผ่าน':s==='fixed'?'CM แก้แล้ว · รอตรวจซ้ำ':s==='na'?'ไม่มีงานนี้':'ยังไม่ตรวจ' }
 function statusColor(s){ return s==='pass'?'#137a43':s==='fail'?'#c0392b':s==='fixed'?'#b06a00':s==='na'?'#777':'#999' }
 let _reportReturn=null
+// รูปในรายงาน: กดดู (แท็บใหม่) + ปุ่ม ⬇ โหลดลงเครื่อง (บังคับดาวน์โหลดผ่าน &download ของ Supabase) · ลิงก์อยู่ได้ ~1 ปี
+const REP_IMG_CSS = '.iw{position:relative;display:inline-block;margin:2px 3px 0 0;vertical-align:top}.iw img{display:block}.iw .dl{position:absolute;right:4px;bottom:4px;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:rgba(0,0,0,.74);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;line-height:1}.iw.vid{display:inline-flex;gap:8px;align-items:center;margin-right:8px}.iw .dlt{font-size:11px;color:#2d5bb8;text-decoration:none;font-weight:700;white-space:nowrap}'
+function repImg(m){ const u=m&&m.url||''; if(!u) return ''
+  const fname=((m.path||'file').split('/').pop())||'file'
+  const dl=u+(u.includes('?')?'&':'?')+'download='+encodeURIComponent(fname)
+  if(m.kind==='video') return `<span class="iw vid"><a href="${u}" target="_blank" rel="noopener">🎥 วิดีโอ</a><a class="dlt" href="${dl}">⬇ โหลด</a></span>`
+  return `<span class="iw"><a href="${u}" target="_blank" rel="noopener"><img src="${u}"></a><a class="dl" href="${dl}" title="โหลดรูปลงเครื่อง">⬇</a></span>` }
 $('reportBack').onclick = ()=>{ if(_reportReturn) _reportReturn(); else goHome() }
 $('reportPrint').onclick = ()=>{ const f=$('reportFrame'); try{ f.contentWindow.focus(); f.contentWindow.print() }catch(e){ window.print() } }
 async function generateReport(code, phase){
@@ -2265,7 +2272,7 @@ async function generateReport(code, phase){
   if(ids.length){
     const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
     const {data:m}=await sb.from('media').select('checkpoint,path,round,by').in('inspection_id',ids); media=m||[]
-    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
+    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),60*60*24*365); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
   }
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const pickSig=(kind,scopeVal)=>{ const a=(sg||[]).filter(x=>x.kind===kind && (scopeVal==null||String(x.scope)===String(scopeVal))); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
@@ -2291,7 +2298,7 @@ async function generateReport(code, phase){
         <td>${esc(c.label)}${e&&e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td>
         <td class="st" style="color:${statusColor(e&&e.status)}">${statusTxt(e&&e.status)}${e&&e.round>1?`<br><small>รอบ ${e.round}</small>`:''}</td>
         <td class="mt">${e?esc(nameOf(e.by))+'<br><small>'+fmtDate(e.created_at)+'</small>':'—'}</td>
-        <td class="im">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'—'}</td>
+        <td class="im">${ims.map(repImg).join('')||'—'}</td>
       </tr>`
     })
     const appr=sg.find(x=>String(x.scope)===String(pn)&&x.kind==='approve'); const psc=scoreFor(pn)
@@ -2316,7 +2323,7 @@ async function generateReport(code, phase){
   phases.forEach(pn=>{ checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&e.status==='fail') failList.push({c,e,pn}) }) })
   const failHtml = failList.length ? `<div class="failbox"><div class="failh">⚠ สรุปจุดที่ไม่ผ่าน ${failList.length} รายการ — ต้องแก้ไข</div>`+failList.map(({c,e,pn})=>{
       const ims=(mediaByCp[String(c.id)]||[]); const pName=(checkpoints.find(x=>x.phase===pn)||{}).phase_name||('ครั้งที่ '+pn)
-      return `<div class="fitem"><div class="fhd"><span class="fno">${esc(c.no||'•')}</span> ${esc(c.label)} <span class="fph">${esc(pName)}</span></div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
+      return `<div class="fitem"><div class="fhd"><span class="fno">${esc(c.no||'•')}</span> ${esc(c.label)} <span class="fph">${esc(pName)}</span></div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(repImg).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
     }).join('')+`</div>` : ''
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>รายงานตรวจงาน ${esc(s.name||code)}</title><style>
@@ -2356,6 +2363,7 @@ async function generateReport(code, phase){
   .sign .sby{font-size:10px;color:#888;margin-top:4px;line-height:1.4}
   .noprint button{background:#F5C518;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
   @media print{.noprint{display:none}body{padding:0}}
+  ${REP_IMG_CSS}
   </style></head><body>
   <div class="cert">
     <div class="brand">CJ<b>X</b> INSPECT</div>
@@ -2392,7 +2400,7 @@ async function generateSetupReport(code){
   if(ids.length){
     const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
     const {data:m}=await sb.from('media').select('checkpoint,path,round,by').in('inspection_id',ids); media=m||[]
-    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
+    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),60*60*24*365); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
   }
   const { data:sg } = await sb.from('signoffs').select('kind,by,created_at,image').eq('store_code',code).eq('scope','setup')
   const pickSig=(kind)=>{ const a=(sg||[]).filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
@@ -2417,7 +2425,7 @@ async function generateSetupReport(code){
       rows+=`<tr><td>${esc(c.label)}${sup}${e&&e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td>
         <td class="st" style="color:${statusColor(e&&e.status)}">${statusTxt(e&&e.status)}${e&&e.round>1?`<br><small>รอบ ${e.round}</small>`:''}</td>
         <td class="mt">${e?esc(nameOf(e.by))+'<br><small>'+fmtDate(e.created_at)+'</small>':'—'}</td>
-        <td class="im">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'—'}</td></tr>`
+        <td class="im">${ims.map(repImg).join('')||'—'}</td></tr>`
     })
     body+=`<h2>${esc(name)} <span class="okpill">${ss.earned.toFixed(1)}/${weight}</span></h2>
       <table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
@@ -2435,7 +2443,7 @@ async function generateSetupReport(code){
   const suFailHtml = suFail.length ? `<div class="failbox"><div class="failh">⚠ สรุปจุดที่ไม่ผ่าน ${suFail.length} รายการ</div>`+suFail.map(({c,e,name})=>{
       const ims=(mediaByCp[String(c.id)]||[])
       const tag = e.status==='fixed'?'<span class="ftag fx">CM แก้แล้ว · รอตรวจซ้ำ</span>':'<span class="ftag">ไม่ผ่าน</span>'
-      return `<div class="fitem"><div class="fhd"><span class="fno">•</span> ${esc(c.label)} <span class="fph">${esc(name)}</span> ${tag}</div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(m=>`<a href="${m.url||''}" target="_blank" rel="noopener"><img src="${m.url||''}"></a>`).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
+      return `<div class="fitem"><div class="fhd"><span class="fno">•</span> ${esc(c.label)} <span class="fph">${esc(name)}</span> ${tag}</div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(repImg).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
     }).join('')+`</div>` : ''
   const nsaSig=pickSig('setup_nsa'), cmSig=pickSig('setup_cm')
   const sigCell=(sig,label)=>`<div>${sig&&sig.image?`<img src="${sig.image}">`:'<div class="sigsp"></div>'}<div class="slab">${label}</div>${sig?`<div class="sby">${esc(nameOf(sig.by))}<br>${fmtDate(sig.created_at)}</div>`:''}</div>`
@@ -2490,6 +2498,7 @@ async function generateSetupReport(code){
   .sign .sby{font-size:10px;color:#888;margin-top:4px;line-height:1.4}
   .noprint button{background:#37A06B;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
   @media print{.noprint{display:none}body{padding:0}}
+  ${REP_IMG_CSS}
   </style></head><body>
   <div class="cert">
     <div class="brand">CJ<b>X</b> INSPECT</div>
@@ -2525,7 +2534,7 @@ async function generateSetupPunch(code){
   if(ids.length){
     const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
     const {data:m}=await sb.from('media').select('checkpoint,path,kind,round,by').in('inspection_id',ids); media=m||[]
-    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
+    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),60*60*24*365); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
   }
   const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
@@ -2542,7 +2551,7 @@ async function generateSetupPunch(code){
       rows.push(`<div class="it"><div class="ith"><div class="itl">${c.group_title?`<span class="grp">${esc(c.group_title)}</span> `:''}${esc(c.label)} ${sup}</div>${tag}</div>
         ${e.note?`<div class="rsn">✕ เหตุที่ตีกลับ: ${esc(e.note)}</div>`:''}
         <div class="by">โดย ${esc(nameOf(e.by))} · ${fmtDate(e.created_at)}</div>
-        <div class="ims">${ims.map(m=>m.kind==='video'?`<a href="${m.url||''}" target="_blank">🎥 วิดีโอ</a>`:`<a href="${m.url||''}" target="_blank"><img src="${m.url||''}"></a>`).join('')||'<span class="noimg">— ไม่มีรูป —</span>'}</div></div>`)
+        <div class="ims">${ims.map(repImg).join('')||'<span class="noimg">— ไม่มีรูป —</span>'}</div></div>`)
     })
     if(rows.length) body+=`<h2>${esc(name)} <span class="cnt">${rows.length} จุด</span></h2>${rows.join('')}`
   })
@@ -2571,6 +2580,7 @@ async function generateSetupPunch(code){
     .how b{color:#1c3d7a}
     .noprint{margin-bottom:14px}.noprint button{background:#E67E22;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
     @media print{.noprint{display:none}body{padding:0}}
+  ${REP_IMG_CSS}
   </style></head><body>
     <div class="noprint"><button onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button></div>
     <div class="cert"><div class="brand">CJ<b>X</b> INSPECT</div>
