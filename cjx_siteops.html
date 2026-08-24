@@ -94,13 +94,17 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .plensh .pdot{width:6px;height:16px;border-radius:3px;background:var(--accent)}
 .plensh.u{color:var(--bad)}.plensh.u .pdot{background:var(--bad)}
 .kpis.k4{grid-template-columns:repeat(4,1fr)}
+.caltabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.cft{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
+.cft .cfl{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:14px;color:var(--ink)}
+.cft .cfn{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12px;color:var(--muted)}
+.cft.on{border-width:2px}
+.cft-all.on{border-color:var(--k)}.cft-neg.on{border-color:var(--yd);background:var(--gold-soft)}.cft-o1.on{border-color:var(--purple);background:var(--purple-soft)}.cft-reg.on{border-color:var(--boss);background:var(--boss-soft)}
+.cft.on .cfn{color:var(--ink)}
 .calbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
-.calf{display:flex;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:3px}
-.calf button{border:1px solid transparent;background:none;color:var(--muted);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12.5px;padding:7px 13px;border-radius:8px;cursor:pointer}
-.calf button.on{background:var(--surface);color:var(--ink);border-color:var(--border)}
-.calnav{display:flex;align-items:center;gap:10px;margin-left:auto}
-.calnav button{border:1px solid var(--border);background:var(--surface);border-radius:8px;width:32px;height:32px;font-size:15px;cursor:pointer;color:var(--ink)}
-.calnav .calm{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:15px;min-width:160px;text-align:center}
+.calm2{font-family:"IBM Plex Sans Thai";font-weight:800;font-size:17px}
+.calnav{display:flex;align-items:center;gap:8px;margin-left:auto}
+.calnav button{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:7px 13px;font-size:13px;font-family:"IBM Plex Sans Thai";font-weight:600;cursor:pointer;color:var(--ink)}
 .callegend{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:12px}
 .callegend i.cd{width:11px;height:11px;border-radius:50%;display:inline-block;margin-right:5px}
 .callegend .cmut{color:var(--faint)}
@@ -140,7 +144,7 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .ctk .cgo{align-self:center;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:11px;color:var(--accent);white-space:nowrap;flex-shrink:0}
 .ctk.r .ctg{background:var(--bad-soft);color:var(--bad)}.ctk.a .ctg{background:var(--warn-soft);color:var(--warn)}.ctk.g .ctg{background:var(--good-soft);color:var(--good)}
 .calempty{color:var(--faint);font-style:italic;font-size:12.5px;padding:14px 0}
-@media(max-width:860px){.callayout{grid-template-columns:1fr}.calside{position:static}.ccell{min-height:76px}}
+@media(max-width:860px){.callayout{grid-template-columns:1fr}.calside{position:static}.ccell{min-height:76px}.caltabs{grid-template-columns:repeat(2,1fr)}}
 .pfun{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 17px;margin-top:12px}
 .pfrow{display:flex;align-items:center;gap:12px;margin-bottom:7px}.pfrow:last-child{margin-bottom:0}
 .pfrow .pfk{width:200px;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12.5px;flex-shrink:0}
@@ -514,13 +518,14 @@ function calNav(dir){if(CAL_Y==null){CAL_Y=TODAY.getFullYear();CAL_M=TODAY.getMo
 function calPick(iso){CAL_SEL=iso;render();}
 function renderCal(){
  if(CAL_Y==null){CAL_Y=TODAY.getFullYear();CAL_M=TODAY.getMonth();}
- var evs=calEvents().filter(function(e){return CAL_F==="all"||e.trk===CAL_F;});
+ var allEv=calEvents();var cN={all:allEv.length,neg:0,o1:0,reg:0};allEv.forEach(function(e){cN[e.trk]++;});
+ var evs=allEv.filter(function(e){return CAL_F==="all"||e.trk===CAL_F;});
  var byday={};evs.forEach(function(e){e.st=calSt(e.due);(byday[e.due]=byday[e.due]||[]).push(e);});
  var todayIso=iso(TODAY);
  var sel=CAL_SEL||((CAL_Y===TODAY.getFullYear()&&CAL_M===TODAY.getMonth())?todayIso:null);
- var FT=[["all","ทั้งหมด"],["neg","🤝 สัญญา"],["o1","🎫 อ.1"],["reg","📋 ทะเบียน"]];
- var b='<div class="calbar"><div class="calf">'+FT.map(function(x){return '<button class="'+(CAL_F===x[0]?"on":"")+'" onclick="setCalF(\''+x[0]+'\')">'+x[1]+'</button>';}).join("")+'</div>';
- b+='<div class="calnav"><button onclick="calNav(-1)">‹</button><span class="calm">'+CAL_MON[CAL_M]+" "+(CAL_Y+543)+'</span><button onclick="calNav(1)">›</button></div></div>';
+ var FT=[["all","🗂️ ทั้งหมด"],["neg","🤝 สัญญา"],["o1","🎫 อ.1"],["reg","📋 ทะเบียน"]];
+ var b='<div class="caltabs">'+FT.map(function(x){return '<button class="cft cft-'+x[0]+(CAL_F===x[0]?" on":"")+'" onclick="setCalF(\''+x[0]+'\')"><span class="cfl">'+x[1]+'</span><span class="cfn">'+cN[x[0]]+' งาน</span></button>';}).join("")+'</div>';
+ b+='<div class="calbar"><div class="calm2">📅 '+CAL_MON[CAL_M]+" "+(CAL_Y+543)+'</div><div class="calnav"><button onclick="calNav(-1)">‹ ก่อนหน้า</button><button onclick="calNav(1)">ถัดไป ›</button></div></div>';
  b+='<div class="callegend"><span><i class="cd r"></i>ต้องทำด่วน (เลยกำหนด)</span><span><i class="cd a"></i>เริ่มทำได้ ≤7 วัน</span><span><i class="cd g"></i>วางแผนล่วงหน้า</span><span class="cmut">· คลิกวัน → เห็นงานต้องทำ → คลิกงาน → เข้าไปทำได้เลย</span></div>';
  b+='<div class="callayout"><div class="calcard"><div class="caldow">'+["อา","จ","อ","พ","พฤ","ศ","ส"].map(function(d){return "<span>"+d+"</span>";}).join("")+'</div><div class="calgrid">';
  var first=new Date(CAL_Y,CAL_M,1),sdow=first.getDay(),dim=new Date(CAL_Y,CAL_M+1,0).getDate();
