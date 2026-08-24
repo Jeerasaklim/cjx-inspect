@@ -181,26 +181,10 @@ a.link{color:var(--yellow);text-decoration:none}
 .punch .piph{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
 .punch .pith{width:52px;height:52px;border-radius:7px;object-fit:cover;border:1px solid #4a2a2a;cursor:pointer}
 .punch .pithv{width:78px;height:52px;border-radius:7px;object-fit:cover;border:1px solid #4a2a2a;background:#000}
-/* งานที่ต้องแก้ (worklist) — หน้า Landing */
-.fwrap{margin:16px 0 6px}
-.fwh{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:var(--fail);letter-spacing:.01em;margin-bottom:2px}
-.fwh .cnt{margin-left:auto;background:var(--fail);color:#2a0000;font-size:11px;font-weight:800;border-radius:99px;padding:2px 9px}
-.fwsub{font-size:10.5px;color:var(--faint);margin:0 0 10px}
-.fwcat{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.03em;margin:12px 2px 7px}
-.fwcat.con{color:var(--build)} .fwcat.setup{color:var(--setup,#4FD1B5)}
-.fwcat .cc{margin-left:auto;font-weight:700;color:var(--faint)}
-.fwstore{font-size:11px;font-weight:700;color:#cfcfc7;margin:9px 2px 5px;display:flex;align-items:center;gap:6px}
-.fwstore .dot{width:6px;height:6px;border-radius:50%;background:var(--fail);flex:0 0 auto}
-.fwi{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--fail);border-radius:10px;padding:9px 11px;margin-bottom:6px;cursor:pointer}
-.fwi:active{background:#222226}
-.fwi.con{border-left-color:var(--build)} .fwi.setup{border-left-color:var(--setup,#4FD1B5)}
-.fwi .fno{font-family:ui-monospace,monospace;font-weight:800;font-size:11px;color:var(--faint);flex:0 0 auto;min-width:24px;text-align:center}
-.fwi .ftx{flex:1;min-width:0}
-.fwi .fcp{font-size:12.5px;font-weight:600;color:#fff;line-height:1.35}
-.fwi .fph{font-size:10px;color:var(--faint);margin-top:2px}
-.fwi .fchev{color:var(--faint);font-size:16px;flex:0 0 auto}
+/* งานที่ต้องแก้ — แท็บ/รายการสาขาในหน้างานของฉัน */
+.fixbadge{background:var(--fail);color:#2a0000;font-size:11px;font-weight:800;border-radius:99px;padding:2px 9px;white-space:nowrap;flex:0 0 auto}
+.tabs b.tabfix{color:var(--fail)} .tabs b.tabfix.on{color:var(--yInk)}
 .fwok{background:#12210f;border:1px solid #2a4a1a;border-radius:12px;padding:18px 14px;text-align:center;color:var(--pass);font-weight:700;font-size:13px}
-.fwwait{font-size:10.5px;color:var(--build);margin:8px 2px 2px}
 .rnd{display:inline-block;font-size:10px;font-weight:800;color:var(--build);background:#2a1f0c;border-radius:99px;padding:2px 7px;margin-left:7px;vertical-align:middle}
 .appv{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--pass);background:#12271B;border:1px solid #23503a;border-radius:99px;padding:5px 11px;margin-bottom:12px}
 .lockbar{font-size:12px;font-weight:800;color:var(--yellow);background:#241d05;border:1px solid #4a3d0c;border-radius:11px;padding:10px 13px;margin-bottom:12px}
@@ -1158,7 +1142,6 @@ async function renderLanding(){
   $('landBody').innerHTML = `
    <div class="lgreet"><div class="hi">${greetWord()}<b>${esc(nm)}</b></div><div class="av" id="lav">${esc((nm||'?').trim().charAt(0).toUpperCase())}</div></div>
    <div class="lsum"><div class="slb">${isHead()?'ภาพรวมงาน':'งานของฉัน'}</div><div class="s3" id="lsum3"><div style="flex:1;color:var(--faint);font-size:11px;text-align:center;padding:8px">กำลังโหลด…</div></div></div>
-   <div id="lfix"></div>
    <div class="lcta" id="lcta"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> เลือกสาขาเริ่มตรวจ</div>
    <div class="lgrid">
      <div class="lfi" data-go="inspect"><div class="ic">${_ic.check}</div><span>งานของฉัน</span></div>
@@ -1171,7 +1154,6 @@ async function renderLanding(){
   $('lcta').onclick=()=>switchTab('inspect')
   $('landBody').querySelectorAll('.lfi').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; g==='admin'?openAdmin():switchTab(g) })
   await loadDashData()
-  loadFixWork().then(renderFixWork)
   const prog=_dashRows.filter(r=>dstt(r)==='progress').length
   $('lsum3').innerHTML = `
     <div class="b" data-f="progress"><div class="v" style="color:var(--build)">${prog}</div><div class="k">กำลังตรวจ</div></div>
@@ -1186,74 +1168,71 @@ async function renderLanding(){
     <span class="mono" style="font-weight:800;font-size:12px;color:${DCOL[st]}">${r.pct}%</span></div>`}).join('') : '<div style="font-size:12px;color:var(--faint);padding:6px 2px">ยังไม่มีงานล่าสุด — แตะ “เลือกสาขาเริ่มตรวจ”</div>'
   $('lrecent').querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
 }
-// ---- งานที่ต้องแก้ (worklist ข้ามสาขา) : ผรม.ทำไม่ผ่าน (ก่อสร้าง) + Set-Up ตรวจไม่ผ่าน ----
-let _fixWork={con:[],setup:[],waitSetup:0,waitCon:0,nameByCode:{}}
+// ---- งานที่ต้องแก้ : เฉพาะ "สาขาที่ตัวเองตรวจแล้วไม่ผ่าน" (ก่อสร้าง + Set-Up) → สรุปเป็นรายสาขา ----
+let _fixWork={byStore:null,loaded:false}
 async function loadFixWork(){
   await loadChecklist()
   const cpById={}; checkpoints.forEach(c=>cpById[String(c.id)]=c)
   const { data:insps } = await sb.from('inspections').select('id,store_code')
   const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
   const { data:evAll } = await sb.from('check_events').select('inspection_id,checkpoint,round,status,created_at')
-  const head=isHead()
   const nameByCode={}; stores.forEach(s=>nameByCode[s.code]=s.name||s.code)
-  const cur={}   // (สาขา||ข้อ) -> รอบล่าสุด + event ท้ายสุดในรอบนั้น
+  const cur={}   // (สาขา||ข้อ) -> รอบล่าสุด + event ท้ายสุดในรอบนั้น  · เฉพาะสาขาของฉัน
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
     const c=cpById[e.checkpoint]; if(!c) return
-    const code=ins.store_code; if(!head && !myStores.has(code)) return
+    const code=ins.store_code; if(!myStores.has(code)) return   // ← เฉพาะสาขาที่ตัวเองตรวจ
     const key=code+'||'+e.checkpoint, p=cur[key]
     if(!p || e.round>p.round || (e.round===p.round && (e.created_at||'')>=(p.at||'')))
       cur[key]={round:e.round,at:e.created_at||'',status:e.status,cp:c,code} })
-  const con=[], setup=[]; let waitSetup=0, waitCon=0
-  Object.values(cur).forEach(v=>{ const su=v.cp.phase>=201&&v.cp.phase<=208
-    if(v.status==='fail') (su?setup:con).push(v)
-    else if(v.status==='fixed'){ if(su) waitSetup++; else waitCon++ } })
-  const srt=(a,b)=> (''+a.code).localeCompare(''+b.code) || (a.cp.phase-b.cp.phase) || ((a.cp.sort||0)-(b.cp.sort||0))
-  con.sort(srt); setup.sort(srt)
-  _fixWork={con,setup,waitSetup,waitCon,nameByCode}
+  const byStore={}
+  Object.values(cur).forEach(v=>{ if(v.status!=='fail') return   // นับเฉพาะข้อที่ยัง "ไม่ผ่าน"
+    const su=v.cp.phase>=201&&v.cp.phase<=208
+    const b=byStore[v.code]||(byStore[v.code]={code:v.code,name:nameByCode[v.code]||v.code,con:0,setup:0})
+    su?b.setup++:b.con++ })
+  Object.values(byStore).forEach(b=>b.total=b.con+b.setup)
+  _fixWork={byStore,loaded:true}
 }
-function fwPhaseLabel(cp){ return cp.phase_name || (cp.phase>200?('ตรวจรับ Set-Up '+(cp.phase-200)):cp.phase>100?('Pre-Con '+(cp.phase-100)):('ก่อสร้างครั้งที่ '+cp.phase)) }
-function renderFixWork(){
-  const el=$('lfix'); if(!el) return
-  const {con,setup,waitSetup,nameByCode}=_fixWork
-  const total=con.length+setup.length
-  if(!total){ el.innerHTML=`<div class="fwrap"><div class="fwok">✓ ไม่มีงานค้างต้องแก้${waitSetup?` · <span style="color:var(--build)">รอ Set-Up ตรวจซ้ำ ${waitSetup} จุด</span>`:''} 🎉</div></div>`; return }
-  const cat=(items,kind,icon,label)=>{ if(!items.length) return ''
-    const by={}; items.forEach(v=>{(by[v.code]||(by[v.code]=[])).push(v)})
-    let h=`<div class="fwcat ${kind}">${icon} ${label}<span class="cc">${items.length} จุด</span></div>`
-    Object.keys(by).forEach(code=>{
-      h+=`<div class="fwstore"><span class="dot"></span>${esc(nameByCode[code]||code)}</div>`
-      h+=by[code].map(v=>`<div class="fwi ${kind}" data-code="${esc(v.code)}" data-phase="${v.cp.phase}">
-        <div class="fno">${esc(v.cp.no||'•')}</div>
-        <div class="ftx"><div class="fcp">${esc(v.cp.label||'')}</div><div class="fph">${esc(fwPhaseLabel(v.cp))}</div></div>
-        <div class="fchev">›</div></div>`).join('')
-    })
-    return h }
-  el.innerHTML=`<div class="fwrap">
-    <div class="fwh">🔧 งานที่ต้องแก้<span class="cnt">${total} จุด</span></div>
-    <div class="fwsub">แตะที่รายการเพื่อเข้าไปแก้ / ตรวจซ้ำได้เลย</div>
-    ${cat(con,'con','🏗️','ผรม.ทำไม่ผ่าน (งานก่อสร้าง)')}
-    ${cat(setup,'setup','📋','Set-Up ตรวจไม่ผ่าน (ต้องเข้าไปแก้)')}
-    ${waitSetup?`<div class="fwwait">🔧 แก้แล้ว รอ Set-Up ตรวจซ้ำอีก ${waitSetup} จุด</div>`:''}
-  </div>`
-  el.querySelectorAll('.fwi').forEach(b=> b.onclick=()=>openPhase(b.dataset.code, +b.dataset.phase))
+function fixStoreList(q){
+  const bs=_fixWork.byStore||{}
+  let list=Object.values(bs).filter(b=>b.total>0)
+  if(q) list=list.filter(b=>{ const s=stores.find(x=>x.code===b.code)||{}; return [b.name,b.code,s.province].some(v=>(v||'').toLowerCase().includes(q)) })
+  return list.sort((a,b)=>(b.total-a.total)||(b.setup-a.setup)||(''+a.code).localeCompare(''+b.code))
 }
-function homeCount(f){ if(f==='mine') return myStores.size; if(f==='all') return stores.length; return stores.filter(s=>s.cs.key===f).length }
+function renderPoolFix(q){
+  const el=$('poolList')
+  if(!_fixWork.loaded){ el.innerHTML='<div class="spin">กำลังโหลดงานที่ต้องแก้…</div>'; return }
+  const list=fixStoreList(q)
+  if(!list.length){ el.innerHTML='<div class="fwok" style="margin-top:8px">✓ ไม่มีสาขาที่ต้องแก้ในงานของคุณ 🎉</div>'; return }
+  el.innerHTML=list.map(b=>{ const s=stores.find(x=>x.code===b.code)||{}
+    const parts=[]; if(b.con)parts.push('🏗️ ก่อสร้าง '+b.con+' จุด'); if(b.setup)parts.push('📋 Set-Up '+b.setup+' จุด')
+    return `<div class="sc" data-code="${esc(b.code)}">
+      <div class="tp"><div><div class="nm">${esc(b.name)}</div>
+        <div class="mt"><span class="code">${esc(b.code)}</span>${s.province?' · '+esc(s.province):''}</div></div>
+        <span class="fixbadge">${b.total} จุด</span></div>
+      <div class="foot" style="color:var(--fail)">${parts.join('  ·  ')} — ต้องแก้</div></div>`
+  }).join('')
+  el.querySelectorAll('.sc').forEach(c=> c.onclick=()=>openSite(c.dataset.code))
+}
+function homeCount(f){ if(f==='mine') return myStores.size; if(f==='all') return stores.length
+  if(f==='tofix') return _fixWork.byStore?Object.values(_fixWork.byStore).filter(b=>b.total>0).length:0
+  return stores.filter(s=>s.cs.key===f).length }
 function updateHomeStat(){
-  const lbl={mine:'งานของฉัน · สาขาที่คุณตรวจ',building:'สาขากำลังก่อสร้าง · ต้องเข้าตรวจ',notyet:'สาขายังไม่ก่อสร้าง',opened:'สาขาเปิดแล้ว',all:'สาขาทั้งหมด'}[filter]||''
+  const lbl={mine:'งานของฉัน · สาขาที่คุณตรวจ',tofix:'สาขาที่คุณตรวจแล้วยังมีจุดไม่ผ่าน · ต้องแก้',building:'สาขากำลังก่อสร้าง · ต้องเข้าตรวจ',notyet:'สาขายังไม่ก่อสร้าง',opened:'สาขาเปิดแล้ว',all:'สาขาทั้งหมด'}[filter]||''
   $('statBuild').textContent=homeCount(filter); $('statLabel').textContent=lbl
 }
 function renderHome(){
   const head=isHead()
-  show($('tabs'), head)
+  show($('tabs'), true)
   if(head){
     $('cmBar').innerHTML=''
-    if(!['mine','building','notyet','opened','all'].includes(filter)) filter='building'
+    if(!['mine','tofix','building','notyet','opened','all'].includes(filter)) filter='building'
   } else {
-    filter='mine'
+    if(!['mine','tofix'].includes(filter)) filter='mine'
     $('cmBar').innerHTML='<button class="btn pri" id="btnPick" style="margin-bottom:14px">＋ เลือกสาขาเพื่อเริ่มตรวจ</button>'
     $('btnPick').onclick=openPick
   }
   updateHomeStat(); renderTabs(); renderPool()
+  loadFixWork().then(()=>{ renderTabs(); if(filter==='tofix') renderPool() })   // อัปเดตจำนวน + รายการงานที่ต้องแก้
 }
 let pickQuery=''
 function openPick(){
@@ -1332,12 +1311,17 @@ async function loadStores(){
   renderTabs(); renderPool()
 }
 function renderTabs(){
-  const defs=[['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`],['building','กำลังก่อสร้าง'],['notyet','ยังไม่ก่อสร้าง'],['opened','เปิดแล้ว'],['all','ทั้งหมด']]
-  $('tabs').innerHTML = defs.map(([k,l])=>`<b class="${filter===k?'on':''}" data-k="${k}">${l}</b>`).join('')
+  const nfix=_fixWork.byStore?Object.values(_fixWork.byStore).filter(b=>b.total>0).length:0
+  const tofix=['tofix',`🔧 ต้องแก้${nfix?' ('+nfix+')':''}`]
+  const defs = isHead()
+    ? [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], tofix, ['building','กำลังก่อสร้าง'],['notyet','ยังไม่ก่อสร้าง'],['opened','เปิดแล้ว'],['all','ทั้งหมด']]
+    : [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], tofix]
+  $('tabs').innerHTML = defs.map(([k,l])=>`<b class="${filter===k?'on':''}${k==='tofix'&&nfix?' tabfix':''}" data-k="${k}">${l}</b>`).join('')
   $('tabs').querySelectorAll('b').forEach(b=> b.onclick=()=>{ filter=b.dataset.k; updateHomeStat(); renderTabs(); renderPool() })
 }
 function renderPool(){
   const q=query.trim().toLowerCase()
+  if(filter==='tofix') return renderPoolFix(q)
   let list=stores.filter(s=>{
     if(q && ![s.name,s.code,s.province].some(v=>(v||'').toLowerCase().includes(q))) return false
     if(filter==='mine') return myStores.has(s.code)
