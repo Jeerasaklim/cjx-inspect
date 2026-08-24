@@ -1490,7 +1490,7 @@ async function openSite(code){
     openSigPad(kind==='setup_nsa'?'ลายเซ็นผู้ตรวจรับ (Set-Up/NSA)':'ลายเซ็นทีมก่อสร้าง (CM)', img=>saveSetupSig(code,kind,img)) })
   const bsr=$('btnSetupReport'); if(bsr) bsr.onclick=()=>generateSetupReport(code)
   const bsp=$('btnSetupPunch'); if(bsp) bsp.onclick=()=>generateSetupPunch(code)
-  hideAllViews(); showTabbar(false); show($('viewSite'),true); window.scrollTo(0,0)
+  hideAllViews(); showTabbar(true); markTab('inspect'); show($('viewSite'),true); window.scrollTo(0,0)   // ค้าง Tab Bar ไว้ กดออกได้เลยไม่ต้อง scroll หาปุ่มกลับ
 }
 function ctrOptions(cur){
   let list=contractors.slice(); if(cur && !list.includes(cur)) list.unshift(cur)
@@ -1589,7 +1589,7 @@ async function openPhase(code, phase){
       media.forEach((x,i)=>{ x.url=(fu&&fu[i]&&fu[i].signedUrl)||''; x.turl=(tu&&tu[i]&&tu[i].signedUrl)||x.url }) } }
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code).eq('scope',String(phase))
   pctx={ code, phase, inspId, cps, events, media, signoffs:sg||[], storeName:s?(s.name||code):code }
-  renderPhase(); hideAllViews(); showTabbar(false); show($('viewPhase'),true); window.scrollTo(0,0)
+  renderPhase(); hideAllViews(); showTabbar(true); markTab('inspect'); show($('viewPhase'),true); window.scrollTo(0,0)   // ค้าง Tab Bar ไว้
 }
 function latestEvent(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); if(!es.length) return null
   const mr=Math.max(...es.map(e=>e.round)); let last=null
