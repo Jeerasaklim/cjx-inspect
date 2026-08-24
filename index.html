@@ -62,6 +62,7 @@ a.link{color:var(--yellow);text-decoration:none}
 .search input{border:0;background:transparent;padding:0;color:var(--ink);font-size:14px;flex:1}
 .search input:focus{outline:0}
 .tabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+@media (min-width:900px){ .tabs{flex-wrap:wrap;overflow-x:visible} }  /* บนคอม (เมาส์) แสดงแท็บครบทุกอัน ไม่ต้องปัด */
 .tabs::-webkit-scrollbar{display:none}
 .tabs b{font-size:12.5px;font-weight:700;color:var(--ink);background:#1e1f23;border:1px solid var(--line);padding:9px 15px;border-radius:999px;white-space:nowrap;cursor:pointer;flex:0 0 auto}
 .tabs b:active{transform:translateY(1px)}
@@ -2520,6 +2521,15 @@ async function generateSetupPunch(code){
   frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
 }
 
+// เมาส์: ลูกกลิ้งแนวตั้ง = เลื่อนแถบแท็บแนวนอน (เผื่อจอคอมแคบที่ยังปัดไม่ได้)
+document.addEventListener('wheel', e=>{ const s=e.target.closest&&e.target.closest('.tabs')
+  if(s && s.scrollWidth>s.clientWidth+2 && !e.shiftKey){ s.scrollLeft+=e.deltaY; e.preventDefault() } }, {passive:false})
+// เมาส์: ลาก (คลิกค้างแล้วลาก) เพื่อเลื่อนแถบแท็บ — เลียนแบบการปัดนิ้วบนคอม
+;(function(){ let el=null,sx=0,sl=0,drag=false
+  document.addEventListener('mousedown', e=>{ const s=e.target.closest&&e.target.closest('.tabs'); if(!s||s.scrollWidth<=s.clientWidth+2) return; el=s; sx=e.pageX; sl=s.scrollLeft; drag=false })
+  document.addEventListener('mousemove', e=>{ if(!el) return; const dx=e.pageX-sx; if(Math.abs(dx)>4){drag=true; el.scrollLeft=sl-dx; el.style.cursor='grabbing'} })
+  document.addEventListener('mouseup', e=>{ if(el&&drag){ e.preventDefault(); const b=e.target.closest&&e.target.closest('.tabs b'); if(b){ const stop=ev=>{ev.stopPropagation(); b.removeEventListener('click',stop,true)}; b.addEventListener('click',stop,true) } } if(el)el.style.cursor=''; el=null })
+})();
 // ปุ่มสลับมุมมองมือถือ (เฉพาะเดสก์ท็อป — CSS ซ่อนบนมือถืออยู่แล้ว) · จำค่าไว้
 ;(function(){ const b=$('viewToggle'); if(!b) return
   const apply=on=>{ document.body.classList.toggle('pv',on); b.textContent = on?'🖥  มุมมองเต็มจอ':'📱  มุมมองมือถือ' }
