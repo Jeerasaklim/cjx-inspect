@@ -12,6 +12,9 @@
 <meta name="apple-mobile-web-app-title" content="CJX Inspect">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
 <style>
 :root{--bg:#0E0E0F;--card:#191A1D;--line:#2A2A2E;--ink:#F5F5F2;--muted:#9A9A93;--faint:#67675F;
   --yellow:#F5C518;--yInk:#1A1500;--pass:#37D98B;--fail:#FF5C5C;--build:#FF9F1C;}

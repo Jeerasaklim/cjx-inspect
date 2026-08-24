@@ -1,7 +1,7 @@
 {
   "name": "CJX Inspect",
   "short_name": "CJX Inspect",
-  "description": "ระบบตรวจงานก่อสร้างสาขา CJ MORE",
+  "description": "ระบบตรวจงานก่อสร้างสาขา CJ Mart",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
