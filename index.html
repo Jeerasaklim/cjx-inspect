@@ -2061,7 +2061,8 @@ async function loadSetupDash(){
     ;(byStore[ins.store_code]||(byStore[ins.store_code]=[])).push(e)
     if(!lastByStore[ins.store_code]||(e.created_at&&e.created_at>lastByStore[ins.store_code].at)) lastByStore[ins.store_code]={at:e.created_at,by:e.by} })
   const sgAll = await fetchAllRows('signoffs','store_code,kind,scope','created_at')
-  const signed=new Set((sgAll||[]).filter(x=>x.scope==='setup'&&x.kind==='setup_nsa').map(x=>x.store_code))
+  const sgBy={}; (sgAll||[]).filter(x=>x.scope==='setup').forEach(x=>{ (sgBy[x.store_code]||(sgBy[x.store_code]={}))[x.kind]=true })
+  const signed=new Set(Object.keys(sgBy).filter(c=>sgBy[c].setup_nsa&&sgBy[c].setup_cm))   // ต้องเซ็นครบ 2 ฝ่าย (Set-Up + CM) ถึงจะนับว่า "เซ็นแล้ว"
   const head=isHead()
   const scoped = stores.filter(s=> head ? (byStore[s.code]||s.cs.key==='building') : myStores.has(s.code))   // กำลังก่อสร้าง หรือมีการตรวจรับแล้วเท่านั้น (ไม่เอาสาขาที่เปิดไปแล้ว)
   _suRows = scoped.map(s=>{ const ev=byStore[s.code]||[]; const sc=computeSetupScore(ev)
