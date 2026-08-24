@@ -1730,7 +1730,7 @@ function renderPhase(){
 }
 async function saveTick(cpId, status){
   if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว (เซ็นครบ 2 ฝ่าย) — แก้ไข/ตรวจซ้ำไม่ได้'); return }
-  const _cp=pctx.cps.find(c=>c.id===cpId)
+  const _cp=pctx.cps.find(c=>String(c.id)===String(cpId))
   const mustEvid = (status==='fail') || cpEvid(_cp)   // "ไม่ผ่าน" = ต้องแนบรูปจุดที่มีปัญหาเสมอ (แม้ข้อนั้นไม่บังคับตอนผ่าน)
   if((status==='pass'||status==='fail') && mustEvid && !mediaOf(cpId).length){
     alert(status==='fail'
@@ -1795,7 +1795,7 @@ async function makeThumb(srcBlob){ const img=await loadImage(srcBlob); let w=img
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h)
   return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('t')),'image/jpeg',0.55)) }
 function capturePhoto(cpId){ if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว — เพิ่มรูปไม่ได้'); return }
-  const cp=pctx&&pctx.cps.find(c=>c.id===cpId), vid=cpVideo(cp)
+  const cp=pctx&&pctx.cps.find(c=>String(c.id)===String(cpId)), vid=cpVideo(cp)
   const inp=document.createElement('input'); inp.type='file'; inp.accept=vid?'video/*':'image/*'; inp.multiple=!vid
   inp.onchange=()=>{ const fs=[...(inp.files||[])]; if(fs.length) handlePhotos(cpId, fs) }; inp.click() }
 // ===== Offline photo queue (IndexedDB) — ถ่าย offline ได้ อัปอัตโนมัติเมื่อเน็ตกลับ =====
@@ -1816,7 +1816,7 @@ async function queueCount(){ const st=await qStore('readonly'); return new Promi
 async function handlePhotos(cpId, files){
   const P=pctx
   const loc=null, gps=null   // ตัด GPS/สถานที่ออก → เร็วขึ้น (watermark เหลือแค่ วันเวลา + เลขข้อ)
-  const cp=P.cps.find(c=>c.id===cpId), round=maxRound(cpId)||1, cpVid=cpVideo(cp)
+  const cp=P.cps.find(c=>String(c.id)===String(cpId)), round=maxRound(cpId)||1, cpVid=cpVideo(cp)
   myStores.add(P.code)
   toast(`กำลังเตรียม ${files.length} ไฟล์…`)
   for(let idx=0; idx<files.length; idx++){
