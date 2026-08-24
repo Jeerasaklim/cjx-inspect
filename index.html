@@ -249,6 +249,17 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
 .suNum{font-family:ui-monospace,monospace;font-size:22px;font-weight:800}.suNum span{font-size:13px;color:var(--muted);font-weight:600}
 .suSub{font-size:11.5px;color:var(--muted);margin-top:2px}
 .suSup{font-size:11px;color:var(--faint);margin-top:3px}
+/* ประวัติการตรวจแต่ละรอบของ Set-Up */
+.suRounds{margin:0 0 14px}
+.srh{font-size:12px;font-weight:700;color:var(--muted);margin:0 2px 8px}.srh b{color:var(--setup,#4FD1B5);font-size:14px}.srh span{color:var(--faint);font-weight:600}
+.srchips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}.srchips::-webkit-scrollbar{display:none}
+.srchip{flex:0 0 auto;min-width:82px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 12px;text-align:center}
+.srchip.cur{border-color:#2e6b52;background:#12271b}
+.srchip b{display:block;font-size:10.5px;font-weight:700;color:var(--faint)}
+.srchip .srg{display:block;font-size:24px;font-weight:800;line-height:1.1;margin:2px 0;color:#37D98B}
+.srchip .srg.g-B{color:#8FD14F} .srchip .srg.g-C{color:#F5C518} .srchip .srg.g-D{color:#FF6B6B}
+.srchip small{font-size:9.5px;color:var(--muted)}
+.srchip.cur b{color:var(--setup,#4FD1B5)}
 .supchip{font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;margin-left:7px;vertical-align:middle;white-space:nowrap}
 .supchip.main{color:#8FB4FF;background:#16283f}.supchip.sub{color:#F5A524;background:#2a1e06}
 .sugrd{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex:0 0 auto;font-family:ui-monospace,monospace}
@@ -1421,6 +1432,10 @@ async function openSite(code){
         <div class="suMeta"><div class="suNum">${sc.total.toFixed(0)}<span>/100</span></div>
           <div class="suSub">ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?` · <b style="color:var(--fail)">${sc.failItems} ไม่ผ่าน</b>`:''}${sc.fixedItems?` · <b style="color:var(--build)">${sc.fixedItems} รอตรวจซ้ำ</b>`:''}</div>
           <div class="suSup">ซัพหลัก ${sc.main.pct.toFixed(0)}% · ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div></div>`
+      if(sc.doneItems){ const suN=setupMaxRound(events)
+        const chips=[]; for(let rr=1; rr<=suN; rr++){ const rsc=computeSetupScore(events,rr)
+          chips.push(`<div class="srchip${rr===suN?' cur':''}"><b>รอบ ${rr}${rr===suN?' (ล่าสุด)':''}</b><span class="srg g-${rsc.grade}">${rsc.doneItems?rsc.grade:'—'}</span><small>${rsc.total.toFixed(0)}/100${rsc.failItems?` · ${rsc.failItems} ไม่ผ่าน`:''}</small></div>`) }
+        html += `<div class="suRounds"><div class="srh">🔁 Set-Up ตรวจ <b>${suN}</b> รอบ${suN>1?` · แก้ไป ${suN-1} รอบ`:''} <span>· เกรดใหญ่ด้านบน = รอบล่าสุด</span></div><div class="srchips">${chips.join('')}</div></div>` }
       html += SETUP_SECTIONS.map(([n,name,w])=>{ const st=phaseStatus(n, inspByPhase[n], events)
         const sec=sc.sections.find(x=>x.phase===n)||{earned:0}
         return `<div class="step" data-phase="${n}"><div class="n suN">${n-200}</div>
@@ -1443,9 +1458,13 @@ async function openSite(code){
             ${slot('setup_cm',suCmS,'ทีมก่อสร้าง (CM)',isConSide,suCmS?nameOf(suCmS.by):cmName,isConSide?'':'รอ CM เข้าบัญชีมาเซ็น')}
           </div></div>`
         if(isSetupSide){
-          if(bothSigned) html += `<div class="actbtn" style="margin-top:12px"><button class="btn pri" id="btnSetupReport">🧾 ออกใบตรวจรับร้าน (Set-Up)</button></div>
-            <div class="hint">${sc.allDone&&!sc.failItems&&!sc.fixedItems?'<b style="color:var(--pass)">เซ็นครบ 2 ฝ่าย + ครบ 100% พร้อมออกใบ ✓</b>':'เซ็นครบ 2 ฝ่ายแล้ว · ควรตรวจให้ครบ 100% ก่อนออกใบจริง'}</div>`
-          else html += `<div class="hint">⏳ <b>ยังออกใบไม่ได้</b> — ต้องเซ็นครบ 2 ฝ่าย: ${nsaS?'✓ Set-Up':'▢ Set-Up'} · ${suCmS?'✓ CM':'▢ CM (ให้ CM เข้าบัญชีตัวเองมาเซ็น)'}</div>`
+          const allPass = sc.allDone && !sc.failItems && !sc.fixedItems
+          if(bothSigned && allPass) html += `<div class="actbtn" style="margin-top:12px"><button class="btn pri" id="btnSetupReport">🧾 ออกใบตรวจรับร้าน (Set-Up)</button></div>
+            <div class="hint"><b style="color:var(--pass)">พร้อมออกใบ ✓ — ผ่านครบ 100% + เซ็นครบ 2 ฝ่าย</b></div>`
+          else { const bk=[]
+            if(!allPass){ const remain=sc.totalItems-sc.doneItems; bk.push(`ต้องผ่านครบทุกข้อก่อน${sc.failItems?` (มี ${sc.failItems} ไม่ผ่าน)`:''}${sc.fixedItems?` · ${sc.fixedItems} รอตรวจซ้ำ`:''}${remain>0?` · ${remain} ยังไม่ตรวจ`:''}`) }
+            if(!bothSigned) bk.push(`ต้องเซ็นครบ 2 ฝ่าย (${nsaS?'✓':'▢'} Set-Up · ${suCmS?'✓':'▢'} CM)`)
+            html += `<div class="hint">⏳ <b>ยังออกใบตรวจรับไม่ได้</b><br>• ${bk.join('<br>• ')}</div>` }
         } else if(isConSide){
           html += `<div class="hint">แตะช่อง <b>ทีมก่อสร้าง (CM)</b> เพื่อเซ็นด้วยบัญชีของคุณ${suCmS?' — <b style="color:var(--pass)">เซ็นแล้ว ✓</b>':''}${sc.failItems?` · ยังมี <b style="color:var(--fail)">${sc.failItems} ข้อไม่ผ่าน</b> แก้ก่อน`:''} · ครบ 2 ฝ่ายแล้ว Set-Up จะออกใบตรวจรับ</div>`
         }
@@ -1500,8 +1519,9 @@ function phaseStatus(phase, insp, events){
 }
 // ---- Set-Up scoring (ถ่วงน้ำหนัก 8 หมวด = 100 → เกรด + แยกซัพหลัก/ย่อย) ----
 function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
-function computeSetupScore(events){
-  const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
+function setupMaxRound(events){ return (events&&events.length)?Math.max(1,...events.map(e=>+e.round||1)):1 }
+function computeSetupScore(events, uptoRound){
+  const cur={}; events.forEach(e=>{ if(uptoRound!=null && e.round>uptoRound) return; const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   let total=0, gotMain=0,maxMain=0,gotSub=0,maxSub=0, doneItems=0,failItems=0,fixedItems=0,totalItems=0
   const sections=SETUP_SECTIONS.map(([ph,name,weight])=>{
     const items=checkpoints.filter(c=>c.phase===ph)
@@ -2400,6 +2420,12 @@ async function generateSetupReport(code){
       <table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
   })
   const passAll = sc.allDone && sc.failItems===0 && sc.fixedItems===0
+  if(!passAll){ alert('ยังออกใบตรวจรับไม่ได้ — ต้องผ่านครบทุกข้อก่อน'+(sc.failItems?` (มี ${sc.failItems} ไม่ผ่าน)`:'')+(sc.fixedItems?` · ${sc.fixedItems} รอตรวจซ้ำ`:'')+((sc.totalItems-sc.doneItems)>0?` · ${sc.totalItems-sc.doneItems} ยังไม่ตรวจ`:'')); openSite(code); return }
+  // ประวัติการตรวจแต่ละรอบ (เกรด/คะแนน ณ สิ้นแต่ละรอบ)
+  const suN=setupMaxRound(events)
+  let roundHist=''
+  if(suN>1){ const rr=[]; for(let i=1;i<=suN;i++){ const rsc=computeSetupScore(events,i); rr.push(`<li>รอบ ${i}${i===suN?' (สุดท้าย)':''}: เกรด <b>${rsc.doneItems?rsc.grade:'—'}</b> · ${rsc.total.toFixed(0)}/100${rsc.failItems?` · <span style="color:#c0392b">${rsc.failItems} ไม่ผ่าน</span>`:' · ผ่านครบ'}</li>`) }
+    roundHist=`<div class="rhist"><b>🔁 Set-Up ตรวจทั้งหมด ${suN} รอบ (แก้ไป ${suN-1} รอบ)</b><ul>${rr.join('')}</ul></div>` }
   // ---- สรุปจุดที่ไม่ผ่าน (รวม "รอตรวจซ้ำ") + รูป ----
   const suFail=[]
   SETUP_SECTIONS.forEach(([pn,name])=>{ checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')) suFail.push({c,e,name}) }) })
@@ -2430,6 +2456,7 @@ async function generateSetupReport(code){
   .split .m{background:#eef4ff;border:1px solid #cdddff;color:#2d5bb8}.split .y{background:#fff6e8;border:1px solid #f0dcae;color:#a5701a}
   .issued{color:#777;font-size:12px;margin-top:12px}
   .stmt{margin-top:12px;padding:12px 14px;background:#f2fbf6;border:1px solid #bfe6d0;border-radius:10px;font-size:12.5px;color:#1c6b45}
+  .rhist{margin:12px 0 0;padding:11px 14px;background:#f7f9ff;border:1px solid #d5e0f5;border-radius:10px;font-size:12px;color:#2d4373}.rhist b{color:#1c356b}.rhist ul{margin:6px 0 0;padding-left:18px}.rhist li{margin:2px 0}
   h2{font-size:15px;margin:24px 0 8px;padding-bottom:6px;border-bottom:2px solid #eee;page-break-after:avoid}
   .okpill{font-size:11px;font-weight:700;color:#137a43;background:#e6f7ee;border-radius:99px;padding:2px 9px;vertical-align:middle;float:right}
   table{width:100%;border-collapse:collapse;margin-bottom:8px}
@@ -2470,6 +2497,7 @@ async function generateSetupReport(code){
       <div><div class="num">${sc.total.toFixed(0)} / 100 คะแนน</div>
       <div class="sub">${passAll?'✓ ตรวจรับผ่าน 100% พร้อมรับร้าน':`ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?' · '+sc.failItems+' รายการไม่ผ่าน':''}`}</div></div></div>
     <div class="split"><div class="m">ซัพหลัก ${sc.main.pct.toFixed(0)}%</div><div class="y">ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div>
+    ${roundHist}
     <table class="brkT"><thead><tr><th>หมวด</th><th class="c">คะแนน</th><th class="c">ตรวจ</th><th class="c">ไม่ผ่าน</th></tr></thead><tbody>${brk}</tbody></table>
     <div class="issued">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}</div>
     ${passAll?'<div class="stmt">ขอรับรองว่าร้านนี้ผ่านการตรวจรับจากทีม Set-Up (NSA) ครบถ้วน 100% — ใช้แนบประกอบการจ่ายงวดสุดท้าย คู่กับเอกสารตรวจ Check Point งานก่อสร้าง</div>':''}
