@@ -1757,7 +1757,9 @@ async function clearTick(cpId){
   if(pctx.inspId){
     const { data:del, error } = await sb.from('check_events').delete().eq('inspection_id',pctx.inspId).eq('checkpoint',String(cpId)).eq('round',mr).select()
     if(error) return alert('ล้างไม่สำเร็จ: '+error.message)
-    if(!del || !del.length){ alert('ล้างไม่สำเร็จ — ระบบยังไม่อนุญาตให้ลบ\nให้ผู้ดูแลรัน sql/19 ใน Supabase ก่อน (หรือติ๊กนี้เป็นของคนอื่น)'); return }
+    if(!del || !del.length){ alert(profile&&profile.role==='admin'
+      ? 'Admin ล้างไม่สำเร็จ — ให้รัน sql/20 ใน Supabase ก่อน (เปิดสิทธิ์ให้ Admin ลบติ๊กของคนอื่นได้)'
+      : 'ล้างไม่สำเร็จ — ลบได้เฉพาะติ๊กของตัวเอง (ติ๊กนี้เป็นของคนอื่น) · ถ้ายังลบของตัวเองไม่ได้ ให้ผู้ดูแลรัน sql/19'); return }
   }
   pctx.events=pctx.events.filter(e=>!(e.checkpoint===String(cpId)&&e.round===mr))
   renderPhase(); toast('ล้างการติ๊กแล้ว')
