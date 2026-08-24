@@ -296,8 +296,8 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
 .toast.ok{border-color:#23503a}.toast.err{border-color:#4a2323;color:#FF9B9B}
 /* report view */
 .rbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-#reportFrame{display:block;width:100%;border:0;background:#fff;border-radius:12px;min-height:75vh}
-@media print{ body>.wrap>*{display:none!important} body>.wrap>#viewReport{display:block!important} #viewReport .rbar{display:none!important} #reportFrame{min-height:auto} }
+#reportFrame{display:block;width:100%;border:0;background:#fff;border-radius:12px;height:calc(100dvh - 140px);min-height:400px}
+@media print{ body>.wrap>*{display:none!important} body>.wrap>#viewReport{display:block!important} #viewReport .rbar{display:none!important} #reportFrame{height:auto;min-height:auto} }
 /* signature */
 .sigmodal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;padding:18px}
 .sigcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;width:100%;max-width:460px}
@@ -1427,14 +1427,14 @@ async function openSite(code){
       const sc=computeSetupScore(events)
       html += `<div class="sec">ตรวจรับร้าน (Set-Up · NSA)</div>`
       if(_isCM && sc.failItems) html += `<div class="lockbar" style="border-color:#5a2a2a;background:#2a1414;color:#ffb4b4">🔧 Set-Up ตีกลับ ${sc.failItems} รายการ — แตะหมวดที่มี “ไม่ผ่าน” เข้าไปแนบรูปที่แก้แล้ว</div>`
-      html += `<div class="suScore g-${sc.allDone?sc.grade:'none'}">
-        <div class="suGrade"${sc.allDone?'':' style="color:var(--faint)"'}>${sc.allDone?sc.grade:'—'}</div>
-        <div class="suMeta"><div class="suNum">${sc.allDone? sc.total.toFixed(0)+'<span>/100</span>' : sc.doneItems+'<span>/'+sc.totalItems+' ข้อ</span>'}</div>
+      html += `<div class="suScore g-${sc.doneItems?sc.curGrade:'none'}">
+        <div class="suGrade"${sc.doneItems?'':' style="color:var(--faint)"'}>${sc.doneItems?sc.curGrade:'—'}</div>
+        <div class="suMeta"><div class="suNum">${sc.doneItems?sc.curPct.toFixed(0):'0'}<span>/100</span>${sc.allDone?'':' <b style="font-size:11px;color:var(--build);font-weight:700">· ของที่ตรวจแล้ว</b>'}</div>
           <div class="suSub">ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?` · <b style="color:var(--fail)">${sc.failItems} ไม่ผ่าน</b>`:''}${sc.fixedItems?` · <b style="color:var(--build)">${sc.fixedItems} รอตรวจซ้ำ</b>`:''}</div>
           <div class="suSup">ซัพหลัก ${sc.main.pct.toFixed(0)}% · ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div></div>`
       if(sc.doneItems){ const suN=setupMaxRound(events)
         const chips=[]; for(let rr=1; rr<=suN; rr++){ const rsc=computeSetupScore(events,rr)
-          chips.push(`<div class="srchip${rr===suN?' cur':''}"><b>รอบ ${rr}${rr===suN?' (ล่าสุด)':''}</b><span class="srg g-${rsc.allDone?rsc.grade:'none'}"${rsc.allDone?'':' style="color:var(--faint)"'}>${rsc.allDone?rsc.grade:'—'}</span><small>${rsc.allDone? rsc.total.toFixed(0)+'/100' : 'ตรวจ '+rsc.doneItems+'/'+rsc.totalItems}${rsc.failItems?` · ${rsc.failItems} ไม่ผ่าน`:''}</small></div>`) }
+          chips.push(`<div class="srchip${rr===suN?' cur':''}"><b>รอบ ${rr}${rr===suN?' (ล่าสุด)':''}</b><span class="srg g-${rsc.doneItems?rsc.curGrade:'none'}"${rsc.doneItems?'':' style="color:var(--faint)"'}>${rsc.doneItems?rsc.curGrade:'—'}</span><small>${rsc.doneItems?rsc.curPct.toFixed(0)+'/100':'—'}${rsc.failItems?` · ${rsc.failItems} ไม่ผ่าน`:''}</small></div>`) }
         html += `<div class="suRounds"><div class="srh">🔁 Set-Up ตรวจ <b>${suN}</b> รอบ${suN>1?` · แก้ไป ${suN-1} รอบ`:''} <span>· เกรดใหญ่ด้านบน = รอบล่าสุด</span></div><div class="srchips">${chips.join('')}</div></div>` }
       html += SETUP_SECTIONS.map(([n,name,w])=>{ const st=phaseStatus(n, inspByPhase[n], events)
         const sec=sc.sections.find(x=>x.phase===n)||{earned:0}
@@ -1522,7 +1522,7 @@ function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
 function setupMaxRound(events){ return (events&&events.length)?Math.max(1,...events.map(e=>+e.round||1)):1 }
 function computeSetupScore(events, uptoRound){
   const cur={}; events.forEach(e=>{ if(uptoRound!=null && e.round>uptoRound) return; const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
-  let total=0, gotMain=0,maxMain=0,gotSub=0,maxSub=0, doneItems=0,failItems=0,fixedItems=0,totalItems=0
+  let total=0, gotMain=0,maxMain=0,gotSub=0,maxSub=0, doneItems=0,failItems=0,fixedItems=0,totalItems=0, wDecided=0
   const sections=SETUP_SECTIONS.map(([ph,name,weight])=>{
     const items=checkpoints.filter(c=>c.phase===ph)
     const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1
@@ -1532,13 +1532,14 @@ function computeSetupScore(events, uptoRound){
       totalItems++
       const e=cur[String(c.id)]
       if(e){ done++; doneItems++
-        if(e.status==='fail'){ fail++; failItems++ }
-        else if(e.status==='fixed'){ fixed++; fixedItems++ }   // CM แก้แล้ว รอ Set-Up ตรวจซ้ำ
-        else if(e.status==='pass'){ earned+=w; if(isSub) gotSub+=w; else gotMain+=w } } })
+        if(e.status==='fail'){ fail++; failItems++; wDecided+=w }
+        else if(e.status==='fixed'){ fixed++; fixedItems++; wDecided+=w }   // CM แก้แล้ว รอ Set-Up ตรวจซ้ำ
+        else if(e.status==='pass'){ earned+=w; wDecided+=w; if(isSub) gotSub+=w; else gotMain+=w } } })
     total+=earned
     return {phase:ph,name,weight,earned,done,fail,fixed,total:items.length}
   })
-  return {total,grade:setupGrade(total),sections,doneItems,totalItems,failItems,fixedItems,
+  const curPct = wDecided>0 ? total/wDecided*100 : 0   // เกรดจริง ณ ตอนนี้ = คิดจากข้อที่ตรวจแล้วเท่านั้น (ไม่รวมข้อที่ยังไม่ตรวจ/ไม่มีงาน)
+  return {total,grade:setupGrade(total),curPct,curGrade:setupGrade(curPct),sections,doneItems,totalItems,failItems,fixedItems,
     main:{got:gotMain,max:maxMain,pct:maxMain?gotMain/maxMain*100:0},
     sub:{got:gotSub,max:maxSub,pct:maxSub?gotSub/maxSub*100:0},
     allDone:doneItems===totalItems&&totalItems>0}
@@ -2057,7 +2058,7 @@ async function loadSetupDash(){
   const scoped = stores.filter(s=> head ? (byStore[s.code]||s.cs.key==='building') : myStores.has(s.code))   // กำลังก่อสร้าง หรือมีการตรวจรับแล้วเท่านั้น (ไม่เอาสาขาที่เปิดไปแล้ว)
   _suRows = scoped.map(s=>{ const ev=byStore[s.code]||[]; const sc=computeSetupScore(ev)
     return {code:s.code,name:s.name||s.code,prov:s.province||'',days:(s.cs&&s.cs.days!=null)?s.cs.days:null,
-      score:sc.total,grade:sc.grade,done:sc.doneItems,total:sc.totalItems,fail:sc.failItems,allDone:sc.allDone,
+      score:sc.total,grade:sc.grade,curPct:sc.curPct,curGrade:sc.curGrade,done:sc.doneItems,total:sc.totalItems,fail:sc.failItems,allDone:sc.allDone,
       signed:signed.has(s.code),last:lastByStore[s.code]||null} })
   _suScope = head?'ทุกสาขา':'งานของฉัน'
 }
@@ -2093,9 +2094,9 @@ function renderSetupList(){
   const label = flab ? `รายสาขา · <span style="color:var(--yellow)">${flab} ✕ ล้างตัวกรอง</span>` : 'รายสาขา · เรียงตามความเร่งด่วน'
   if(!list.length){ w.innerHTML=`<div class="dlab" id="sfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div><div class="spin">${flab?'ไม่มีสาขาในกลุ่มนี้':'ไม่พบสาขาที่ค้นหา'}</div>`
     const s0=$('sfl'); if(s0&&flab) s0.onclick=()=>{ _suFilter='all'; renderSetupDash() }; return }
-  w.innerHTML = `<div class="dlab" id="sfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div>`+list.map(r=>{ const gc=r.allDone?gradeColor(r.grade):'var(--faint)'
-      const prog = !r.done ? 'ยังไม่เริ่มตรวจรับ' : (r.allDone ? r.score.toFixed(0)+'/100 · เกรด '+r.grade : 'กำลังตรวจ '+r.done+'/'+r.total+' ('+Math.round(r.done/r.total*100)+'%)')
-      return `<div class="urow2" data-code="${esc(r.code)}"><div class="sugrd" style="color:${gc};border-color:${gc}44">${r.allDone?r.grade:'—'}</div>
+  w.innerHTML = `<div class="dlab" id="sfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div>`+list.map(r=>{ const gc=r.done?gradeColor(r.curGrade):'var(--faint)'
+      const prog = !r.done ? 'ยังไม่เริ่มตรวจรับ' : ('เกรด '+r.curGrade+' · '+r.curPct.toFixed(0)+'/100 · ตรวจ '+r.done+'/'+r.total+(r.allDone?' ✓':' ('+Math.round(r.done/r.total*100)+'%)'))
+      return `<div class="urow2" data-code="${esc(r.code)}"><div class="sugrd" style="color:${gc};border-color:${gc}44">${r.done?r.curGrade:'—'}</div>
         <div class="um"><div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
           <div style="font-size:10px;color:var(--faint)">${prog}${r.fail?' · <span style="color:var(--fail)">'+r.fail+' ไม่ผ่าน</span>':''}${r.signed?' · <span style="color:var(--pass)">เซ็นแล้ว ✓</span>':''}</div></div>
         <div style="font-size:10px;color:var(--faint);text-align:right;white-space:nowrap">${r.days!=null?'เปิดใน '+r.days+' วัน':''}</div></div>` }).join('')
@@ -2263,8 +2264,8 @@ async function generateReport(code, phase){
   let events=[], media=[]
   if(ids.length){
     const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
-    const {data:m}=await sb.from('media').select('checkpoint,path').in('inspection_id',ids); media=m||[]
-    for(const x of media){ const {data:u}=await sb.storage.from('media').createSignedUrl(x.path,3600); x.url=u?u.signedUrl:'' }
+    const {data:m}=await sb.from('media').select('checkpoint,path,round,by').in('inspection_id',ids); media=m||[]
+    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
   }
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const pickSig=(kind,scopeVal)=>{ const a=(sg||[]).filter(x=>x.kind===kind && (scopeVal==null||String(x.scope)===String(scopeVal))); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
@@ -2371,7 +2372,7 @@ async function generateReport(code, phase){
   ${signHtml}
   </body></html>`
   frame.srcdoc=html
-  frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
+  frame.onload=null   // ความสูงคงที่ + scroll ภายใน iframe (เมาส์บนคอมเลื่อนได้)
 }
 async function saveSetupSig(code, kind, img){
   const { error } = await sb.from('signoffs').insert({ store_code:code, scope:'setup', kind, image:img })
@@ -2390,8 +2391,8 @@ async function generateSetupReport(code){
   let events=[], media=[]
   if(ids.length){
     const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
-    const {data:m}=await sb.from('media').select('checkpoint,path').in('inspection_id',ids); media=m||[]
-    for(const x of media){ const {data:u}=await sb.storage.from('media').createSignedUrl(x.path,3600); x.url=u?u.signedUrl:'' }
+    const {data:m}=await sb.from('media').select('checkpoint,path,round,by').in('inspection_id',ids); media=m||[]
+    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
   }
   const { data:sg } = await sb.from('signoffs').select('kind,by,created_at,image').eq('store_code',code).eq('scope','setup')
   const pickSig=(kind)=>{ const a=(sg||[]).filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
@@ -2426,7 +2427,7 @@ async function generateSetupReport(code){
   // ประวัติการตรวจแต่ละรอบ (เกรด/คะแนน ณ สิ้นแต่ละรอบ)
   const suN=setupMaxRound(events)
   let roundHist=''
-  if(suN>1){ const rr=[]; for(let i=1;i<=suN;i++){ const rsc=computeSetupScore(events,i); rr.push(`<li>รอบ ${i}${i===suN?' (สุดท้าย)':''}: เกรด <b>${rsc.allDone?rsc.grade:'—'}</b> · ${rsc.total.toFixed(0)}/100${rsc.failItems?` · <span style="color:#c0392b">${rsc.failItems} ไม่ผ่าน</span>`:' · ผ่านครบ'}</li>`) }
+  if(suN>1){ const rr=[]; for(let i=1;i<=suN;i++){ const rsc=computeSetupScore(events,i); rr.push(`<li>รอบ ${i}${i===suN?' (สุดท้าย)':''}: เกรด <b>${rsc.doneItems?rsc.curGrade:'—'}</b> · ${rsc.curPct.toFixed(0)}/100${rsc.failItems?` · <span style="color:#c0392b">${rsc.failItems} ไม่ผ่าน</span>`:' · ผ่านครบ'}</li>`) }
     roundHist=`<div class="rhist"><b>🔁 Set-Up ตรวจทั้งหมด ${suN} รอบ (แก้ไป ${suN-1} รอบ)</b><ul>${rr.join('')}</ul></div>` }
   // ---- สรุปจุดที่ไม่ผ่าน (รวม "รอตรวจซ้ำ") + รูป ----
   const suFail=[]
@@ -2509,7 +2510,7 @@ async function generateSetupReport(code){
   <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${cmCell}</div>
   </body></html>`
   frame.srcdoc=html
-  frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
+  frame.onload=null   // ความสูงคงที่ + scroll ภายใน iframe (เมาส์บนคอมเลื่อนได้)
 }
 // ---- รายงาน "งานที่ต้องแก้" (Set-Up ตีกลับ) — ส่งให้ CM ไปแก้แล้วตอบกลับในแอป ----
 async function generateSetupPunch(code){
@@ -2523,8 +2524,8 @@ async function generateSetupPunch(code){
   const ids=(insps||[]).map(i=>i.id); let events=[], media=[]
   if(ids.length){
     const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
-    const {data:m}=await sb.from('media').select('checkpoint,path,kind').in('inspection_id',ids); media=m||[]
-    for(const x of media){ const {data:u}=await sb.storage.from('media').createSignedUrl(x.path,3600); x.url=u?u.signedUrl:'' }
+    const {data:m}=await sb.from('media').select('checkpoint,path,kind,round,by').in('inspection_id',ids); media=m||[]
+    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
   }
   const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
@@ -2582,7 +2583,7 @@ async function generateSetupPunch(code){
     ${total?`<div class="how"><b>ขั้นตอนให้ CM แก้งาน:</b><br>1) เปิดแอป → หน้าสาขานี้ → แตะหมวดที่มี “ไม่ผ่าน”<br>2) แก้งานจริง แล้ว <b>แนบรูปที่แก้แล้ว</b> ในข้อนั้น<br>3) กด <b>“ส่งให้ Set-Up ตรวจซ้ำ”</b> → Set-Up จะเข้ามาตรวจซ้ำเพื่อปิดจุดนั้น</div>`:''}
   </body></html>`
   frame.srcdoc=html
-  frame.onload=()=>{ try{ const h=frame.contentWindow.document.body.scrollHeight; if(h) frame.style.height=(h+40)+'px' }catch(e){} }
+  frame.onload=null   // ความสูงคงที่ + scroll ภายใน iframe (เมาส์บนคอมเลื่อนได้)
 }
 
 // เมาส์: ลูกกลิ้งแนวตั้ง = เลื่อนแถบแท็บแนวนอน (เผื่อจอคอมแคบที่ยังปัดไม่ได้)
