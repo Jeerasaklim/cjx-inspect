@@ -443,7 +443,9 @@ async function openDetail(code){
   if(totPass){
     html+=`<details class="detgrp gpass"${failItems.length?'':' open'}><summary class="detgh" style="color:var(--pass)">✅ ผ่านแล้ว (${totPass} ข้อ) — แตะดูรายการ</summary>`
     html+=Object.keys(passByPhase).map(pn=>`<div class="dpass"><div class="dpassh">${esc(pn)} · ${passByPhase[pn].length} ข้อ</div>`
-      + passByPhase[pn].map(c=>`<div class="dpi">✓ ${c.no?esc(c.no)+' ':''}${esc(c.label)}</div>`).join('')+`</div>`).join('')
+      + passByPhase[pn].map(c=>{ const ps=mByCp[String(c.id)]||[]
+          const thumbs=ps.map(p=>{ _detImgs.push(p.full||p.thumb); return `<img class="dthumb" src="${p.thumb||p.full}" data-i="${_detImgs.length-1}">` }).join('')
+          return `<div class="dpi">✓ ${c.no?esc(c.no)+' ':''}${esc(c.label)}${thumbs?`<div class="dfph">${thumbs}</div>`:''}</div>` }).join('')+`</div>`).join('')
     html+=`</details>`
   }
   $('detBody').innerHTML = (totPass||failItems.length) ? html : '<div class="spin">ยังไม่มีการตรวจในสาขานี้</div>'
