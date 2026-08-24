@@ -1177,10 +1177,16 @@ async function loadFixWork(){
   const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
   const { data:evAll } = await sb.from('check_events').select('inspection_id,checkpoint,round,status,created_at')
   const nameByCode={}; stores.forEach(s=>nameByCode[s.code]=s.name||s.code)
-  const cur={}   // (สาขา||ข้อ) -> รอบล่าสุด + event ท้ายสุดในรอบนั้น  · เฉพาะสาขาของฉัน
+  const role=profile&&profile.role
+  const seeAll   = ['admin','head_construction','head_cm'].includes(role)   // เห็นทุกสาขา ทั้งก่อสร้าง+Set-Up
+  const setupAll = role==='head_setup'                                       // เห็นทุกสาขา เฉพาะ Set-Up
+  const cur={}   // (สาขา||ข้อ) -> รอบล่าสุด + event ท้ายสุดในรอบนั้น
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
     const c=cpById[e.checkpoint]; if(!c) return
-    const code=ins.store_code; if(!myStores.has(code)) return   // ← เฉพาะสาขาที่ตัวเองตรวจ
+    const su=c.phase>=201&&c.phase<=208, code=ins.store_code
+    if(seeAll){ /* ทุกสาขา ทั้ง 2 แบบ */ }
+    else if(setupAll){ if(!su) return }              // หัวหน้า Set-Up: เฉพาะข้อ Set-Up ทุกสาขา
+    else { if(!myStores.has(code)) return }          // CM/Set-Up: เฉพาะสาขาที่ตัวเองตรวจ
     const key=code+'||'+e.checkpoint, p=cur[key]
     if(!p || e.round>p.round || (e.round===p.round && (e.created_at||'')>=(p.at||'')))
       cur[key]={round:e.round,at:e.created_at||'',status:e.status,cp:c,code} })
@@ -1202,7 +1208,7 @@ function renderPoolFix(q){
   const el=$('poolList')
   if(!_fixWork.loaded){ el.innerHTML='<div class="spin">กำลังโหลดงานที่ต้องแก้…</div>'; return }
   const list=fixStoreList(q)
-  if(!list.length){ el.innerHTML='<div class="fwok" style="margin-top:8px">✓ ไม่มีสาขาที่ต้องแก้ในงานของคุณ 🎉</div>'; return }
+  if(!list.length){ el.innerHTML='<div class="fwok" style="margin-top:8px">✓ ไม่มีสาขาที่ต้องแก้ 🎉</div>'; return }
   el.innerHTML=list.map(b=>{ const s=stores.find(x=>x.code===b.code)||{}
     const parts=[]; if(b.con)parts.push('🏗️ ก่อสร้าง '+b.con+' จุด'); if(b.setup)parts.push('📋 Set-Up '+b.setup+' จุด')
     return `<div class="sc" data-code="${esc(b.code)}">
@@ -1217,7 +1223,11 @@ function homeCount(f){ if(f==='mine') return myStores.size; if(f==='all') return
   if(f==='tofix') return _fixWork.byStore?Object.values(_fixWork.byStore).filter(b=>b.total>0).length:0
   return stores.filter(s=>s.cs.key===f).length }
 function updateHomeStat(){
-  const lbl={mine:'งานของฉัน · สาขาที่คุณตรวจ',tofix:'สาขาที่คุณตรวจแล้วยังมีจุดไม่ผ่าน · ต้องแก้',building:'สาขากำลังก่อสร้าง · ต้องเข้าตรวจ',notyet:'สาขายังไม่ก่อสร้าง',opened:'สาขาเปิดแล้ว',all:'สาขาทั้งหมด'}[filter]||''
+  const role=profile&&profile.role
+  const tofixLbl = ['admin','head_construction','head_cm'].includes(role)?'ทุกสาขาที่ยังมีจุดไม่ผ่าน · ต้องแก้'
+    : role==='head_setup'?'ทุกสาขาที่ Set-Up ตรวจไม่ผ่าน · ต้องแก้'
+    : 'สาขาที่คุณตรวจแล้วยังมีจุดไม่ผ่าน · ต้องแก้'
+  const lbl={mine:'งานของฉัน · สาขาที่คุณตรวจ',tofix:tofixLbl,building:'สาขากำลังก่อสร้าง · ต้องเข้าตรวจ',notyet:'สาขายังไม่ก่อสร้าง',opened:'สาขาเปิดแล้ว',all:'สาขาทั้งหมด'}[filter]||''
   $('statBuild').textContent=homeCount(filter); $('statLabel').textContent=lbl
 }
 function renderHome(){
