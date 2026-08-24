@@ -1583,6 +1583,15 @@ async function saveSignature(kind, img){
 }
 async function saveScore(n){
   if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว — เปลี่ยนคะแนนไม่ได้'); return }
+  const cur=latestSignoff('score'); const curVal=cur?((+cur.note)||0):0
+  if(n===curVal){   // แตะดาวเดิมซ้ำ = ล้างคะแนนออก (กลับเป็นยังไม่ให้คะแนน)
+    const { data:del, error } = await sb.from('signoffs').delete().eq('store_code',pctx.code).eq('scope',String(pctx.phase)).eq('kind','score').select()
+    if(error) return alert('ล้างคะแนนไม่สำเร็จ: '+error.message)
+    if(!del || !del.length){ alert(profile&&profile.role==='admin'
+      ? 'ล้างคะแนนไม่สำเร็จ — ให้รัน sql/21 ใน Supabase ก่อน (เปิดสิทธิ์ให้ลบคะแนน)'
+      : 'ล้างคะแนนไม่สำเร็จ — ลบได้เฉพาะคะแนนที่ตัวเองให้ · ให้ผู้ดูแลรัน sql/21'); return }
+    await reloadSignoffs(); renderPhase(); toast('ล้างคะแนนแล้ว'); return
+  }
   const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:String(pctx.phase), kind:'score', note:String(n) })
   if(error) return alert('บันทึกคะแนนไม่สำเร็จ: '+error.message)
   await reloadSignoffs(); renderPhase(); toast('ให้คะแนน '+n+'/5 แล้ว')
@@ -1684,7 +1693,7 @@ function renderPhase(){
     html+=`<div class="apanel scorebox" style="margin-top:16px"><div class="ap-t">คะแนนคุณภาพงวดนี้ (1–5)</div>
       <div class="ap-d">ผู้ตรวจให้คะแนนคุณภาพงานโดยรวมของงวดนี้</div>
       <div class="scoresel">${[1,2,3,4,5].map(n=>`<b class="${curScore>=n?'on':''}" data-sc="${n}">★</b>`).join('')}
-        <span class="scnow">${curScore?`ให้ ${curScore}/5${scSig&&scSig.by?' · '+esc(nameOf(scSig.by)):''}`:'แตะดาวเพื่อให้คะแนน'}</span></div></div>`
+        <span class="scnow">${curScore?`ให้ ${curScore}/5${scSig&&scSig.by?' · '+esc(nameOf(scSig.by)):''} · แตะดาวเดิมซ้ำเพื่อล้าง`:'แตะดาวเพื่อให้คะแนน'}</span></div></div>`
     const sc=latestSignoff('sign_cm'), sco=latestSignoff('sign_contractor')
     html+=`<div class="apanel sigwrap" style="margin-top:14px"><div class="ap-t">ลายเซ็นรับรองงวดงาน</div>
       <div class="ap-d">แตะช่องเพื่อให้ผู้ตรวจและผู้รับเหมาเซ็นด้วยนิ้ว — ลายเซ็นจะแสดงในใบตรวจรับ</div>
