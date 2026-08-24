@@ -329,7 +329,7 @@ var NOTES_WH="https://script.google.com/macros/s/AKfycbwpSe8-xhAr7sT24kVUZc8FAWx
 var WRITE_URL="https://script.google.com/macros/s/AKfycbwcTzrkPICy3E2cZuJA93_OWNSg0ezNzs8zV4S_4n8XvoMRcJRM2aMQq3HfIn7nTUdS/exec";var WSECRET="cjx-siteops-write-2026";
 var DATA={updated:"—",wh:NOTES_WH,nego:{owners:[],tasks:[],steps:[],final:""},ratkit:{o1:{owners:[],tasks:[],steps:[],final:""},reg:{owners:[],tasks:[],steps:[],final:""}},perf:{nego:{over:0,pending:0,signed:0,final:0,at_sign:0,close_pct:0,sla_pct:0,total:0},ratkit:{over:0,reg_over:0,got:0,wait:0,prep:0,waiver:0,sla_pct:0},problems:[],persons_nego:[],persons_rat:[]}};
 var MODE="nego",RATSUB="o1",PSUB="all",OPENTRK="",VIEW="flow",ACTIVE=null,WH=NOTES_WH,SEARCH="",FSTAT="",FCAT="",FOWN="";
-var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → เสนอ KT → รอเซ็น → รอส่งตรวจ → รอกฎหมายตรวจ → เซ็นแล้ว · (สถานะติดขัด/นำเสนอใหม่ = ตัวกรอง)"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},boss:{t:"📊 Dashboard — ภาพรวมทุกสายงาน",s:"KPI + เส้นทางเปิดสาขา + เรื่องต้องเร่ง · คลิกกางดูรายสายงานได้ในหน้านี้"},cal:{t:"📅 ปฏิทินงาน — ดูรายวัน",s:"งานครบกำหนดแต่ละวัน · เขียว/เหลือง/แดง ตาม SLA · D-day"}};
+var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → เสนอ KT → รอเซ็น → รอส่งตรวจ → รอกฎหมายตรวจ → เซ็นแล้ว · (สถานะติดขัด/นำเสนอใหม่ = ตัวกรอง)"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},boss:{t:"📊 Dashboard",s:"เลือกแท็บสายงาน → KEY METRICS + ตารางอายุงาน/เอกสาร · คลิกแถวดูรายไซต์"},cal:{t:"📅 ปฏิทินงาน — ดูรายวัน",s:"งานครบกำหนดแต่ละวัน · เขียว/เหลือง/แดง ตาม SLA · D-day"}};
 function esc(s){s=(s==null?"":String(s));return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function md(){return MODE==="ratkit"?DATA.ratkit[RATSUB]:DATA[MODE];}
 function steps(){return md().steps;}
@@ -522,12 +522,33 @@ function perfReg(p){var rg=DATA.ratkit.reg.tasks;var agg={},order=[];
  b+=pdelay("📋","สาขาถึงวันเปิดแต่เอกสารไม่ครบ ("+complete+"/"+N+" ครบ)","ตัวฉุดหลัก = ใบที่ค้างเยอะสุดข้างบน → เปิดแล้วเสี่ยงโดนปรับ/ระงับ");
  return b;}
 function renderBoss(){var p=DATA.perf;
- var b='<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="clr" onclick="exportPerf()">⬇️ Export CSV</button></div>';
- b+=perfAll(p);   // ภาพรวมอยู่บนสุดเสมอ
- b+='<div class="sec" style="margin-top:24px"><span class="dot"></span>📂 เจาะรายสายงาน — คลิกเปิดดูรายละเอียด</div>';
- var T=[["neg","🤝 สัญญา (เจรจา)","รับ "+p.nego.total+" · เซ็น "+p.nego.close_pct+"%"],["o1","🎫 อ.1","งาน "+DATA.ratkit.o1.tasks.length+" · ออก "+p.ratkit.got],["reg","📋 ทะเบียน","สาขา "+DATA.ratkit.reg.tasks.length+" · เลย D-day "+p.ratkit.reg_over]];
- T.forEach(function(x){b+='<div class="dcard" onclick="openTrackModal(\''+x[0]+'\')"><span class="dat">'+x[1]+'</span><span class="das">'+x[2]+'</span><span class="dgo">ดูรายละเอียด ›</span></div>';});
+ var cur=(PSUB==="o1"||PSUB==="reg")?PSUB:"neg";
+ var T=[["neg","🤝","สัญญา"],["o1","🎫","อ.1"],["reg","📋","ทะเบียน"]];
+ var b='<div class="ptseg">'+T.map(function(x){return '<button class="'+(cur===x[0]?"on":"")+'" onclick="setPSub(\''+x[0]+'\')"><span class="pi">'+x[1]+'</span><span>'+x[2]+'</span></button>';}).join("")+'</div>';
+ b+='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="clr" onclick="exportPerf()">⬇️ Export CSV</button></div>';
+ b+=(cur==="neg"?dashNeg(p):(cur==="o1"?dashO1(p):dashReg(p)));
  return b;}
+function drillRk(sub,name){perfDrill("ratkit",sub,{search:name});}
+function dashNeg(p){
+ var b='<div class="kpis k4">'+kpiC(p.nego.close_pct+"%","✅ เซ็นสะสม","good")+kpiC(p.nego.sla_pct+"%","🎯 ตรง SLA","good")+kpiC(p.nego.pending,"📄 สัญญาค้าง","warn")+kpiC(p.nego.over,"🔴 เกิน 90 วัน","bad")+'</div>';
+ b+='<div class="sec"><span class="dot"></span>📊 AGING RANGE — SLA เซ็นสัญญา (เดือน × ช่วงอายุงาน)</div>';
+ b+=agingTableHtml();return b;}
+function dashO1(p){var o=DATA.ratkit.o1.tasks;
+ var b='<div class="kpis k4">'+kpiC(p.ratkit.prep,"📑 ติดตามเอกสาร","")+kpiC(p.ratkit.wait,"🔎 ยื่น/ติดตาม อ.1","warn")+kpiC(p.ratkit.got,"✅ อ.1 ออก","good")+kpiC(p.ratkit.waiver,"🏗️ อนุโลม","warn")+'</div>';
+ var ow={};o.forEach(function(t){var k=t.owner||"(ไม่ระบุ)";if(!ow[k])ow[k]={h:0,g:0,ov:0};ow[k].h++;if(t.step===DATA.ratkit.o1.final)ow[k].g++;if(t.st==="red")ow[k].ov++;});
+ var owl=Object.keys(ow).sort(function(a,c){return ow[c].h-ow[a].h;});
+ b+='<div class="sec"><span class="dot"></span>🧑 รายคน (ทีมรัฐกิจ) — คลิกดูงาน</div>';
+ b+='<div class="srwrap"><table class="srt"><thead><tr><th class="l">ผู้รับผิดชอบ</th><th>ในมือ</th><th>อ.1 ออก</th><th>กำลังทำ</th><th>% ออก</th><th>เกิน SLA</th></tr></thead><tbody>';
+ owl.forEach(function(k){var d=ow[k];var pct=d.h?Math.round(100*d.g/d.h):0;b+='<tr onclick="drillRk(\'o1\',\''+esc(k)+'\')" style="cursor:pointer"><td class="l">'+esc(k)+'</td><td><b>'+d.h+'</b></td><td>'+d.g+'</td><td>'+(d.h-d.g)+'</td><td>'+pct+'%</td><td class="'+(d.ov>0?'ov':'')+'">'+(d.ov||'–')+'</td></tr>';});
+ b+='</tbody></table></div>';return b;}
+function dashReg(p){var rg=DATA.ratkit.reg.tasks;
+ var agg={},order=[];rg.forEach(function(t){(t.checklist||[]).forEach(function(x){if(!agg[x.n]){agg[x.n]={ok:0,ov:0};order.push(x.n);}if(x.ok)agg[x.n].ok++;else if(x.st==="red")agg[x.n].ov++;});});
+ var N=rg.length,complete=rg.filter(function(t){return t.step===DATA.ratkit.reg.final;}).length;
+ var b='<div class="kpis k4">'+kpiC(N,"📋 สาขาทำทะเบียน","")+kpiC(p.ratkit.reg_over,"🔴 เลย D-day","bad")+kpiC(N-complete,"🟠 ยังไม่ครบ","warn")+kpiC(complete,"✅ ครบทุกใบ",complete>0?"good":"bad")+'</div>';
+ b+='<div class="sec"><span class="dot"></span>📑 เอกสารแต่ละใบ — ได้แล้ว / '+N+' สาขา · คลิกดูสาขา</div>';
+ b+='<div class="srwrap"><table class="srt"><thead><tr><th class="l">เอกสาร</th><th>ได้แล้ว</th><th>ค้าง</th><th>เลย D-day</th><th>% เสร็จ</th></tr></thead><tbody>';
+ order.forEach(function(n){var d=agg[n];var pct=Math.round(100*d.ok/N);b+='<tr onclick="drillTrack(\'reg\')" style="cursor:pointer"><td class="l">'+esc(n)+'</td><td><b>'+d.ok+'</b></td><td>'+(N-d.ok)+'</td><td class="'+(d.ov>0?'ov':'')+'">'+(d.ov||'–')+'</td><td>'+pct+'%</td></tr>';});
+ b+='</tbody></table></div>';return b;}
 function openTrackModal(trk){var p=DATA.perf;var title,body;
  if(trk==="neg"){title="🤝 สัญญา (เจรจา) — วิเคราะห์อายุงาน (SLA เซ็นสัญญา)";body=agingTableHtml();}
  else if(trk==="o1"){title="🎫 อ.1";body=perfO1(p);}
@@ -663,7 +684,7 @@ function exportCSV(){var list=visRows();var hdr,rows;
  }
  var tag=(MODE==="nego"?"เจรจา":(MODE==="ratkit"?(RATSUB==="o1"?"อ.1":"ทะเบียน"):"perf"));
  downloadCSV("CJX_SiteOps_"+tag+"_"+DATA.updated+".csv",rows);}
-function exportPerf(){var rows;var trk=OPENTRK||"neg";
+function exportPerf(){var rows;var trk=(PSUB==="o1"||PSUB==="reg")?PSUB:"neg";
  if(trk==="neg"){rows=[["อันดับ","ชื่อ","งานในมือ","% เซ็น","เกิน SLA"]];DATA.perf.persons_nego.forEach(function(x,i){rows.push([i+1,x.nm,x.hold,x.pct+"%",x.over]);});downloadCSV("CJX_Perf_เจรจา_รายคน_"+DATA.updated+".csv",rows);}
  else{var arr=(trk==="o1"?DATA.ratkit.o1.tasks:DATA.ratkit.reg.tasks);rows=[["Site Code","ชื่อสาขา","จังหวัด","ผู้รับผิดชอบ","ขั้นตอน","สถานะ SLA"]];arr.forEach(function(t){rows.push([t.code,t.name,t.prov,t.owner,t.step,t.slatxt]);});downloadCSV("CJX_Perf_"+(trk==="o1"?"อ.1":"ทะเบียน")+"_"+DATA.updated+".csv",rows);}}
 function setMode(m){MODE=m;RATSUB="o1";PSUB="all";VIEW="flow";ACTIVE=null;SEARCH="";FSTAT="";FCAT="";FOWN="";document.getElementById("app").setAttribute("data-mode",m);["nego","ratkit","boss","cal"].forEach(function(x){var e=document.getElementById("mb-"+x);if(e)e.className=(x===m?"on":"");});var sd=document.getElementById("side");if(sd)sd.classList.remove("open");fillWho();render();}
@@ -757,7 +778,7 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
    if(g=="5"||g=="?")continue;
    var name=cc(r,1);var man=stepCol>=0?manualStep(cc(r,stepCol)):"";
    var stp=nego_signed[c]?NF:(man||stepOf(g,c));var signed=(stp==NF);var ord=signed?5:SORD[stp];
-   var ag=cc(r,24);ag=/^\d+$/.test(ag)?parseInt(ag,10):null;var st,sx,sk;
+   var ag=cc(r,24);ag=/^\d+$/.test(ag)?parseInt(ag,10):null;if(ag!=null&&(ag<0||ag>1500))ag=null;   /* กันค่า serial วันที่/ขยะ (เช่น 33041) */var st,sx,sk;
    if(signed){st="done";sx="เซ็นแล้ว ✓";sk=[9,0];}
    else if(ag==null){st="none";sx="—";sk=[3,ord];}
    else if(ag>90){st="red";sx="ค้าง "+ag+" วัน (เกิน 90)";sk=[0,-ag];}
