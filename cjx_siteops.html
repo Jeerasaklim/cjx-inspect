@@ -194,6 +194,29 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .dacch .dat{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:15.5px}
 .dacch .das{margin-left:auto;font-size:12.5px;color:var(--muted);font-family:"IBM Plex Sans Thai";font-weight:600}
 .daccb{padding:6px 17px 18px;border-top:1px solid var(--line)}
+.dcard{display:flex;align-items:center;gap:12px;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:15px 18px;margin-bottom:10px;cursor:pointer}
+.dcard:hover{border-color:var(--accent);background:var(--surface2)}
+.dcard .dat{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:15.5px}
+.dcard .das{font-size:12.5px;color:var(--muted);font-family:"IBM Plex Sans Thai";font-weight:600}
+.dcard .dgo{margin-left:auto;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12.5px;color:var(--accent);white-space:nowrap}
+.tmscrim{position:fixed;inset:0;background:rgba(10,20,30,.5);display:none;z-index:70}.tmscrim.on{display:block}
+.tmodal{position:fixed;inset:0;z-index:71;display:none;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto}.tmodal.on{display:flex}
+.tmbox{background:var(--surface);border:1px solid var(--border);border-radius:16px;max-width:980px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.tmhead{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);border-radius:16px 16px 0 0;z-index:2}
+.tmt{font-family:"IBM Plex Sans Thai";font-weight:800;font-size:16.5px}
+.tmx{margin-left:auto;border:none;background:var(--surface2);width:32px;height:32px;border-radius:9px;font-size:16px;cursor:pointer;color:var(--muted)}
+.tmbody{padding:18px 20px 24px}
+.srnote{font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.6}.srnote b{color:var(--ink)}
+.srwrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+.srt{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+.srt th{font-family:"IBM Plex Sans Thai";font-weight:600;font-size:10.5px;color:var(--faint);padding:9px 8px;border-bottom:1px solid var(--border);background:var(--surface2);text-align:center;white-space:nowrap}
+.srt th.l,.srt td.l{text-align:left}
+.srt td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+.srt td.l{font-family:"IBM Plex Sans Thai";font-weight:700}
+.srt .srsub{font-size:10.5px;color:var(--faint);font-weight:400;margin-left:6px}
+.srt .srwip{color:var(--faint);font-size:11px}.srt .z{color:var(--faint)}
+.srt td.tot{background:var(--surface2)}.srt td.ov{color:var(--bad);font-weight:700}
+.srt tr.srtot td{border-top:2px solid var(--border);background:var(--surface2)}
 .hbwrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
 .hb{display:flex;align-items:center;gap:11px;margin-bottom:9px}.hb:last-child{margin-bottom:0}
 .hb.clk{cursor:pointer;border-radius:8px;padding:3px 6px;margin-left:-6px;margin-right:-6px}.hb.clk:hover{background:var(--surface2)}
@@ -299,6 +322,7 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
   </div>
 </div>
 <div class="scrim" id="scrim" onclick="closeD()"></div><div class="drawer" id="drawer"></div>
+<div class="tmscrim" id="tmscrim" onclick="closeTrackModal()"></div><div class="tmodal" id="tmodal"></div>
 <div id="login"></div>
 <script>
 var NOTES_WH="https://script.google.com/macros/s/AKfycbwpSe8-xhAr7sT24kVUZc8FAWxBPOWyD-a5EiTjqZ9dvK8P7u97mcKqYnDn5WAjy7k_rg/exec";
@@ -500,13 +524,37 @@ function perfReg(p){var rg=DATA.ratkit.reg.tasks;var agg={},order=[];
 function renderBoss(){var p=DATA.perf;
  var b='<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="clr" onclick="exportPerf()">⬇️ Export CSV</button></div>';
  b+=perfAll(p);   // ภาพรวมอยู่บนสุดเสมอ
- b+='<div class="sec" style="margin-top:24px"><span class="dot"></span>📂 เจาะรายสายงาน — คลิกกางดูในหน้านี้ได้เลย</div>';
+ b+='<div class="sec" style="margin-top:24px"><span class="dot"></span>📂 เจาะรายสายงาน — คลิกเปิดดูรายละเอียด</div>';
  var T=[["neg","🤝 สัญญา (เจรจา)","รับ "+p.nego.total+" · เซ็น "+p.nego.close_pct+"%"],["o1","🎫 อ.1","งาน "+DATA.ratkit.o1.tasks.length+" · ออก "+p.ratkit.got],["reg","📋 ทะเบียน","สาขา "+DATA.ratkit.reg.tasks.length+" · เลย D-day "+p.ratkit.reg_over]];
- T.forEach(function(x){var open=(OPENTRK===x[0]);
-   b+='<div class="dacc'+(open?" on":"")+'"><div class="dacch" onclick="dashToggle(\''+x[0]+'\')"><span class="dai">'+(open?"▾":"▸")+'</span><span class="dat">'+x[1]+'</span><span class="das">'+x[2]+'</span></div>'+(open?'<div class="daccb">'+(x[0]==="neg"?perfNeg(p):(x[0]==="o1"?perfO1(p):perfReg(p)))+'</div>':'')+'</div>';
- });
+ T.forEach(function(x){b+='<div class="dcard" onclick="openTrackModal(\''+x[0]+'\')"><span class="dat">'+x[1]+'</span><span class="das">'+x[2]+'</span><span class="dgo">ดูรายละเอียด ›</span></div>';});
  return b;}
-function dashToggle(t){OPENTRK=(OPENTRK===t?"":t);render();}
+function openTrackModal(trk){var p=DATA.perf;var title,body;
+ if(trk==="neg"){title="🤝 สัญญา (เจรจา) — วิเคราะห์อายุงาน (SLA เซ็นสัญญา)";body=agingTableHtml();}
+ else if(trk==="o1"){title="🎫 อ.1";body=perfO1(p);}
+ else{title="📋 ทะเบียน";body=perfReg(p);}
+ document.getElementById("tmodal").innerHTML='<div class="tmbox"><div class="tmhead"><div class="tmt">'+title+'</div><button class="tmx" onclick="closeTrackModal()">✕</button></div><div class="tmbody">'+body+'</div></div>';
+ document.getElementById("tmodal").classList.add("on");document.getElementById("tmscrim").classList.add("on");}
+function closeTrackModal(){document.getElementById("tmodal").classList.remove("on");document.getElementById("tmscrim").classList.remove("on");}
+function agingTableHtml(){
+ var SR=[["≤1wk",5],["1-2wk",10],["3-4wk",20],["5-6wk",30],["7-8wk",40],["8-12wk",60],["12-16wk",80],[">16wk",1e9]];
+ function buck(ag){var w=Math.round(ag*5/7);for(var i=0;i<SR.length;i++)if(w<=SR[i][1])return i;return 7;}
+ var EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+ var rows=DATA.nego.tasks.filter(function(t){return t.ag!=null&&t.ag>=0&&t.ag<=1000;});
+ var byM={},order=[];
+ rows.forEach(function(t){var d=new Date(TODAY.getTime()-t.ag*86400000);var key=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2);if(!byM[key]){byM[key]={lbl:EN[d.getMonth()]+"-"+(d.getFullYear()%100),rows:[]};order.push(key);}byM[key].rows.push(t);});
+ order.sort();order.reverse();
+ function cells(rs){var b=[0,0,0,0,0,0,0,0];rs.forEach(function(t){b[buck(t.ag)]++;});return b;}
+ function avg(rs){if(!rs.length)return null;var s=0;rs.forEach(function(t){s+=t.ag;});return Math.round(s/rs.length);}
+ function over(rs){var n=0;rs.forEach(function(t){if(t.ag>90)n++;});return n;}
+ function row(lbl,sub,rs,cls){var done=[],wip=[];rs.forEach(function(t){(t.signed?done:wip).push(t);});var cd=cells(done),cw=cells(wip);
+   var s='<tr class="'+(cls||"")+'"><td class="l">'+esc(lbl)+(sub?'<span class="srsub">'+esc(sub)+'</span>':'')+'</td>';
+   for(var i=0;i<8;i++){s+='<td>'+(cd[i]?'<b>'+cd[i]+'</b>':'<span class="z">–</span>')+(cw[i]?' <span class="srwip">('+cw[i]+')</span>':'')+'</td>';}
+   s+='<td class="tot"><b>'+done.length+'</b>'+(wip.length?' <span class="srwip">('+wip.length+')</span>':'')+'</td><td>'+(avg(rs)==null?'–':avg(rs)+'D')+'</td><td class="'+(over(rs)>0?'ov':'')+'">'+(over(rs)||'–')+'</td></tr>';return s;}
+ var h='<div class="srnote">ช่วงอายุ = วันทำการ (โดยประมาณ) นับจากเริ่มเจรจา · ตัวเลขหลัก = <b>เซ็นแล้ว</b> · <span class="srwip">(ยังไม่เซ็น)</span> ในวงเล็บ (ไม่รวมกัน) · เกิน SLA = ค้าง > 90 วัน</div>';
+ h+='<div class="srwrap"><table class="srt"><thead><tr><th class="l">เดือน</th>'+SR.map(function(r){return '<th>'+r[0]+'</th>';}).join("")+'<th>รวม</th><th>aging<br>เฉลี่ย</th><th>เกิน<br>SLA</th></tr></thead><tbody>';
+ order.forEach(function(k){h+=row(byM[k].lbl,byM[k].rows.length+' ไซต์',byM[k].rows);});
+ h+=row("รวมทุกเดือน","",rows,"srtot")+'</tbody></table></div>';
+ return h;}
 function perfAll(p){
  var o1t=DATA.ratkit.o1.tasks.length,o1got=p.ratkit.got,regt=DATA.ratkit.reg.tasks.length,regDone=pcnt(DATA.ratkit.reg.tasks,DATA.ratkit.reg.final);
  var pend=DATA.nego.tasks.filter(function(t){return t.step!==DATA.nego.final;});
@@ -718,7 +766,7 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
    var prob=cc(r,7).replace(/^[0-9.]+\s*/,"");var sub=cc(r,6).replace(/^[0-9.]+\s*/,"");var note=cc(r,8).replace(/\s+/g," ").trim();
    var stat=prob||sub||"—";
    var why=stat+(note?" · "+note.slice(0,45):"");
-   var task={code:c,name:name,prov:cc(r,2),owner:own,step:stp,st:st,slatxt:sx,sk:sk,why:why||stp,stat:stat,substat:(cc(r,6)||"—"),note:note,kt:cc(r,25)};
+   var task={code:c,name:name,prov:cc(r,2),owner:own,step:stp,st:st,slatxt:sx,sk:sk,why:why||stp,stat:stat,substat:(cc(r,6)||"—"),note:note,kt:cc(r,25),ag:ag,signed:signed};
    if(!signed&&ag!=null){task.due=iso(new Date(TODAY.getTime()+(90-ag)*86400000));task.dueLbl="ครบ 90 วัน";}
    if(!signed)task.w={track:"nego",field:"signed",lbl:"✅ เซ็นสัญญาแล้ว (จบเจรจา)"};
    negT.push(task);}
