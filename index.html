@@ -1374,7 +1374,7 @@ async function openSite(code){
   const { data:insps } = await sb.from('inspections').select('id,phase').eq('store_code',code)
   const inspByPhase={}; (insps||[]).forEach(i=>inspByPhase[i.phase]=i)
   const ids=(insps||[]).map(i=>i.id); let events=[]
-  if(ids.length){ const {data}=await sb.from('check_events').select('inspection_id,checkpoint,round,status').in('inspection_id',ids); events=data||[] }
+  if(ids.length){ const {data}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,created_at').in('inspection_id',ids); events=data||[] }
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const signoffs=sg||[]
   const c=s.cs
@@ -1489,7 +1489,7 @@ function phaseStatus(phase, insp, events){
   const total=checkpoints.filter(c=>c.phase===phase).length
   if(!insp) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
   const evs=events.filter(e=>e.inspection_id===insp.id), cur={}
-  evs.forEach(e=>{ if(!cur[e.checkpoint]||e.round>cur[e.checkpoint].round) cur[e.checkpoint]=e })
+  evs.forEach(e=>{ const p=cur[e.checkpoint]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[e.checkpoint]=e })
   const ids=checkpoints.filter(c=>c.phase===phase).map(c=>String(c.id))
   const done=ids.filter(id=>cur[id]).length
   if(!done) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
@@ -1501,7 +1501,7 @@ function phaseStatus(phase, insp, events){
 // ---- Set-Up scoring (ถ่วงน้ำหนัก 8 หมวด = 100 → เกรด + แยกซัพหลัก/ย่อย) ----
 function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
 function computeSetupScore(events){
-  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   let total=0, gotMain=0,maxMain=0,gotSub=0,maxSub=0, doneItems=0,failItems=0,fixedItems=0,totalItems=0
   const sections=SETUP_SECTIONS.map(([ph,name,weight])=>{
     const items=checkpoints.filter(c=>c.phase===ph)
@@ -2092,7 +2092,7 @@ async function loadDashData(){
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
     if(cpPhase[e.checkpoint]>=200) return   // ข้าม event ของ Set-Up ในแดชบอร์ดก่อสร้าง
     const code=ins.store_code, a=agg[code]||(agg[code]={cur:{},last:null})
-    const k=e.checkpoint; if(!a.cur[k]||e.round>a.cur[k].round) a.cur[k]=e
+    const k=e.checkpoint,p=a.cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) a.cur[k]=e
     if(!a.last || (e.created_at&&e.created_at>a.last.at)) a.last={at:e.created_at,by:e.by} })
   const handovered=new Set((sgAll||[]).filter(x=>x.kind==='handover').map(x=>x.store_code))
   const head=isHead()
@@ -2246,7 +2246,7 @@ async function generateReport(code, phase){
   }
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const pickSig=(kind,scopeVal)=>{ const a=(sg||[]).filter(x=>x.kind===kind && (scopeVal==null||String(x.scope)===String(scopeVal))); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
-  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
   const phases = phase?[+phase]:PRECON.map(p=>p[0]).concat(PHASES.map(p=>p[0]))
   const scoreFor=pn=>{ const a=(sg||[]).filter(x=>String(x.scope)===String(pn)&&x.kind==='score'); if(!a.length) return null
@@ -2377,7 +2377,7 @@ async function generateSetupReport(code){
   const { data:sgCon } = await sb.from('signoffs').select('scope,kind,by,created_at').eq('store_code',code)
   const cmName=setupCmName(sgCon)
   const _ho=(sgCon||[]).find(x=>x.scope==='store'&&x.kind==='handover'); const cmDate=_ho?fmtDate(_ho.created_at):null
-  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
   const sc=computeSetupScore(events)
   const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543}`
@@ -2496,7 +2496,7 @@ async function generateSetupPunch(code){
     const {data:m}=await sb.from('media').select('checkpoint,path,kind').in('inspection_id',ids); media=m||[]
     for(const x of media){ const {data:u}=await sb.storage.from('media').createSignedUrl(x.path,3600); x.url=u?u.signedUrl:'' }
   }
-  const cur={}; events.forEach(e=>{ const k=e.checkpoint; if(!cur[k]||e.round>cur[k].round) cur[k]=e })
+  const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
   const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543} ${p2(dd.getHours())}:${p2(dd.getMinutes())}`
   let failN=0, fixN=0, body=''
