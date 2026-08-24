@@ -2258,14 +2258,14 @@ function statusTxt(s){ return s==='pass'?'ผ่าน':s==='fail'?'ไม่ผ
 function statusColor(s){ return s==='pass'?'#137a43':s==='fail'?'#c0392b':s==='fixed'?'#b06a00':s==='na'?'#777':'#999' }
 let _reportReturn=null
 // รูปในรายงาน: กดดู (แท็บใหม่) + ปุ่ม ⬇ โหลดลงเครื่อง (บังคับดาวน์โหลดผ่าน &download ของ Supabase) · ลิงก์อยู่ได้ ~1 ปี
-const REP_IMG_CSS = '.iw{position:relative;display:inline-block;margin:2px 3px 0 0;vertical-align:top}.iw img{display:block}.iw .dl{position:absolute;right:4px;bottom:4px;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:rgba(0,0,0,.74);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;line-height:1}.iw.vid{display:inline-flex;gap:8px;align-items:center;margin-right:8px}.iw .dlt{font-size:11px;color:#2d5bb8;text-decoration:none;font-weight:700;white-space:nowrap}'
+const REP_IMG_CSS = '.iw{position:relative;display:inline-block;margin:2px 3px 0 0;vertical-align:top;max-width:100%}.iw img{display:block;max-width:100%}.iw .dl{position:absolute;right:4px;bottom:4px;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:rgba(0,0,0,.74);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;line-height:1}.iw.vid{display:inline-flex;gap:8px;align-items:center;margin-right:8px}.iw .dlt{font-size:11px;color:#2d5bb8;text-decoration:none;font-weight:700;white-space:nowrap}'
 function repImg(m){ const u=m&&m.url||''; if(!u) return ''
   const fname=((m.path||'file').split('/').pop())||'file'
   const dl=u+(u.includes('?')?'&':'?')+'download='+encodeURIComponent(fname)
   if(m.kind==='video') return `<span class="iw vid"><a href="${u}" target="_blank" rel="noopener">🎥 วิดีโอ</a><a class="dlt" href="${dl}">⬇ โหลด</a></span>`
   return `<span class="iw"><a href="${u}" target="_blank" rel="noopener"><img src="${u}"></a><a class="dl" href="${dl}" title="โหลดรูปลงเครื่อง">⬇</a></span>` }
 // Before/After: แยกรูปด้วย "คนถ่าย" — รูปของ CM (คนแก้ = ผู้ส่ง fixed) = หลังแก้ · รูปคนอื่น = ก่อนแก้ (Set-Up ตีกลับ)
-const BA_CSS = '.ba{display:flex;gap:12px;margin-top:7px;flex-wrap:wrap}.bacol{flex:1;min-width:150px}.balb{font-size:11px;font-weight:800;margin-bottom:4px}.balb.bef{color:#c0392b}.balb.aft{color:#137a43}.baimgs{display:flex;flex-wrap:wrap}.baempty{color:#999;font-size:11px}'
+const BA_CSS = '.ba{display:flex;gap:12px;margin-top:7px;flex-wrap:wrap}.bacol{flex:1;min-width:150px}.balb{font-size:11px;font-weight:800;margin-bottom:4px}.balb.bef{color:#c0392b}.balb.aft{color:#137a43}.baimgs{display:flex;flex-wrap:wrap}.baimgs img{width:92px;height:92px;object-fit:cover;border-radius:7px;margin:2px;border:1px solid #cfe0d4}.baempty{color:#999;font-size:11px}'
 function baHtml(ims, cmUid){
   const after=ims.filter(m=>m.by&&m.by===cmUid), before=ims.filter(m=>!m.by||m.by!==cmUid)
   const col=(arr)=>arr.length?arr.map(repImg).join(''):'<span class="baempty">— ไม่มีรูป —</span>'
