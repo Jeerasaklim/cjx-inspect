@@ -1427,14 +1427,14 @@ async function openSite(code){
       const sc=computeSetupScore(events)
       html += `<div class="sec">ตรวจรับร้าน (Set-Up · NSA)</div>`
       if(_isCM && sc.failItems) html += `<div class="lockbar" style="border-color:#5a2a2a;background:#2a1414;color:#ffb4b4">🔧 Set-Up ตีกลับ ${sc.failItems} รายการ — แตะหมวดที่มี “ไม่ผ่าน” เข้าไปแนบรูปที่แก้แล้ว</div>`
-      html += `<div class="suScore g-${sc.grade}">
-        <div class="suGrade">${sc.doneItems?sc.grade:'—'}</div>
-        <div class="suMeta"><div class="suNum">${sc.total.toFixed(0)}<span>/100</span></div>
+      html += `<div class="suScore g-${sc.allDone?sc.grade:'none'}">
+        <div class="suGrade"${sc.allDone?'':' style="color:var(--faint)"'}>${sc.allDone?sc.grade:'—'}</div>
+        <div class="suMeta"><div class="suNum">${sc.allDone? sc.total.toFixed(0)+'<span>/100</span>' : sc.doneItems+'<span>/'+sc.totalItems+' ข้อ</span>'}</div>
           <div class="suSub">ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?` · <b style="color:var(--fail)">${sc.failItems} ไม่ผ่าน</b>`:''}${sc.fixedItems?` · <b style="color:var(--build)">${sc.fixedItems} รอตรวจซ้ำ</b>`:''}</div>
           <div class="suSup">ซัพหลัก ${sc.main.pct.toFixed(0)}% · ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div></div>`
       if(sc.doneItems){ const suN=setupMaxRound(events)
         const chips=[]; for(let rr=1; rr<=suN; rr++){ const rsc=computeSetupScore(events,rr)
-          chips.push(`<div class="srchip${rr===suN?' cur':''}"><b>รอบ ${rr}${rr===suN?' (ล่าสุด)':''}</b><span class="srg g-${rsc.grade}">${rsc.doneItems?rsc.grade:'—'}</span><small>${rsc.total.toFixed(0)}/100${rsc.failItems?` · ${rsc.failItems} ไม่ผ่าน`:''}</small></div>`) }
+          chips.push(`<div class="srchip${rr===suN?' cur':''}"><b>รอบ ${rr}${rr===suN?' (ล่าสุด)':''}</b><span class="srg g-${rsc.allDone?rsc.grade:'none'}"${rsc.allDone?'':' style="color:var(--faint)"'}>${rsc.allDone?rsc.grade:'—'}</span><small>${rsc.allDone? rsc.total.toFixed(0)+'/100' : 'ตรวจ '+rsc.doneItems+'/'+rsc.totalItems}${rsc.failItems?` · ${rsc.failItems} ไม่ผ่าน`:''}</small></div>`) }
         html += `<div class="suRounds"><div class="srh">🔁 Set-Up ตรวจ <b>${suN}</b> รอบ${suN>1?` · แก้ไป ${suN-1} รอบ`:''} <span>· เกรดใหญ่ด้านบน = รอบล่าสุด</span></div><div class="srchips">${chips.join('')}</div></div>` }
       html += SETUP_SECTIONS.map(([n,name,w])=>{ const st=phaseStatus(n, inspByPhase[n], events)
         const sec=sc.sections.find(x=>x.phase===n)||{earned:0}
@@ -2093,10 +2093,11 @@ function renderSetupList(){
   const label = flab ? `รายสาขา · <span style="color:var(--yellow)">${flab} ✕ ล้างตัวกรอง</span>` : 'รายสาขา · เรียงตามความเร่งด่วน'
   if(!list.length){ w.innerHTML=`<div class="dlab" id="sfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div><div class="spin">${flab?'ไม่มีสาขาในกลุ่มนี้':'ไม่พบสาขาที่ค้นหา'}</div>`
     const s0=$('sfl'); if(s0&&flab) s0.onclick=()=>{ _suFilter='all'; renderSetupDash() }; return }
-  w.innerHTML = `<div class="dlab" id="sfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div>`+list.map(r=>{ const gc=r.done?gradeColor(r.grade):'var(--faint)'
-      return `<div class="urow2" data-code="${esc(r.code)}"><div class="sugrd" style="color:${gc};border-color:${gc}44">${r.done?r.grade:'—'}</div>
+  w.innerHTML = `<div class="dlab" id="sfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div>`+list.map(r=>{ const gc=r.allDone?gradeColor(r.grade):'var(--faint)'
+      const prog = !r.done ? 'ยังไม่เริ่มตรวจรับ' : (r.allDone ? r.score.toFixed(0)+'/100 · เกรด '+r.grade : 'กำลังตรวจ '+r.done+'/'+r.total+' ('+Math.round(r.done/r.total*100)+'%)')
+      return `<div class="urow2" data-code="${esc(r.code)}"><div class="sugrd" style="color:${gc};border-color:${gc}44">${r.allDone?r.grade:'—'}</div>
         <div class="um"><div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
-          <div style="font-size:10px;color:var(--faint)">${r.done?r.score.toFixed(0)+'/100 · ตรวจ '+r.done+'/'+r.total:'ยังไม่เริ่มตรวจรับ'}${r.fail?' · <span style="color:var(--fail)">'+r.fail+' ไม่ผ่าน</span>':''}${r.signed?' · <span style="color:var(--pass)">เซ็นแล้ว ✓</span>':''}</div></div>
+          <div style="font-size:10px;color:var(--faint)">${prog}${r.fail?' · <span style="color:var(--fail)">'+r.fail+' ไม่ผ่าน</span>':''}${r.signed?' · <span style="color:var(--pass)">เซ็นแล้ว ✓</span>':''}</div></div>
         <div style="font-size:10px;color:var(--faint);text-align:right;white-space:nowrap">${r.days!=null?'เปิดใน '+r.days+' วัน':''}</div></div>` }).join('')
   w.querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
   const s1=$('sfl'); if(s1&&flab) s1.onclick=()=>{ _suFilter='all'; renderSetupDash() }
@@ -2425,7 +2426,7 @@ async function generateSetupReport(code){
   // ประวัติการตรวจแต่ละรอบ (เกรด/คะแนน ณ สิ้นแต่ละรอบ)
   const suN=setupMaxRound(events)
   let roundHist=''
-  if(suN>1){ const rr=[]; for(let i=1;i<=suN;i++){ const rsc=computeSetupScore(events,i); rr.push(`<li>รอบ ${i}${i===suN?' (สุดท้าย)':''}: เกรด <b>${rsc.doneItems?rsc.grade:'—'}</b> · ${rsc.total.toFixed(0)}/100${rsc.failItems?` · <span style="color:#c0392b">${rsc.failItems} ไม่ผ่าน</span>`:' · ผ่านครบ'}</li>`) }
+  if(suN>1){ const rr=[]; for(let i=1;i<=suN;i++){ const rsc=computeSetupScore(events,i); rr.push(`<li>รอบ ${i}${i===suN?' (สุดท้าย)':''}: เกรด <b>${rsc.allDone?rsc.grade:'—'}</b> · ${rsc.total.toFixed(0)}/100${rsc.failItems?` · <span style="color:#c0392b">${rsc.failItems} ไม่ผ่าน</span>`:' · ผ่านครบ'}</li>`) }
     roundHist=`<div class="rhist"><b>🔁 Set-Up ตรวจทั้งหมด ${suN} รอบ (แก้ไป ${suN-1} รอบ)</b><ul>${rr.join('')}</ul></div>` }
   // ---- สรุปจุดที่ไม่ผ่าน (รวม "รอตรวจซ้ำ") + รูป ----
   const suFail=[]
