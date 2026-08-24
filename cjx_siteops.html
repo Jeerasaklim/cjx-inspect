@@ -216,7 +216,17 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .srt .srsub{font-size:10.5px;color:var(--faint);font-weight:400;margin-left:6px}
 .srt .srwip{color:var(--faint);font-size:11px}.srt .z{color:var(--faint)}
 .srt td.tot{background:var(--surface2)}.srt td.ov{color:var(--bad);font-weight:700}
-.srt tr.srtot td{border-top:2px solid var(--border);background:var(--surface2)}
+.srt tr.srtot td{border-top:2px solid var(--border);background:var(--surface2);font-weight:700}
+.srt tr.srg td{cursor:pointer;font-weight:700;background:var(--surface2)}
+.srt tr.srg:hover td{background:var(--track)}
+.srt tr.srsub td{background:var(--surface);font-weight:500;color:var(--muted)}
+.srt tr.srsub td.l{padding-left:30px;font-weight:600}
+.srt .sscar{display:inline-block;width:12px;font-size:9px;color:var(--faint);margin-right:4px;transition:transform .15s}
+.srt .sscar.open{transform:rotate(90deg)}
+.srt .srsub2{font-size:10.5px;color:var(--faint);font-weight:400;margin-left:8px}
+.srt b.srg1,.srt th.g1{color:var(--good)}.srt b.srg2,.srt th.g2{color:var(--yd)}.srt b.srg3,.srt th.g3{color:var(--warn)}.srt b.srg4,.srt th.g4{color:var(--bad)}
+.sract{display:flex;gap:12px;justify-content:flex-end;margin-bottom:8px}
+.sract button{border:none;background:none;color:var(--accent);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12px;cursor:pointer;text-decoration:underline}
 .hbwrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
 .hb{display:flex;align-items:center;gap:11px;margin-bottom:9px}.hb:last-child{margin-bottom:0}
 .hb.clk{cursor:pointer;border-radius:8px;padding:3px 6px;margin-left:-6px;margin-right:-6px}.hb.clk:hover{background:var(--surface2)}
@@ -372,6 +382,7 @@ function applyUserUI(){var boss=(CURRENT_USER==="__boss__");var chip=document.ge
  document.getElementById("mb-boss").style.display=boss?"":"none";}
 function av(nm){var c=(nm&&nm!=="(ไม่ระบุ)")?nm.trim().charAt(0):"?";return '<span class="av">'+esc(c)+'</span>';}
 function tasksFor(){var t=md().tasks;var w=curUser();if(w&&w!=="__all__")t=t.filter(function(x){return x.owner===w;});return t;}
+function scopeTasks(){var t=tasksFor();if(FOWN)t=t.filter(function(x){return (x.owner||"(ไม่ระบุ)")===FOWN;});return t;}   /* งานของคนที่เลือก (KPI + flow คิดตามนี้) */
 var STC={red:"var(--bad)",amber:"var(--warn)",green:"var(--good)",none:"var(--faint)",done:"var(--good)"};
 var STW={red:100,amber:65,green:36,none:12,done:100};
 function slaCell(t){return '<div class="slacell"><span class="slatop sla-'+t.st+'">'+esc(t.slatxt)+'</span><span class="slabar"><i style="width:'+STW[t.st]+'%;background:'+STC[t.st]+'"></i></span></div>';}
@@ -381,11 +392,13 @@ function fillWho(){var sel=document.getElementById("who");document.getElementByI
  document.getElementById("who-lbl").style.display=showSel?"":"none";document.querySelector(".who-w").style.display=showSel?"":"none";
  if(!showSel)return;
  var ow=md().owners;var h='<option value="__all__">👥 ทั้งทีม ('+md().tasks.length+' งาน)</option>';for(var i=0;i<ow.length;i++){var n=md().tasks.filter(function(x){return x.owner===ow[i];}).length;h+='<option value="'+esc(ow[i])+'">👤 '+esc(ow[i])+' ('+n+')</option>';}sel.innerHTML=h;}
-function kpis(team){var p=DATA.perf;var over=team.filter(function(t){return t.st==="red";}).length;
- if(MODE==="nego")return [{v:p.nego.pending,l:"📄 สัญญาที่ต้องทำ (ค้าง)"},{v:over,l:"🔴 ค้างเกิน 90 วัน",c:"bad"},{v:p.nego.at_sign,l:"✍️ รอเซ็นสัญญา"},{v:p.nego.final,l:"✅ เซ็นแล้ว (จบ)",c:"good"},{v:p.nego.close_pct+"%",l:"อัตราเซ็นสะสม"}];
- var near=team.filter(function(t){return t.st==="amber";}).length;
+function kpis(team){var over=team.filter(function(t){return t.st==="red";}).length;var near=team.filter(function(t){return t.st==="amber";}).length;
+ var S=md().steps,fin=md().final;var signed=team.filter(function(t){return t.step===fin;}).length;
+ if(MODE==="nego"){var atsign=team.filter(function(t){return t.step===(S[2]&&S[2].stp);}).length;var pct=team.length?Math.round(100*signed/team.length):0;
+   return [{v:team.length-signed,l:"📄 สัญญาที่ต้องทำ (ค้าง)"},{v:over,l:"🔴 ค้างเกิน 90 วัน",c:"bad"},{v:atsign,l:"✍️ รอเซ็นสัญญา"},{v:signed,l:"✅ เซ็นแล้ว",c:"good"},{v:pct+"%",l:"อัตราเซ็น"}];}
  if(MODE==="ratkit"&&RATSUB==="reg"){var done=team.filter(function(t){return t.st==="done";}).length;return [{v:team.length,l:"📋 สาขากำลังทำทะเบียน"},{v:over,l:"🔴 เลยเดดไลน์ D-day",c:"bad"},{v:near,l:"🟠 ใกล้ D-day ≤7 วัน",c:"warn"},{v:done,l:"✅ ทะเบียนครบ",c:"good"},{v:team.length-done,l:"ยังไม่จบ"}];}
- return [{v:p.ratkit.prep,l:"📑 ติดตามเอกสาร / เตรียม"},{v:p.ratkit.wait,l:"🔎 ยื่น อ.1 · ติดตามผล"},{v:over,l:"🔴 เกิน SLA",c:"bad"},{v:p.ratkit.got,l:"✅ อ.1 ออกแล้ว",c:"good"},{v:p.ratkit.waiver,l:"🏗️ อนุโลม (คู่ขนาน)",c:"warn"}];}
+ var trkStep=(S[3]&&S[3].stp);var trk=team.filter(function(t){return t.step===trkStep;}).length;var wv=team.filter(function(t){return t.waiver;}).length;
+ return [{v:team.length-signed-trk,l:"📑 ติดตามเอกสาร / เตรียม"},{v:trk,l:"🔎 ติดตาม อ.1",c:"warn"},{v:over,l:"🔴 เกิน SLA",c:"bad"},{v:signed,l:"✅ อ.1 ออกแล้ว",c:"good"},{v:wv,l:"🏗️ อนุโลม",c:"warn"}];}
 function render(){
  document.getElementById("upd").textContent=DATA.updated;
  document.getElementById("belln").textContent=DATA.perf.nego.over+DATA.perf.ratkit.over+DATA.perf.ratkit.reg_over;
@@ -396,7 +409,7 @@ function render(){
  var el=document.getElementById("body");
  if(MODE==="boss"){el.innerHTML=renderBoss();return;}
  if(MODE==="cal"){el.innerHTML=renderCal();return;}
- var tasks=tasksFor();var team=md().tasks;var ss=steps();
+ var team=scopeTasks();var tasks=team;var ss=steps();
  var b="";
  if(MODE==="ratkit")b+='<div class="seg" style="display:inline-flex;margin-bottom:16px"><button class="'+(RATSUB==="o1"?"on":"")+'" onclick="setSub(\'o1\')">🎫 งาน อ.1 ('+DATA.ratkit.o1.tasks.length+')</button><button class="'+(RATSUB==="reg"?"on":"")+'" onclick="setSub(\'reg\')">📋 งานทะเบียน ('+DATA.ratkit.reg.tasks.length+')</button></div>';
  b+='<div class="kpis">'+kpis(team).map(function(k){return '<div class="kpi '+(k.c||"")+'"><div class="v tnum">'+k.v+'</div><div class="l">'+k.l+'</div></div>';}).join("")+'</div>';
@@ -414,9 +427,16 @@ function render(){
  var q=document.getElementById("q");if(q&&SEARCH){q.focus();q.setSelectionRange(SEARCH.length,SEARCH.length);}
 }
 function sfield(x){return (x.substat&&x.substat!=="—")?x.substat:x.stat;}
-function statusFilterHtml(){var t=tasksFor();var s={};t.forEach(function(x){var v=sfield(x);if(v&&v!=="—")s[v]=(s[v]||0)+1;});var ks=Object.keys(s).sort();if(!ks.length)return "";var h='<select class="fbox" onchange="FSTAT=this.value;filterTable()"><option value="">🏷️ ทุกสถานะ (Sub)</option>';ks.forEach(function(k){h+='<option value="'+esc(k)+'"'+(FSTAT===k?" selected":"")+'>'+esc(k)+' ('+s[k]+')</option>';});return h+'</select>';}
-function personFilterHtml(){var t=tasksFor();var s={};t.forEach(function(x){var o=x.owner||"(ไม่ระบุ)";s[o]=(s[o]||0)+1;});var ks=Object.keys(s).sort(function(a,b){return s[b]-s[a];});if(ks.length<2)return "";var h='<select class="fbox" onchange="FOWN=this.value;filterTable()"><option value="">👥 ทุกคน</option>';ks.forEach(function(k){h+='<option value="'+esc(k)+'"'+(FOWN===k?" selected":"")+'>👤 '+esc(k)+' ('+s[k]+')</option>';});return h+'</select>';}
-function visRows(){var t=tasksFor();if(ACTIVE)t=t.filter(function(x){return x.step===ACTIVE;});if(FCAT&&MODE==="nego")t=t.filter(function(x){return blockerCat(x.stat)===FCAT;});if(FOWN)t=t.filter(function(x){return (x.owner||"(ไม่ระบุ)")===FOWN;});if(FSTAT)t=t.filter(function(x){return sfield(x)===FSTAT;});if(SEARCH){var q=SEARCH.toLowerCase();t=t.filter(function(x){return ((x.code||"")+" "+(x.name||"")+" "+(x.why||"")+" "+(x.owner||"")+" "+(x.prov||"")).toLowerCase().indexOf(q)>=0;});}return t.slice().sort(bySk);}
+function applyF(t,skip){
+ if(ACTIVE&&skip!=="step")t=t.filter(function(x){return x.step===ACTIVE;});
+ if(FCAT&&MODE==="nego"&&skip!=="cat")t=t.filter(function(x){return blockerCat(x.stat)===FCAT;});
+ if(FOWN&&skip!=="own")t=t.filter(function(x){return (x.owner||"(ไม่ระบุ)")===FOWN;});
+ if(FSTAT&&skip!=="stat")t=t.filter(function(x){return sfield(x)===FSTAT;});
+ if(SEARCH&&skip!=="q"){var q=SEARCH.toLowerCase();t=t.filter(function(x){return ((x.code||"")+" "+(x.name||"")+" "+(x.why||"")+" "+(x.owner||"")+" "+(x.prov||"")).toLowerCase().indexOf(q)>=0;});}
+ return t;}
+function statusFilterHtml(){var t=applyF(tasksFor(),"stat");var s={};t.forEach(function(x){var v=sfield(x);if(v&&v!=="—")s[v]=(s[v]||0)+1;});var ks=Object.keys(s).sort();if(!ks.length&&!FSTAT)return "";var h='<select class="fbox" onchange="FSTAT=this.value;filterTable()"><option value="">🏷️ ทุกสถานะ (Sub)</option>';ks.forEach(function(k){h+='<option value="'+esc(k)+'"'+(FSTAT===k?" selected":"")+'>'+esc(k)+' ('+s[k]+')</option>';});return h+'</select>';}
+function personFilterHtml(){var t=applyF(tasksFor(),"own");var s={};t.forEach(function(x){var o=x.owner||"(ไม่ระบุ)";s[o]=(s[o]||0)+1;});var ks=Object.keys(s).sort(function(a,b){return s[b]-s[a];});if(ks.length<2&&!FOWN)return "";var h='<select class="fbox" onchange="FOWN=this.value;render()"><option value="">👥 ทุกคน</option>';ks.forEach(function(k){h+='<option value="'+esc(k)+'"'+(FOWN===k?" selected":"")+'>👤 '+esc(k)+' ('+s[k]+')</option>';});return h+'</select>';}
+function visRows(){return applyF(tasksFor(),"").slice().sort(bySk);}
 function filterTable(){var list=visRows();var b=document.getElementById("tblbox");if(b)b.innerHTML=tableHtml(list);var c=document.getElementById("cnt");if(c)c.textContent=list.length;}
 function tableHtml(list){
  if(!list.length)return '<div class="tblwrap"><table><tbody><tr><td style="text-align:center;color:var(--faint);padding:34px">ไม่มีงานในมุมนี้ 🎉</td></tr></tbody></table></div>';
@@ -556,8 +576,11 @@ function openTrackModal(trk){var p=DATA.perf;var title,body;
  document.getElementById("tmodal").innerHTML='<div class="tmbox"><div class="tmhead"><div class="tmt">'+title+'</div><button class="tmx" onclick="closeTrackModal()">✕</button></div><div class="tmbody">'+body+'</div></div>';
  document.getElementById("tmodal").classList.add("on");document.getElementById("tmscrim").classList.add("on");}
 function closeTrackModal(){document.getElementById("tmodal").classList.remove("on");document.getElementById("tmscrim").classList.remove("on");}
+var SR_OPEN={},SR_ALLOPEN=false;
+function srToggle(id){SR_OPEN[id]=!SR_OPEN[id];render();}
+function srAll(on){SR_ALLOPEN=on;if(!on)SR_OPEN={};render();}
 function agingTableHtml(){
- var SR=[["≤1wk",5],["1-2wk",10],["3-4wk",20],["5-6wk",30],["7-8wk",40],["8-12wk",60],["12-16wk",80],[">16wk",1e9]];
+ var SR=[["≤1wk",5,"g1"],["1-2wk",10,"g1"],["3-4wk",20,"g2"],["5-6wk",30,"g2"],["7-8wk",40,"g3"],["8-12wk",60,"g3"],["12-16wk",80,"g4"],[">16wk",1e9,"g4"]];
  function buck(ag){var w=Math.round(ag*5/7);for(var i=0;i<SR.length;i++)if(w<=SR[i][1])return i;return 7;}
  var EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
  var rows=DATA.nego.tasks.filter(function(t){return t.ag!=null&&t.ag>=0&&t.ag<=1000;});
@@ -567,14 +590,20 @@ function agingTableHtml(){
  function cells(rs){var b=[0,0,0,0,0,0,0,0];rs.forEach(function(t){b[buck(t.ag)]++;});return b;}
  function avg(rs){if(!rs.length)return null;var s=0;rs.forEach(function(t){s+=t.ag;});return Math.round(s/rs.length);}
  function over(rs){var n=0;rs.forEach(function(t){if(t.ag>90)n++;});return n;}
- function row(lbl,sub,rs,cls){var done=[],wip=[];rs.forEach(function(t){(t.signed?done:wip).push(t);});var cd=cells(done),cw=cells(wip);
-   var s='<tr class="'+(cls||"")+'"><td class="l">'+esc(lbl)+(sub?'<span class="srsub">'+esc(sub)+'</span>':'')+'</td>';
-   for(var i=0;i<8;i++){s+='<td>'+(cd[i]?'<b>'+cd[i]+'</b>':'<span class="z">–</span>')+(cw[i]?' <span class="srwip">('+cw[i]+')</span>':'')+'</td>';}
-   s+='<td class="tot"><b>'+done.length+'</b>'+(wip.length?' <span class="srwip">('+wip.length+')</span>':'')+'</td><td>'+(avg(rs)==null?'–':avg(rs)+'D')+'</td><td class="'+(over(rs)>0?'ov':'')+'">'+(over(rs)||'–')+'</td></tr>';return s;}
- var h='<div class="srnote">ช่วงอายุ = วันทำการ (โดยประมาณ) นับจากเริ่มเจรจา · ตัวเลขหลัก = <b>เซ็นแล้ว</b> · <span class="srwip">(ยังไม่เซ็น)</span> ในวงเล็บ (ไม่รวมกัน) · เกิน SLA = ค้าง > 90 วัน</div>';
- h+='<div class="srwrap"><table class="srt"><thead><tr><th class="l">เดือน</th>'+SR.map(function(r){return '<th>'+r[0]+'</th>';}).join("")+'<th>รวม</th><th>aging<br>เฉลี่ย</th><th>เกิน<br>SLA</th></tr></thead><tbody>';
- order.forEach(function(k){h+=row(byM[k].lbl,byM[k].rows.length+' ไซต์',byM[k].rows);});
- h+=row("รวมทุกเดือน","",rows,"srtot")+'</tbody></table></div>';
+ function tail(rs){return '<td class="tot"><b>'+rs.filter(function(t){return t.signed;}).length+'</b>'+(rs.filter(function(t){return !t.signed;}).length?' <span class="srwip">('+rs.filter(function(t){return !t.signed;}).length+')</span>':'')+'</td><td>'+(avg(rs)==null?'–':avg(rs)+'D')+'</td><td class="'+(over(rs)>0?'ov':'')+'">'+(over(rs)||'–')+'</td>';}
+ function monthRow(key){var m=byM[key];var done=[],wip=[];m.rows.forEach(function(t){(t.signed?done:wip).push(t);});var cd=cells(done),cw=cells(wip);var open=SR_ALLOPEN||SR_OPEN["r:"+key];
+   var s='<tr class="srg" onclick="srToggle(\'r:'+key+'\')"><td class="l"><span class="sscar'+(open?" open":"")+'">▸</span>'+esc(m.lbl)+'<span class="srsub2">'+m.rows.length+' ไซต์</span></td>';
+   for(var i=0;i<8;i++){s+='<td>'+(cd[i]?'<b class="sr'+SR[i][2]+'">'+cd[i]+'</b>':'<span class="z">–</span>')+(cw[i]?' <span class="srwip">('+cw[i]+')</span>':'')+'</td>';}
+   s+=tail(m.rows)+'</tr>';
+   if(open){var sub=function(lbl,rs){var c=cells(rs);var x='<tr class="srsub"><td class="l">'+lbl+'</td>';for(var i=0;i<8;i++)x+='<td>'+(c[i]?c[i]:'<span class="z">–</span>')+'</td>';x+='<td class="tot">'+rs.length+'</td><td>'+(avg(rs)==null?'–':avg(rs)+'D')+'</td><td class="'+(over(rs)>0?'ov':'')+'">'+(over(rs)||'–')+'</td></tr>';return x;};
+     s+=sub("✅ เซ็นแล้ว",done)+sub("⏳ ยังไม่เซ็น",wip);}
+   return s;}
+ function totRow(){var done=[],wip=[];rows.forEach(function(t){(t.signed?done:wip).push(t);});var cd=cells(done),cw=cells(wip);var s='<tr class="srtot"><td class="l">รวมทุกเดือน</td>';for(var i=0;i<8;i++){s+='<td>'+(cd[i]?'<b class="sr'+SR[i][2]+'">'+cd[i]+'</b>':'<span class="z">–</span>')+(cw[i]?' <span class="srwip">('+cw[i]+')</span>':'')+'</td>';}return s+tail(rows)+'</tr>';}
+ var h='<div class="sract"><button onclick="srAll(true)">ขยายทั้งหมด</button><button onclick="srAll(false)">ย่อทั้งหมด</button></div>';
+ h+='<div class="srwrap"><table class="srt"><thead><tr><th class="l">เดือน</th>'+SR.map(function(r){return '<th class="'+r[2]+'">'+r[0]+'</th>';}).join("")+'<th class="tot">รวม</th><th>aging<br>เฉลี่ย</th><th>เกิน<br>SLA</th></tr></thead><tbody>';
+ order.forEach(function(k){h+=monthRow(k);});
+ h+=totRow()+'</tbody></table></div>';
+ h+='<div class="srnote">คลิกเดือนเพื่อกางดู <b>เซ็นแล้ว</b> / <b>ยังไม่เซ็น</b> · ช่วงอายุ = วันทำการโดยประมาณ (5/10/20/30/40/60/80 วัน) นับจากเริ่มเจรจา · ตัวเลขหลัก = เซ็นแล้ว · <span class="srwip">(ยังไม่เซ็น)</span> ในวงเล็บ ไม่รวมกัน · เกิน SLA = ค้าง > 90 วัน</div>';
  return h;}
 function perfAll(p){
  var o1t=DATA.ratkit.o1.tasks.length,o1got=p.ratkit.got,regt=DATA.ratkit.reg.tasks.length,regDone=pcnt(DATA.ratkit.reg.tasks,DATA.ratkit.reg.final);
