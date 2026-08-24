@@ -96,7 +96,9 @@
   .ins{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
   @media(max-width:820px){.ins{grid-template-columns:1fr}}
   .inscard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 17px}
-  .inst{font-size:13px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .inst{font-size:13px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:7px}
+  .insrep{font-size:11px;font-weight:700;color:var(--y);cursor:pointer;white-space:nowrap}
+  .insrep:hover{text-decoration:underline}
   .inssub{font-size:11px;color:var(--faint);margin-bottom:8px}
   .insrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
   .insrow:first-of-type{border-top:0}
@@ -290,7 +292,7 @@ function render(){
   $('body').innerHTML = toggle + kpis + `<div class="statusbar">${bar}</div><div class="lg">${lg}</div>`
     + insightsHtml(false) + searchBarHtml() + `<div id="listWrap">${conListHtml()}</div>`
   $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
-  wireSearch(); wireList(); wireMode()
+  wireSearch(); wireList(); wireMode(); wireInsights()
 }
 function conListHtml(){
   let list=[..._rows]
@@ -331,14 +333,14 @@ function contractorSummary(){ const m={}
 function insRows(items, render){ return items.length? items.map((x,i)=>render(x,i)).join('') : '<div class="insempty">— ยังไม่มีข้อมูล —</div>' }
 function insightsHtml(setup){
   const tf=topFails(setup); const maxN=Math.max(1,...tf.map(x=>x.n))
-  const left=`<div class="inscard"><div class="inst">🔧 จุดที่ไม่ผ่านบ่อยสุด</div><div class="inssub">นับสาขาที่ข้อนี้กำลัง “ไม่ผ่าน” — ${setup?'งานตรวจรับ':'งานก่อสร้าง'}</div>`+
+  const left=`<div class="inscard"><div class="inst"><span>🔧 จุดที่ไม่ผ่านบ่อยสุด</span>${setup?'<span class="insrep" id="repSetupProb">รายงานปัญหา →</span>':''}</div><div class="inssub">นับสาขาที่ข้อนี้กำลัง “ไม่ผ่าน” — ${setup?'งานตรวจรับ':'งานก่อสร้าง'}</div>`+
     insRows(tf,(x,i)=>`<div class="insrow"><span class="rk">${i+1}</span><span class="lbl">${esc(x.cp.label)}${x.cp.phase_name?` <small>· ${esc((x.cp.phase_name||'').replace('ตรวจรับ · ',''))}</small>`:''}</span><span class="insbar"><i style="width:${x.n/maxN*100}%;background:var(--fail)"></i></span><span class="cnt" style="color:var(--fail)">${x.n}</span></div>`)+`</div>`
   let right
   if(setup){ const rows=[..._suRows].filter(r=>r.done>0).sort((a,b)=>a.score-b.score).slice(0,7); const gc=g=>gradeColor(g)
     right=`<div class="inscard"><div class="inst">⚠ สาขาคะแนนตรวจรับต่ำสุด</div><div class="inssub">ควรตามงานก่อน</div>`+
       insRows(rows,(r)=>`<div class="insrow"><span class="lbl">${esc(r.name)} <small>· ${r.fail} ไม่ผ่าน</small></span><span class="insbar"><i style="width:${r.score}%;background:${gc(r.grade)}"></i></span><span class="cnt" style="color:${gc(r.grade)}">${r.score.toFixed(0)}</span></div>`)+`</div>`
   } else { const cs=contractorSummary(); const maxF=Math.max(1,...cs.map(x=>x.fail))
-    right=`<div class="inscard"><div class="inst">🏢 สรุปตามผู้รับเหมา (ผรม.)</div><div class="inssub">จำนวนสาขา · จุดที่ต้องแก้ · ความคืบหน้าเฉลี่ย</div>`+
+    right=`<div class="inscard"><div class="inst"><span>🏢 สรุปตามผู้รับเหมา (ผรม.)</span><span class="insrep" id="repContractor">รายงานประเมิน →</span></div><div class="inssub">จำนวนสาขา · จุดที่ต้องแก้ · ความคืบหน้าเฉลี่ย</div>`+
       insRows(cs,(x)=>`<div class="insrow"><span class="lbl">${esc(x.name)} <small>· ${x.n} สาขา · เฉลี่ย ${x.avgPct}%</small></span><span class="insbar"><i style="width:${x.fail/maxF*100}%;background:var(--fail)"></i></span><span class="cnt" style="color:${x.fail?'var(--fail)':'var(--faint)'}">${x.fail}</span></div>`)+`</div>`
   }
   return `<div class="ins">${left}${right}</div>`
@@ -431,7 +433,7 @@ function renderSetup(toggle){
   </div>`
   $('body').innerHTML = toggle + kpis + insightsHtml(true) + searchBarHtml() + `<div id="listWrap">${setupListHtml()}</div>`
   $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
-  wireSearch(); wireList(); wireMode()
+  wireSearch(); wireList(); wireMode(); wireInsights()
 }
 function setupListHtml(){
   let list=[..._suRows]
@@ -568,6 +570,68 @@ async function genReport(code){
     ${failHtml}${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจ</p>'}${signHtml}</body></html>`
   const w=window.open('','_blank'); if(!w){ alert('เปิดแท็บใหม่ไม่ได้ — โปรดอนุญาต popup ของเว็บนี้'); return }
   w.document.write(html); w.document.close()
+}
+
+function wireInsights(){
+  const a=$('repContractor'); if(a) a.onclick=genContractorReport
+  const b=$('repSetupProb'); if(b) b.onclick=genSetupProblemReport
+}
+function openReport(title, inner){
+  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${R_CSS}
+    .rtbl{width:100%;border-collapse:collapse;margin-top:8px}.rtbl th{background:#f4f4f4;text-align:left;font-size:11px;color:#555;padding:8px;border:1px solid #e2e2e2;white-space:nowrap}
+    .rtbl td{padding:8px;border:1px solid #e8e8e8;font-size:12.5px;vertical-align:top}.rtbl td.c{text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .cgrp{border:1px solid #e5e5e5;border-radius:12px;padding:14px 16px;margin-bottom:12px;page-break-inside:avoid}
+    .cghd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+    .cgname{font-weight:800;font-size:15px}.cgmeta{font-size:12px;color:#666}
+    .pill{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:2px 9px;margin-left:6px}
+    .stlist{font-size:12px;color:#444}.stlist .sr{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid #f0f0f0}
+    .rank{font-family:monospace;color:#c0392b;font-weight:800}
+    .grade{font-family:monospace;font-weight:800}
+  </style></head><body>
+    <div class="noprint"><button onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button></div>
+    <div class="cert"><div class="brand">CJ<b>X</b> INSPECT</div>${inner}</div>
+  </body></html>`
+  const w=window.open('','_blank'); if(!w){ alert('เปิดแท็บใหม่ไม่ได้ — โปรดอนุญาต popup'); return }
+  w.document.write(html); w.document.close()
+}
+// รายงานประเมิน ผรม.เหมาแต่ละเจ้า
+function genContractorReport(){
+  const suByCode={}; _suRows.forEach(r=>suByCode[r.code]=r)
+  const m={}
+  _rows.forEach(r=>{ const c=r.contractor||'— ไม่ระบุ ผรม. —'; const a=m[c]||(m[c]={st:[],fail:0,pctSum:0,done100:0,scSum:0,scN:0})
+    a.st.push(r); a.fail+=r.fail; a.pctSum+=r.pct; if(r.total&&r.done>=r.total&&r.fail===0)a.done100++
+    const su=suByCode[r.code]; if(su&&su.done){ a.scSum+=su.score; a.scN++ } })
+  const list=Object.keys(m).map(c=>{ const a=m[c]
+    return {name:c,n:a.st.length,fail:a.fail,avgPct:Math.round(a.pctSum/a.st.length),failAvg:(a.fail/a.st.length),done100:a.done100,avgScore:a.scN?Math.round(a.scSum/a.scN):null,st:a.st} })
+    .sort((x,y)=>y.fail-x.fail||y.n-x.n)
+  const dd=new Date(),p=n=>String(n).padStart(2,'0'),today=`${p(dd.getDate())}/${p(dd.getMonth()+1)}/${dd.getFullYear()+543}`
+  let body=`<h1>รายงานประเมินผู้รับเหมา (ผรม.)</h1><div class="scope">สรุปผลงานก่อสร้างรายบริษัท · ออกเอกสาร ${today}</div>`
+  body+=`<table class="rtbl"><thead><tr><th>ผู้รับเหมา (ผรม.)</th><th class="c">สาขา</th><th class="c">คืบหน้าเฉลี่ย</th><th class="c">จุดไม่ผ่านรวม</th><th class="c">เฉลี่ย/สาขา</th><th class="c">เสร็จ 100%</th><th class="c">คะแนนตรวจรับเฉลี่ย</th></tr></thead><tbody>`
+  body+=list.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="c">${x.n}</td><td class="c">${x.avgPct}%</td><td class="c" style="color:${x.fail?'#c0392b':'#137a43'};font-weight:800">${x.fail}</td><td class="c">${x.failAvg.toFixed(1)}</td><td class="c">${x.done100}/${x.n}</td><td class="c">${x.avgScore!=null?x.avgScore+' /100':'—'}</td></tr>`).join('')
+  body+=`</tbody></table>`
+  body+=`<h2 style="margin-top:26px">รายละเอียดรายสาขา</h2>`
+  body+=list.map(x=>`<div class="cgrp"><div class="cghd"><div class="cgname">${esc(x.name)}</div><div class="cgmeta">${x.n} สาขา · ไม่ผ่านรวม ${x.fail} จุด · คืบหน้าเฉลี่ย ${x.avgPct}%${x.avgScore!=null?' · ตรวจรับเฉลี่ย '+x.avgScore:''}</div></div>
+    <div class="stlist">${x.st.slice().sort((a,b)=>b.fail-a.fail).map(r=>{ const su=suByCode[r.code]
+      return `<div class="sr"><span>${esc(r.name)} <span style="color:#999">(${esc(r.code)})</span></span><span>คืบหน้า ${r.pct}% · <b style="color:${r.fail?'#c0392b':'#137a43'}">ไม่ผ่าน ${r.fail}</b>${su&&su.done?' · ตรวจรับ '+su.score.toFixed(0)+' ('+su.grade+')':''}</span></div>` }).join('')}</div></div>`).join('')
+  openReport('รายงานประเมิน ผรม.', body)
+}
+// รายงานปัญหางานตรวจรับ (Set-Up) — จุดที่มีปัญหาบ่อย
+function genSetupProblemReport(){
+  const agg={}
+  Object.keys(_evsByStore).forEach(code=>{ const cur=curOfStore(code); const nm=(_storeMap[code]&&_storeMap[code].name)||code
+    Object.keys(cur).forEach(cid=>{ const cp=_cpMap[cid]; if(!cp||cp.phase<201||cp.phase>208) return
+      const stt=cur[cid].status; if(stt!=='fail'&&stt!=='fixed') return
+      const a=agg[cid]||(agg[cid]={cp,fail:[],fixed:[]}); (stt==='fail'?a.fail:a.fixed).push(nm) }) })
+  const list=Object.values(agg).map(a=>({cp:a.cp,fail:a.fail,fixed:a.fixed,n:a.fail.length})).sort((x,y)=>y.n-x.n||(y.fixed.length-x.fixed.length))
+  const dd=new Date(),p=n=>String(n).padStart(2,'0'),today=`${p(dd.getDate())}/${p(dd.getMonth()+1)}/${dd.getFullYear()+543}`
+  const totFail=list.reduce((s,x)=>s+x.n,0)
+  let body=`<h1>รายงานปัญหางานตรวจรับ (Set-Up)</h1><div class="scope">จุดที่ “ไม่ผ่าน” บ่อย — ใช้เตรียมก่อนไปตรวจงาน · ออกเอกสาร ${today}</div>`
+  if(!list.length){ body+='<p style="color:#137a43;font-weight:700;margin-top:14px">✓ ยังไม่มีจุดที่มีปัญหา</p>'; return openReport('รายงานปัญหา Set-Up', body) }
+  body+=`<div class="scorebox f" style="margin:10px 0"><div class="g">${list.length}</div><div><div class="num">${list.length} รายการที่พบปัญหา</div><div class="sub">รวม ${totFail} ครั้งที่ “ไม่ผ่าน” ในทุกสาขา · เรียงจากบ่อยสุด</div></div></div>`
+  body+=`<table class="rtbl"><thead><tr><th class="c">อันดับ</th><th>รายการตรวจรับ</th><th>หมวด</th><th class="c">ไม่ผ่าน (สาขา)</th><th>สาขาที่เจอปัญหา</th></tr></thead><tbody>`
+  body+=list.map((x,i)=>`<tr><td class="c rank">${i+1}</td><td><b>${esc(x.cp.label)}</b></td><td style="color:#666;font-size:11.5px">${esc((x.cp.phase_name||'').replace('ตรวจรับ · ',''))}</td><td class="c" style="color:#c0392b;font-weight:800">${x.n}${x.fixed.length?`<div style="font-size:10px;color:#a5701a">+${x.fixed.length} รอตรวจซ้ำ</div>`:''}</td><td style="font-size:11.5px;color:#444">${x.fail.concat(x.fixed.map(s=>s+' (แก้แล้ว)')).map(esc).join(', ')||'—'}</td></tr>`).join('')
+  body+=`</tbody></table>`
+  openReport('รายงานปัญหา Set-Up', body)
 }
 
 boot()
