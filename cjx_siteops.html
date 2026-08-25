@@ -79,7 +79,8 @@ tbody tr{cursor:pointer;transition:background .1s}tbody tr:hover{background:var(
 .slatop{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}
 .sla-red{color:var(--bad)}.sla-amber{color:var(--warn)}.sla-green{color:var(--good)}.sla-none{color:var(--faint)}.sla-done{color:var(--good)}
 .slabar{height:5px;border-radius:3px;background:var(--track);overflow:hidden}.slabar>i{display:block;height:100%;border-radius:3px}
-.gobtn{border:1px solid var(--border);background:var(--surface);color:var(--accent);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:11.5px;padding:6px 12px;border-radius:8px;cursor:pointer}
+.gobtn{border:1px solid var(--border);background:var(--surface);color:var(--accent);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:11.5px;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;display:inline-block}
+td.act{white-space:nowrap;width:1%}
 tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--accent)}
 .hint{font-size:11.5px;color:var(--faint);font-style:italic;margin-top:14px}
 .sh{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:16px;margin:6px 0 13px;display:flex;align-items:center;gap:8px}
@@ -486,8 +487,8 @@ function visRows(){return applyF(tasksFor(),"").slice().sort(bySk);}
 function filterTable(){var list=visRows();var b=document.getElementById("tblbox");if(b)b.innerHTML=tableHtml(list);var c=document.getElementById("cnt");if(c)c.textContent=list.length;}
 function tableHtml(list){
  if(!list.length)return '<div class="tblwrap"><table><tbody><tr><td style="text-align:center;color:var(--faint);padding:34px">ไม่มีงานในมุมนี้ 🎉</td></tr></tbody></table></div>';
- var h='<div class="tblwrap"><table><thead><tr><th>สาขา</th><th>จังหวัด</th><th>ผู้รับผิดชอบ</th><th>Step ปัจจุบัน</th><th>SLA</th><th class="r"></th></tr></thead><tbody>';
- h+=list.map(function(t){return '<tr onclick="openSite(\''+esc(t.code)+'\')"><td><div class="c1"><span class="sdot '+t.st+'"></span><div><div class="code">'+esc(t.code)+'</div><div class="nm2">'+esc(t.name)+' · '+esc(t.why)+'</div></div></div></td><td>'+esc(t.prov)+'</td><td><div class="who-c">'+av(t.owner)+'<span>'+esc(t.owner)+'</span></div></td><td><span class="stepbadge">'+esc(t.step)+'</span></td><td>'+slaCell(t)+'</td><td class="r"><span class="gobtn">ตอบผล ›</span></td></tr>';}).join("");
+ var h='<div class="tblwrap"><table><thead><tr><th>สาขา</th><th>จังหวัด</th><th>ผู้รับผิดชอบ</th><th>Step ปัจจุบัน</th><th>SLA</th><th class="r act"></th></tr></thead><tbody>';
+ h+=list.map(function(t){return '<tr onclick="openSite(\''+esc(t.code)+'\')"><td><div class="c1"><span class="sdot '+t.st+'"></span><div><div class="code">'+esc(t.code)+'</div><div class="nm2">'+esc(t.name)+' · '+esc(t.why)+'</div></div></div></td><td>'+esc(t.prov)+'</td><td><div class="who-c">'+av(t.owner)+'<span>'+esc(t.owner)+'</span></div></td><td><span class="stepbadge">'+esc(t.step)+'</span></td><td>'+slaCell(t)+'</td><td class="r act"><span class="gobtn">ตอบผล ›</span></td></tr>';}).join("");
  return h+'</tbody></table></div>';
 }
 function setStep(i){var s=steps()[i];ACTIVE=(ACTIVE===s.stp?null:s.stp);render();}
