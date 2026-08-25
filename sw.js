@@ -47,7 +47,14 @@ self.addEventListener('push', (e) => {
     data: { url: d.url || './' },
     tag: d.tag || 'cjx-noti', renotify: true, vibrate: [80, 40, 80]
   };
-  e.waitUntil(self.registration.showNotification(title, opts));
+  // เลขบนไอคอนแอป (App Badge) — ดึงจำนวนจาก payload หรือจากข้อความ
+  let cnt = (typeof d.badge === 'number') ? d.badge : 0;
+  if (!cnt) { const m = (opts.body || '').match(/(\d+)/); if (m) cnt = +m[1]; }
+  e.waitUntil(Promise.all([
+    self.registration.showNotification(title, opts),
+    (self.navigator && self.navigator.setAppBadge && cnt > 0)
+      ? self.navigator.setAppBadge(cnt).catch(() => {}) : Promise.resolve()
+  ]));
 });
 
 self.addEventListener('notificationclick', (e) => {

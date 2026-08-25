@@ -1288,6 +1288,7 @@ async function refreshNoti(){
   const bell=$('bell')
   if(bell){ show(bell,true); const dot=bell.querySelector('.bdot')
     if(items>0){ dot.textContent=items>99?'99+':items; dot.style.display='flex' } else dot.style.display='none' }
+  try{ if('setAppBadge' in navigator){ items>0 ? navigator.setAppBadge(items) : navigator.clearAppBadge() } }catch(e){}   // เลขบนไอคอนแอป
   renderNotiBanner()
 }
 function notiCount(){ return _notiStores.reduce((n,b)=>n+b.total,0) }
