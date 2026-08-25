@@ -419,6 +419,11 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
         <div class="aitem" id="btnEmail"><div class="ai"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg></div><div class="at"><b>เปลี่ยนอีเมล</b><span>ต้องยืนยันผ่านอีเมลใหม่</span></div><span class="chev">›</span></div>
       </div>
     </div>
+    <div class="apanel" id="pfPushPanel">
+      <div class="ap-t">การแจ้งเตือน (Push)</div>
+      <div class="ap-d" id="pushHint">เปิดแจ้งเตือน “งานที่ต้องแก้” — เด้งบนมือถือแม้ปิดแอป</div>
+      <button class="btn gho" id="btnPush" style="margin-top:6px">🔔 เปิดแจ้งเตือนบนอุปกรณ์นี้</button>
+    </div>
     <div class="apanel" id="pfMaint" style="display:none">
       <div class="ap-t">รูปที่ค้างส่ง</div>
       <div class="ap-d" id="pfQHint">—</div>
@@ -1100,6 +1105,7 @@ function openProfile(){
   $('pfAvatar').textContent = (nm||em||'?').trim().charAt(0).toUpperCase()
   const rc=ROLE_COLOR[profile.role]||'#9AA7B2'
   const rp=$('pfRole'); rp.textContent=ROLE_TH[profile.role]||profile.role; rp.style.color=rc; rp.style.background=rc+'22'
+  updatePushBtn()   // สถานะปุ่มแจ้งเตือน push
   // แผงรูปที่ค้างส่ง (โชว์เมื่อมีค้าง)
   queueAll().then(items=>{ const n=items.length, stuck=items.filter(r=>(r.tries||0)>=QMAXTRY).length
     show($('pfMaint'), n>0)
@@ -1304,6 +1310,41 @@ function renderNotiBanner(){
 }
 ;(function(){ const b=$('bell'); if(b) b.onclick=()=>{ renderNotiPanel(); $('notiPanel').classList.toggle('on') }
   document.addEventListener('click',e=>{ const p=$('notiPanel'); if(p&&p.classList.contains('on')&&!e.target.closest('#notiPanel,#bell')) p.classList.remove('on') }) })();
+
+// ===== Web Push (เด้งมือถือแม้ปิดแอป) — ต้องตั้ง Edge Function ส่ง (ดู EDGE_FUNCTION guide) =====
+const VAPID_PUBLIC='BDQyqrodkGJnB7mmRmhYeSjCQ3FO10QCkpS_oMkkCGuDlUWK-OrxYWqLCj9qBrREjFDzoI1ePjyN3jUBmZF2E_g'
+function _u8(b64){ const pad='='.repeat((4-b64.length%4)%4); const s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/')
+  const raw=atob(s); const arr=new Uint8Array(raw.length); for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i); return arr }
+function pushSupported(){ return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window }
+async function currentSub(){ try{ const reg=await navigator.serviceWorker.ready; return await reg.pushManager.getSubscription() }catch(e){ return null } }
+async function updatePushBtn(){
+  const btn=$('btnPush'), hint=$('pushHint'), panel=$('pfPushPanel'); if(!btn) return
+  if(!pushSupported()){ if(panel)panel.style.display='none'; return }
+  if(panel)panel.style.display=''
+  const sub=await currentSub()
+  if(sub && Notification.permission==='granted'){ btn.textContent='🔕 ปิดแจ้งเตือนบนอุปกรณ์นี้'; hint.textContent='เปิดอยู่ ✓ — จะเด้งเตือน “งานที่ต้องแก้” บนอุปกรณ์นี้' }
+  else if(Notification.permission==='denied'){ btn.textContent='🔔 เปิดแจ้งเตือน (ถูกบล็อก)'; hint.textContent='อุปกรณ์บล็อกการแจ้งเตือน — ต้องไปเปิดในตั้งค่าเบราว์เซอร์ก่อน' }
+  else { btn.textContent='🔔 เปิดแจ้งเตือนบนอุปกรณ์นี้'; hint.textContent='เปิดแจ้งเตือน “งานที่ต้องแก้” — เด้งบนมือถือแม้ปิดแอป' }
+}
+async function togglePush(){
+  if(!pushSupported()){ alert('อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน (บน iPhone ต้องเพิ่มลงหน้าจอหลักก่อน)'); return }
+  const existing=await currentSub()
+  if(existing && Notification.permission==='granted'){
+    try{ await existing.unsubscribe() }catch(e){}
+    try{ await sb.from('push_subscriptions').delete().eq('endpoint',existing.endpoint) }catch(e){}
+    toast('ปิดแจ้งเตือนแล้ว'); updatePushBtn(); return
+  }
+  const perm=await Notification.requestPermission()
+  if(perm!=='granted'){ alert('ยังไม่ได้อนุญาตแจ้งเตือน'); updatePushBtn(); return }
+  try{
+    const reg=await navigator.serviceWorker.ready
+    const sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:_u8(VAPID_PUBLIC) })
+    const { error }=await sb.from('push_subscriptions').upsert({ endpoint:sub.endpoint, sub:sub.toJSON(), role:profile&&profile.role }, { onConflict:'endpoint' })
+    if(error){ alert('บันทึกการแจ้งเตือนไม่สำเร็จ: '+error.message+'\n(ผู้ดูแลต้องรัน sql/22 ใน Supabase ก่อน)'); return }
+    toast('เปิดแจ้งเตือนแล้ว ✓'); updatePushBtn()
+  }catch(e){ alert('เปิดแจ้งเตือนไม่สำเร็จ: '+(e.message||e)) }
+}
+;(function(){ const pb=$('btnPush'); if(pb) pb.onclick=togglePush })();
 function homeCount(f){ if(f==='mine') return myStores.size; if(f==='all') return stores.length
   if(f==='tofix') return _fixWork.byStore?Object.values(_fixWork.byStore).filter(b=>b.total>0).length:0
   return stores.filter(s=>s.cs.key===f).length }

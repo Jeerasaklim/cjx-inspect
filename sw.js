@@ -35,3 +35,26 @@ self.addEventListener('fetch', (e) => {
     }).catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
   );
 });
+
+// ===== Push Notification (เด้งมือถือแม้ปิดแอป) =====
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
+  const title = d.title || '🔔 CJX Inspect';
+  const opts = {
+    body: d.body || 'มีงานที่ต้องแก้ไข',
+    icon: './icon-192.png', badge: './icon-192.png',
+    data: { url: d.url || './' },
+    tag: d.tag || 'cjx-noti', renotify: true, vibrate: [80, 40, 80]
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) { if ('focus' in c) { try { c.navigate(url); } catch (_) {} return c.focus(); } }
+    if (clients.openWindow) return clients.openWindow(url);
+  }));
+});
