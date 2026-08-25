@@ -206,6 +206,25 @@ a.link{color:var(--yellow);text-decoration:none}
 .tabbar a.on{color:var(--yellow)}
 .tabbar svg{width:23px;height:23px}
 body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
+/* การแจ้งเตือน (in-app) — กระดิ่ง + แถบเตือน + พาเนล */
+.bell{position:relative;background:var(--card);border:1px solid var(--line);color:var(--ink);width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.bell:active{background:#222226}
+.bell .bdot{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:99px;background:var(--fail);color:#fff;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;line-height:1;font-style:normal;border:2px solid var(--bg)}
+.notipanel{position:fixed;top:58px;right:12px;z-index:120;width:min(360px,92vw);max-height:72vh;overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 70px -20px #000;display:none}
+.notipanel.on{display:block}
+.notih{padding:13px 15px;border-bottom:1px solid var(--line);font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;position:sticky;top:0;background:var(--card)}
+.notih .x{margin-left:auto;color:var(--faint);cursor:pointer;font-size:16px}
+.notiitem{display:flex;align-items:center;gap:11px;padding:12px 15px;border-bottom:1px solid var(--line);cursor:pointer}
+.notiitem:active{background:#222226}
+.notiitem .nd{width:8px;height:8px;border-radius:50%;background:var(--fail);flex:0 0 auto}
+.notiitem .ntx{flex:1;min-width:0}
+.notiitem .nnm{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notiitem .nsub{font-size:11px;color:var(--fail);margin-top:2px}
+.notiempty{padding:28px 16px;text-align:center;color:var(--pass);font-size:13px;font-weight:700}
+.lnoti{display:flex;align-items:center;gap:11px;background:#2a1414;border:1px solid #5a2a2a;border-radius:13px;padding:13px 15px;margin-bottom:14px;cursor:pointer}
+.lnoti .lbell{font-size:20px;flex:0 0 auto}
+.lnoti .lt{flex:1;min-width:0}.lnoti .lt b{color:#ffb4b4;font-size:13.5px}.lnoti .lt span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.lnoti .lgo{color:var(--fail);font-size:18px;flex:0 0 auto}
 /* ปุ่มสลับ "มุมมองมือถือ" — โผล่เฉพาะจอกว้าง (เดสก์ท็อป) · มือถือไม่เห็น */
 #viewToggle{display:none;position:fixed;top:16px;left:16px;z-index:200;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:12.5px;font-weight:700;padding:9px 15px;border-radius:99px;cursor:pointer;box-shadow:0 10px 30px -12px #000}
 #viewToggle:active{transform:translateY(1px)}
@@ -320,7 +339,8 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
 <div class="wrap">
   <div class="tbar">
     <div class="brand">CJ<b>X</b> <em>Inspect</em></div>
-    <div class="who hide" id="who"></div>
+    <button id="bell" class="bell hide" type="button" style="margin-left:auto" aria-label="แจ้งเตือน">🔔<i class="bdot"></i></button>
+    <div class="who hide" id="who" style="margin-left:8px"></div>
   </div>
 
   <!-- ===== LOGIN ===== -->
@@ -1107,6 +1127,7 @@ async function enterApp(){
   await loadNames(); await loadContractors()
   await loadStores(); await loadMine(); switchTab('home')
   syncQueue()   // ส่งรูปที่ค้างในคิว offline จาก session ก่อน (ถ้ามี)
+  refreshNoti(); if(!window._notiTimer) window._notiTimer=setInterval(refreshNoti,180000)   // แจ้งเตือนงานที่ต้องแก้ + เช็คซ้ำทุก 3 นาที
 }
 function renderHomeActs(){ $('homeActs').innerHTML='' }
 function openAdmin(){ hideAllViews(); showTabbar(false); show($('viewAdmin'),true); show($('adminMenu'),true); show($('adminSec'),false); window.scrollTo(0,0) }
@@ -1162,6 +1183,7 @@ async function renderLanding(){
   const nm=profile.name||profile.email||'', admin=profile.role==='admin'
   $('landBody').innerHTML = `
    <div class="lgreet"><div class="hi">${greetWord()}<b>${esc(nm)}</b></div><div class="av" id="lav">${esc((nm||'?').trim().charAt(0).toUpperCase())}</div></div>
+   <div class="lnoti" id="lnoti" style="display:none"></div>
    <div class="lsum"><div class="slb">${isHead()?'ภาพรวมงาน':'งานของฉัน'}</div><div class="s3" id="lsum3"><div style="flex:1;color:var(--faint);font-size:11px;text-align:center;padding:8px">กำลังโหลด…</div></div></div>
    <div class="lcta" id="lcta"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> เลือกสาขาเริ่มตรวจ</div>
    <div class="lgrid">
@@ -1175,6 +1197,7 @@ async function renderLanding(){
   $('lcta').onclick=()=>switchTab('inspect')
   $('landBody').querySelectorAll('.lfi').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; g==='admin'?openAdmin():switchTab(g) })
   await loadDashData()
+  refreshNoti()   // อัปเดตกระดิ่ง + แถบเตือนหน้าแรก
   const prog=_dashRows.filter(r=>dstt(r)==='progress').length
   $('lsum3').innerHTML = `
     <div class="b" data-f="progress"><div class="v" style="color:var(--build)">${prog}</div><div class="k">กำลังตรวจ</div></div>
@@ -1248,6 +1271,39 @@ function renderPoolFix(q){
   }).join('')
   el.querySelectorAll('.sc').forEach(c=> c.onclick=()=>openSite(c.dataset.code))
 }
+// ===== การแจ้งเตือนในแอป (in-app noti) : งานที่ต้องแก้ของคนที่เกี่ยวข้อง =====
+let _notiStores=[]
+async function refreshNoti(){
+  if(!profile) return
+  try{ await loadFixWork() }catch(e){ return }
+  const bs=_fixWork.byStore||{}
+  _notiStores=Object.values(bs).filter(b=>b.total>0).sort((a,b)=>b.total-a.total)
+  const items=_notiStores.reduce((n,b)=>n+b.total,0)
+  const bell=$('bell')
+  if(bell){ show(bell,true); const dot=bell.querySelector('.bdot')
+    if(items>0){ dot.textContent=items>99?'99+':items; dot.style.display='flex' } else dot.style.display='none' }
+  renderNotiBanner()
+}
+function notiCount(){ return _notiStores.reduce((n,b)=>n+b.total,0) }
+function renderNotiPanel(){
+  let p=$('notiPanel')
+  if(!p){ p=document.createElement('div'); p.className='notipanel'; p.id='notiPanel'; document.body.appendChild(p) }
+  const list=_notiStores.map(b=>{ const parts=[]; if(b.con)parts.push('ก่อสร้าง '+b.con); if(b.setup)parts.push('Set-Up '+b.setup)
+    return `<div class="notiitem" data-code="${esc(b.code)}"><span class="nd"></span><div class="ntx"><div class="nnm">${esc(b.name)}</div><div class="nsub">ต้องแก้ ${b.total} จุด · ${parts.join(' · ')}</div></div><span style="color:var(--faint)">›</span></div>` }).join('')
+  p.innerHTML=`<div class="notih">🔔 งานที่ต้องแก้ (${notiCount()} จุด)<span class="x" id="notiX">✕</span></div>${list||'<div class="notiempty">✓ ไม่มีงานค้างต้องแก้ 🎉</div>'}`
+  $('notiX').onclick=()=>p.classList.remove('on')
+  p.querySelectorAll('.notiitem').forEach(el=>el.onclick=()=>{ p.classList.remove('on'); openSite(el.dataset.code) })
+}
+function renderNotiBanner(){
+  const el=$('lnoti'); if(!el) return
+  const items=notiCount()
+  if(items>0){ el.style.display='flex'
+    el.innerHTML=`<span class="lbell">🔔</span><div class="lt"><b>มีงานต้องแก้ ${items} จุด ใน ${_notiStores.length} สาขา</b><span>แตะเพื่อไปไล่ปิดงานให้ครบ</span></div><span class="lgo">›</span>`
+    el.onclick=()=>{ filter='tofix'; switchTab('inspect') } }
+  else el.style.display='none'
+}
+;(function(){ const b=$('bell'); if(b) b.onclick=()=>{ renderNotiPanel(); $('notiPanel').classList.toggle('on') }
+  document.addEventListener('click',e=>{ const p=$('notiPanel'); if(p&&p.classList.contains('on')&&!e.target.closest('#notiPanel,#bell')) p.classList.remove('on') }) })();
 function homeCount(f){ if(f==='mine') return myStores.size; if(f==='all') return stores.length
   if(f==='tofix') return _fixWork.byStore?Object.values(_fixWork.byStore).filter(b=>b.total>0).length:0
   return stores.filter(s=>s.cs.key===f).length }
