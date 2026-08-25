@@ -1118,7 +1118,10 @@ $('btnRetryQ').onclick = ()=>{ retryPhotoQueue(); setTimeout(openProfile,600) }
 $('btnClearQ').onclick = ()=>{ clearPhotoQueue().then(()=>openProfile()) }
 $('profBack').onclick = ()=>switchTab('home')
 $('tabbar').querySelectorAll('a').forEach(a=> a.onclick=()=>switchTab(a.dataset.tab))
-function showAuth(){ hideAllViews(); showTabbar(false); show($('viewAuth'),true); show($('who'),false) }
+function showAuth(){ hideAllViews(); showTabbar(false); show($('viewAuth'),true); show($('who'),false)
+  const b=$('bell'); if(b) show(b,false)   // ซ่อนกระดิ่งในหน้า login
+  const np=$('notiPanel'); if(np) np.classList.remove('on')
+  try{ if('clearAppBadge' in navigator) navigator.clearAppBadge() }catch(e){} }
 
 async function enterApp(){
   const { data:{ user } } = await sb.auth.getUser()
@@ -1408,7 +1411,9 @@ $('btnSignup').onclick = async ()=>{
   if(data.session) return enterApp()
   msg($('authMsg'),'สมัครสำเร็จ! ถ้ายังเข้าไม่ได้ = ต้องยืนยันอีเมล → ปิด Confirm email ใน Supabase','ok')
 }
-$('btnLogout').onclick = async ()=>{ await sb.auth.signOut(); showAuth() }
+$('btnLogout').onclick = async ()=>{ await sb.auth.signOut(); profile=null
+  if(window._notiTimer){ clearInterval(window._notiTimer); window._notiTimer=null }   // หยุด poll แจ้งเตือน
+  showAuth() }
 $('btnForgot').onclick = async ()=>{
   const em=($('email').value.trim())||prompt('กรอกอีเมลที่ใช้ล็อกอิน')||''
   if(!em) return
