@@ -399,7 +399,7 @@ function conListHtml(){
   return `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา${flab}</div><div style="display:flex;gap:10px;align-items:center">${_filter!=='all'?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
      <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th class="hidecol">ผรม.</th><th>เปิดใน</th><th class="hidecol">งวดล่าสุด</th><th>ความคืบหน้า</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol">อัปเดตล่าสุด</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
 }
-function wireMode(){ document.querySelectorAll('.modebar b').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; _q=''; render() }) }
+function wireMode(){ document.querySelectorAll('.modebar b[data-m]').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; _q=''; render() }) }
 
 // ===== Insights (ข้อมูลเชิงลึก) =====
 function curOfStore(code){ const cur={}; (_evsByStore[code]||[]).forEach(e=>{ const p=cur[e.checkpoint]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[e.checkpoint]=e }); return cur }
