@@ -2134,7 +2134,7 @@ function phKey(cur, phase){
   if(done<ids.length) return 'progress'
   return ids.some(id=>cur[id].status==='fail')?'fail':'pass'
 }
-let _dashRows=[], _dashView='urgent', _dashKpi={}, _dashScope='ทุกสาขา', _dashFilter='all', _dashQuery=''
+let _dashRows=[], _dashView='urgent', _dashKpi={}, _dashScope='ทุกสาขา', _dashFilter='all', _dashQuery='', _dashPhase=null
 const dstt=r=> r.fail>0?'fail':(r.done>=r.total?'done':r.done>0?'progress':'idle')
 function dqMatch(r){ const q=_dashQuery.trim().toLowerCase(); if(!q) return true
   return [r.name,r.code,r.prov].some(v=>(v||'').toLowerCase().includes(q)) }
@@ -2237,7 +2237,7 @@ async function loadDashData(){
     let phase=0; Object.keys(a.cur).forEach(k=>{ const p=cpPhase[k]; if(p&&p>phase) phase=p })
     return { code:s.code, name:s.name||s.code, prov:s.province||'', days:(s.cs&&s.cs.days!=null)?s.cs.days:null,
       done:vals.length, pass:vals.filter(e=>e.status==='pass').length, fail:vals.filter(e=>e.status==='fail').length,
-      phase, pct:Math.round(vals.length/totalCP*100), last:a.last, closed:handovered.has(s.code), total:totalCP }
+      phase, pct:Math.round(vals.length/totalCP*100), last:a.last, closed:handovered.has(s.code), total:totalCP, cur:a.cur }
   })
   _dashKpi={ build:scoped.filter(s=>s.cs.key==='building').length,
     fails:_dashRows.reduce((n,r)=>n+r.fail,0), failStores:_dashRows.filter(r=>r.fail>0).length,
@@ -2246,7 +2246,7 @@ async function loadDashData(){
 }
 function renderDash(){
   const head=`<div class="heroC"><div class="t">แดชบอร์ด${_dashScope==='งานของฉัน'?'งานของฉัน':'ภาพรวม'}</div><div class="r"><span>${_dashScope} · ${ROLE_TH[profile.role]}</span></div></div>`
-  const tabs=[['urgent','ด่วน'],['opening','วันเปิด']]
+  const tabs=[['urgent','ด่วน'],['opening','วันเปิด'],['topic','รายข้อ']]
   if(isHead()) tabs.push(['feed','เคลื่อนไหว'])   // ฟีดทีม เฉพาะหัวหน้า (CM เห็นแต่ตัวเอง ไม่ต้องมี)
   if(!tabs.some(t=>t[0]===_dashView)) _dashView='urgent'
   const seg=`<div class="dseg">${tabs.map(([k,l])=>`<b class="${_dashView===k?'on':''}" data-v="${k}">${l}</b>`).join('')}</div>`
@@ -2262,11 +2262,13 @@ function renderDashList(){
   const w=$('dashListWrap'); if(!w) return
   if(!_dashRows.length){ w.innerHTML=`<div class="spin">${isHead()?'ยังไม่มีสาขา':'ยังไม่มีงาน — เลือกสาขาเริ่มตรวจก่อน'}</div>`; return }
   const flab={all:'',fail:'เฉพาะที่มีปัญหา',near:'ใกล้เปิด ≤7 วัน',done:'เสร็จ 100%',progress:'กำลังตรวจ',idle:'ยังไม่เริ่ม'}[_dashFilter]||''
-  const label = flab ? `รายสาขา · <span style="color:var(--yellow)">${flab} ✕ ล้างตัวกรอง</span>` : 'รายสาขา'
-  const body = _dashView==='opening'?dvOpening() : _dashView==='feed'?dvFeed() : dvUrgent()
-  w.innerHTML = `<div class="dlab" id="dfl" style="margin:2px 2px 10px${flab?';cursor:pointer':''}">${label}</div>`+body
+  const label = _dashView==='topic' ? 'ดูรายข้อ — เลือกหัวข้อ แล้วดูสถานะทุกสาขา'
+    : (flab ? `รายสาขา · <span style="color:var(--yellow)">${flab} ✕ ล้างตัวกรอง</span>` : 'รายสาขา')
+  const body = _dashView==='opening'?dvOpening() : _dashView==='feed'?dvFeed() : _dashView==='topic'?dvTopic() : dvUrgent()
+  w.innerHTML = `<div class="dlab" id="dfl" style="margin:2px 2px 10px${(flab&&_dashView!=='topic')?';cursor:pointer':''}">${label}</div>`+body
   w.querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
-  const dfl=$('dfl'); if(dfl&&flab) dfl.onclick=()=>{ _dashFilter='all'; renderDash() }
+  const dfl=$('dfl'); if(dfl&&flab&&_dashView!=='topic') dfl.onclick=()=>{ _dashFilter='all'; renderDash() }
+  const ts=$('topicSel'); if(ts) ts.onchange=e=>{ _dashPhase=+e.target.value; renderDashList() }
 }
 function dSummary(){ const k=_dashKpi
   const near=_dashRows.filter(r=>r.days!=null&&r.days<=7).length
@@ -2311,6 +2313,41 @@ function dvFeed(){ const acts=drows().filter(r=>r.last&&r.last.at).sort((a,b)=>(
     <div style="font-size:11px;color:var(--muted)"><b style="color:var(--yellow)">${esc(nameOf(r.last.by))}</b> · ${fmtDate(r.last.at)}</div>
     <div style="font-size:12px;font-weight:600;margin-top:2px;line-height:1.4">ตรวจ${esc(r.name)} · ผ่าน ${r.pass}/${r.done}${r.fail?' · <span style="color:var(--fail)">'+r.fail+' ไม่ผ่าน</span>':''}</div></div>`}).join('')+`</div>`
   return h
+}
+// ── มุมมอง "รายข้อ" : เลือกครั้งที่/หัวข้อ แล้วดูสถานะข้อนั้นของทุกสาขา ──
+const TCOL={fail:'var(--fail)',fixed:'var(--build)',progress:'var(--build)',pass:'var(--pass)',none:'#5a5a55'}
+function phaseInfo(cur, phase){
+  const ids=checkpoints.filter(c=>c.phase===phase).map(c=>String(c.id))
+  const total=ids.length, evs=ids.map(id=>cur[id]).filter(Boolean), done=evs.length
+  const fail=evs.filter(e=>e.status==='fail').length, fixed=evs.filter(e=>e.status==='fixed').length
+  let key='none'; if(done) key= fail?'fail' : (done<total?'progress' : (fixed?'fixed':'pass'))
+  return {total,done,fail,fixed,key}
+}
+function conPhaseList(){ return [...PRECON,...PHASES].filter(([n])=> checkpoints.some(c=>c.phase===n)) }
+function dvTopic(){
+  const phs=conPhaseList()
+  if(!phs.length) return '<div class="spin">ยังไม่มี checklist</div>'
+  if(_dashPhase==null || !phs.some(p=>p[0]===_dashPhase)) _dashPhase=(phs.find(p=>p[0]<200)||phs[0])[0]
+  const pl=n=> (n>=101&&n<=104?'Pre-Con · ':'ครั้งที่ '+n+' · ')
+  const opts=phs.map(([n,l])=>`<option value="${n}"${n===_dashPhase?' selected':''}>${pl(n)}${esc(l)}</option>`).join('')
+  const sel=`<div class="search" style="margin:2px 0 12px"><span style="color:var(--faint)">☰</span><select id="topicSel" style="flex:1;background:transparent;border:0;color:var(--text);font-size:13px;font-weight:700;outline:none">${opts}</select></div>`
+  const rows=_dashRows.filter(dqMatch).map(r=>({r, info:phaseInfo(r.cur||{}, _dashPhase)}))
+  const ord={fail:0,fixed:1,progress:2,none:3,pass:4}
+  rows.sort((a,b)=> (ord[a.info.key]-ord[b.info.key]) || ((a.r.days==null?999:a.r.days)-(b.r.days==null?999:b.r.days)))
+  const cnt={fail:0,fixed:0,progress:0,pass:0,none:0}; rows.forEach(x=>cnt[x.info.key]++)
+  const chips=[['fail','ไม่ผ่าน'],['fixed','แก้แล้ว'],['progress','กำลังตรวจ'],['pass','ผ่าน'],['none','ยังไม่เริ่ม']]
+     .filter(([k])=>cnt[k]).map(([k,l])=>`<span style="color:${TCOL[k]}">●</span> ${l} ${cnt[k]}`).join(' &nbsp; ')
+  const sum=`<div class="dlab" style="margin:0 2px 11px;font-weight:600">${chips||'ยังไม่มีข้อมูล'}</div>`
+  const lab={fail:'ไม่ผ่าน',fixed:'แก้แล้ว · รอตรวจซ้ำ',progress:'กำลังตรวจ',pass:'ผ่านครบ ✓',none:'ยังไม่เริ่ม'}
+  const body=rows.map(({r,info})=>{ const c=TCOL[info.key]
+     const detail= info.key==='none'?'ยังไม่เริ่ม'
+       : `${lab[info.key]} · ตรวจ ${info.done}/${info.total}`+(info.fail?` · <span style="color:var(--fail)">${info.fail} ไม่ผ่าน</span>`:'')
+     return `<div class="urow2" data-code="${esc(r.code)}"><span class="dot" style="width:9px;height:9px;border-radius:50%;background:${c};flex:0 0 auto"></span>
+       <div class="um"><div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+       <div style="font-size:10px;color:var(--faint)">${detail}${r.days!=null?' · เปิดใน '+r.days+' วัน':''}</div></div>
+       <div class="mono" style="font-size:11px;font-weight:800;color:${c};white-space:nowrap">${info.total?Math.round(info.done/info.total*100):0}%</div></div>`
+  }).join('')
+  return sel+sum+(body||'<div class="spin">ไม่พบสาขา</div>')
 }
 $('dashBack').onclick = ()=>switchTab('home')
 
