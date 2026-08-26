@@ -165,7 +165,8 @@ const $=id=>document.getElementById(id)
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
 const CONSTRUCTION_DAYS=40
 const DCOL={fail:'var(--fail)',done:'var(--pass)',progress:'var(--build)',idle:'var(--idle)'}
-let _rows=[], _suRows=[], _filter='all', _mode='con', _auto=null, _names={}
+let _rows=[], _suRows=[], _filter='all', _mode='con', _auto=null, _names={}, _view='store', _topicPhase=null
+const DCOL2={fail:'var(--fail)',fixed:'var(--build)',progress:'var(--build)',pass:'var(--pass)',none:'#9aa0a6'}
 let _cps=[], _cpMap={}, _storeMap={}, _inspByStore={}, _evsByStore={}, _detImgs=[], _detLbI=0, _q=''
 const SETUP_SECTIONS=[[201,5],[202,10],[203,30],[204,30],[205,5],[206,10],[207,5],[208,5]]
 let _setupCps=[]
@@ -221,7 +222,45 @@ function wireList(){
   const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
   const eb=$('expBtn'); if(eb) eb.onclick=()=>exportCSV(_mode==='setup')
 }
-function refreshList(){ const lw=$('listWrap'); if(!lw) return; lw.innerHTML = _mode==='setup'?setupListHtml():conListHtml(); wireList() }
+function refreshList(){ const lw=$('listWrap'); if(!lw) return
+  lw.innerHTML = _view==='topic' ? topicListHtml(_mode==='setup'?'setup':'con') : (_mode==='setup'?setupListHtml():conListHtml())
+  wireList(); wireTopic() }
+// ── มุมมอง "รายข้อ/รายหมวด" : เลือกงวด/หมวด แล้วดูสถานะข้อนั้นของทุกสาขา ──
+function viewSeg(){ return `<div class="modebar viewseg" style="margin:-2px 0 12px"><b class="${_view!=='topic'?'on':''}" data-vw="store">🏬 รายสาขา</b><b class="${_view==='topic'?'on':''}" data-vw="topic">📋 รายข้อ</b></div>` }
+function wireView(){ document.querySelectorAll('[data-vw]').forEach(b=>b.onclick=()=>{ _view=b.dataset.vw; render() }) }
+function wireTopic(){ const ts=$('topicSel'); if(ts) ts.onchange=e=>{ _topicPhase=+e.target.value; refreshList() } }
+function conPhaseListD(){ const seen={},out=[]; _cps.filter(c=>c.phase<200).forEach(c=>{ if(!seen[c.phase]){ seen[c.phase]=1; out.push([c.phase,(c.phase_name||('งวด '+c.phase))]) } }); return out.sort((a,b)=>a[0]-b[0]) }
+function phaseInfoD(code,phase){ const ids=_cps.filter(c=>c.phase===phase).map(c=>String(c.id)), total=ids.length
+  const cur=curOfStore(code), evs=ids.map(id=>cur[id]).filter(Boolean), done=evs.length
+  const fail=evs.filter(e=>e.status==='fail').length, fixed=evs.filter(e=>e.status==='fixed').length
+  let key='none'; if(done) key=fail?'fail':(done<total?'progress':(fixed?'fixed':'pass')); return {total,done,fail,fixed,key} }
+function topicListHtml(mode){
+  const phs = mode==='setup' ? SETUP_SEC.map(([n,l])=>[n,l]) : conPhaseListD()
+  if(!phs.length) return `<div class="tablewrap"><div class="empty" style="padding:24px">ยังไม่มี checklist</div></div>`
+  if(_topicPhase==null || !phs.some(p=>p[0]===_topicPhase)) _topicPhase=phs[0][0]
+  const src = mode==='setup'?_suRows:_rows, q=_q.trim().toLowerCase()
+  const base=src.filter(r=>!q||[r.name,r.code,r.prov].some(v=>(v||'').toLowerCase().includes(q)))
+  const rows=base.map(r=>({r,info:phaseInfoD(r.code,_topicPhase)}))
+  const ord={fail:0,fixed:1,progress:2,none:3,pass:4}
+  rows.sort((a,b)=>(ord[a.info.key]-ord[b.info.key])||((a.r.days==null?9999:a.r.days)-(b.r.days==null?9999:b.r.days)))
+  const cnt={fail:0,fixed:0,progress:0,pass:0,none:0}; rows.forEach(x=>cnt[x.info.key]++)
+  const lab={fail:'ไม่ผ่าน',fixed:'แก้แล้ว · รอตรวจซ้ำ',progress:'กำลังตรวจ',pass:'ผ่านครบ ✓',none:'ยังไม่เริ่ม'}
+  const opts=phs.map(([n,l])=>`<option value="${n}"${n===_topicPhase?' selected':''}>${esc((''+l).replace(/^ตรวจรับ · /,''))}</option>`).join('')
+  const chips=[['fail','ไม่ผ่าน'],['fixed','แก้แล้ว'],['progress','กำลังตรวจ'],['pass','ผ่าน'],['none','ยังไม่เริ่ม']].filter(([k])=>cnt[k]).map(([k,l])=>`<span style="color:${DCOL2[k]}">●</span> ${l} ${cnt[k]}`).join(' &nbsp;&nbsp; ')
+  const body=rows.length?rows.map(({r,info})=>{ const c=DCOL2[info.key], pct=info.total?Math.round(info.done/info.total*100):0
+    return `<tr class="clk" data-code="${esc(r.code)}">
+      <td><span class="dot" style="background:${c}"></span><span class="stname">${esc(r.name)}</span><div class="stmeta"><span class="cd">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}</div></td>
+      <td><span style="color:${c};font-weight:700">${lab[info.key]}</span></td>
+      <td class="num">${info.done}/${info.total}</td>
+      <td class="num">${info.fail?`<span class="fail">${info.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
+      <td><span class="days" style="color:${r.days!=null&&r.days<=7?'var(--fail)':'var(--build)'}">${r.days!=null?r.days:'–'}</span> <span style="color:var(--faint);font-size:11px">วัน</span></td>
+      <td><span class="bar"><i style="width:${pct}%;background:${c}"></i></span><span class="pct" style="color:${c}">${pct}%</span></td>
+    </tr>`}).join(''):`<tr><td colspan="6" class="empty">${q?'ไม่พบสาขา':'ยังไม่มีสาขา'}</td></tr>`
+  const title = mode==='setup'?'ดูรายหมวด (ตรวจรับ) — สถานะหมวดที่เลือกของทุกสาขา':'ดูรายข้อ (ก่อสร้าง) — สถานะงวดที่เลือกของทุกสาขา'
+  return `<div class="tablewrap"><div class="thead"><div class="tt">${title}</div><select id="topicSel" class="tbtn" style="padding:7px 12px;font-size:12.5px;font-weight:700;max-width:62%">${opts}</select></div>
+    <div style="padding:9px 13px;font-size:12.5px;color:var(--mut);border-bottom:1px solid #eee">${chips||'ยังไม่มีข้อมูล'}</div>
+    <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th>สถานะข้อนี้</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th>เปิดใน</th><th>คืบหน้า</th></tr></thead><tbody>${body}</tbody></table></div></div>`
+}
 
 // ดึงทุกแถวแบบแบ่งหน้า — เลี่ยงลิมิต 1000 แถวของ Supabase (สำคัญตอนรวมข้อมูลข้ามหลายสาขา)
 async function fetchAllRows(table, cols, orderCol, filter){
@@ -305,9 +344,9 @@ function render(){
   const bar=['done','progress','fail','idle'].map(k=>cnt[k]?`<i style="width:${cnt[k]/tot*100}%;background:${DCOL[k]}"></i>`:'').join('')
   const lg=[['done','เสร็จ'],['progress','กำลังตรวจ'],['fail','มีปัญหา'],['idle','ยังไม่เริ่ม']].map(([k,l])=>`<span><i style="background:${DCOL[k]}"></i>${l} ${cnt[k]}</span>`).join('')
   $('body').innerHTML = toggle + kpis + `<div class="statusbar">${bar}</div><div class="lg">${lg}</div>`
-    + insightsHtml(false) + searchBarHtml() + `<div id="listWrap">${conListHtml()}</div>`
+    + insightsHtml(false) + searchBarHtml() + viewSeg() + `<div id="listWrap">${_view==='topic'?topicListHtml('con'):conListHtml()}</div>`
   $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
-  wireSearch(); wireList(); wireMode(); wireInsights()
+  wireView(); wireSearch(); wireList(); wireMode(); wireInsights(); wireTopic()
 }
 function renderReports(toggle){
   const byCode={}
@@ -477,9 +516,9 @@ function renderSetup(toggle){
     <div class="kpi${on('done')}" data-f="done"><div class="v" style="color:var(--pass)">${passStores}</div><div class="k">ผ่านครบ</div></div>
     <div class="kpi kpiflat"><div class="v" style="color:var(--y)">${avg}</div><div class="k">คะแนนเฉลี่ย /100</div></div>
   </div>`
-  $('body').innerHTML = toggle + kpis + insightsHtml(true) + searchBarHtml() + `<div id="listWrap">${setupListHtml()}</div>`
+  $('body').innerHTML = toggle + kpis + insightsHtml(true) + searchBarHtml() + viewSeg() + `<div id="listWrap">${_view==='topic'?topicListHtml('setup'):setupListHtml()}</div>`
   $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
-  wireSearch(); wireList(); wireMode(); wireInsights()
+  wireView(); wireSearch(); wireList(); wireMode(); wireInsights(); wireTopic()
 }
 function setupListHtml(){
   let list=[..._suRows]
