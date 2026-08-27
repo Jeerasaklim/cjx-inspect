@@ -414,6 +414,7 @@ function md(){return MODE==="ratkit"?DATA.ratkit[RATSUB]:DATA[MODE];}
 function steps(){return md().steps;}
 var GOOGLE_CLIENT_ID="633631271495-erg0pphb882fg69illjvl3b85a16ropr.apps.googleusercontent.com";
 var ALLOW_DOMAIN="cjmart.co.th";var PEOPLE={};
+var ADMIN_EMAILS=["jeerasak.li@cjmart.co.th"];   /* เจ้าของ/แอดมิน — เข้าได้เสมอแม้ยังไม่อยู่ในชีต people */
 var CURRENT_USER=null,SITE_EMAIL=null,CURRENT_ROLE="member";try{CURRENT_USER=localStorage.getItem("siteops_user");SITE_EMAIL=localStorage.getItem("siteops_email");}catch(e){}
 function roleKind(role){var r=(role||"").toLowerCase();
  if(r.indexOf("member")>=0)return "member";
@@ -441,7 +442,9 @@ function decodeJwt(t){try{var p=t.split(".")[1].replace(/-/g,"+").replace(/_/g,"
 function onGoogleCred(resp){var p=decodeJwt(resp.credential||"");var email=(p.email||"").toLowerCase();var info=document.getElementById("lginfo");
  if(ALLOW_DOMAIN&&email.indexOf("@"+ALLOW_DOMAIN)<0){if(info)info.textContent="⚠️ ต้องใช้อีเมล @"+ALLOW_DOMAIN+" เท่านั้น";return;}
  var m=PEOPLE[email];
- if(!m){if(info)info.innerHTML="⚠️ อีเมลนี้ยังไม่ได้ผูกชื่อในระบบ<br>("+esc(email)+")<br>ให้ผู้ดูแลกรอกในชีต people";return;}
+ if(!m){
+   if(ADMIN_EMAILS.indexOf(email)>=0){try{localStorage.setItem("siteops_email",email);}catch(e){}SITE_EMAIL=email;CURRENT_ROLE="admin";doLogin("__boss__");return;}
+   if(info)info.innerHTML="⚠️ อีเมลนี้ยังไม่ได้ผูกชื่อในระบบ<br>("+esc(email)+")<br>ให้ผู้ดูแลกรอกในชีต people";return;}
  try{localStorage.setItem("siteops_email",email);}catch(e){}SITE_EMAIL=email;CURRENT_ROLE=roleKind(m.role);
  doLogin(CURRENT_ROLE==="member"?m.name:"__boss__");}   /* member = เห็นแค่ตัวเอง · อื่นๆ = เห็นทุกคน */
 function doLogin(u){CURRENT_USER=u;try{localStorage.setItem("siteops_user",u);}catch(e){}document.getElementById("login").style.display="none";MODE="nego";applyUserUI();fillWho();render();}
@@ -1168,6 +1171,7 @@ async function boot(silent){
    try{var prc=await getTab("people");PEOPLE={};for(var pi=1;pi<prc.length;pi++){var pe=(cc(prc[pi],0)||"").toLowerCase();if(pe)PEOPLE[pe]={name:cc(prc[pi],1),role:(cc(prc[pi],2)||"").toLowerCase()};}}catch(e){}
    if(GOOGLE_CLIENT_ID){
      if(SITE_EMAIL&&PEOPLE[SITE_EMAIL]){var mm=PEOPLE[SITE_EMAIL];CURRENT_ROLE=roleKind(mm.role);CURRENT_USER=(CURRENT_ROLE==="member"?mm.name:"__boss__");applyUserUI();fillWho();render();}
+     else if(SITE_EMAIL&&ADMIN_EMAILS.indexOf(SITE_EMAIL)>=0){CURRENT_ROLE="admin";CURRENT_USER="__boss__";applyUserUI();fillWho();render();}
      else{render();showLogin();}
    }else{
      if(CURRENT_USER){applyUserUI();fillWho();render();}else{render();showLogin();}
