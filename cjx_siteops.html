@@ -371,6 +371,16 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .kpi.clk{cursor:pointer;transition:box-shadow .12s,outline-color .12s}
 .kpi.clk:hover{box-shadow:0 2px 4px rgba(16,30,45,.08),0 10px 26px rgba(16,30,45,.1)}
 .kpi.konn{outline:2px solid var(--accent);outline-offset:-1px}
+.cohlgd{display:flex;gap:16px;align-items:center;font-size:12px;margin:2px 0 8px;flex-wrap:wrap}
+.cohlgd .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.cohlgd .sw.g{background:var(--good)}.cohlgd .sw.a{background:var(--warn)}
+.cohwrap{display:flex;gap:7px;overflow-x:auto;padding:6px 2px 2px;align-items:flex-end;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)}
+.cohwrap{padding:14px 14px 10px}
+.cohcol{flex:0 0 30px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.cohn{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
+.cohbar{width:24px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:5px 5px 0 0;overflow:hidden;background:var(--track)}
+.cohb.a{background:var(--warn)}.cohb.g{background:var(--good)}
+.cohm{font-size:10px;color:var(--faint);white-space:nowrap;transform:rotate(-50deg);height:34px;margin-top:6px;transform-origin:top center}
 </style>
 <div id="app" data-mode="nego">
   <aside class="sidebar" id="side">
@@ -670,8 +680,24 @@ function leadTable(ppl){var b='<table class="plead"><thead><tr><th style="width:
  ppl.slice(0,8).forEach(function(x,i){var rk=i<3?"g"+(i+1):"";var bc=x.pct<40?"lo":(x.pct<60?"mid":"");var hc=x.over>=10?"b":(x.over>0?"a":"z");
    b+='<tr onclick="drillPerson(\''+esc(x.nm)+'\')" style="cursor:pointer" title="คลิกดูงานของ '+esc(x.nm)+'"><td><span class="rk '+rk+'">'+(i+1)+'</span></td><td><span class="who">'+av(x.nm)+esc(x.nm)+'</span></td><td class="r tnum">'+x.hold+'</td><td><span class="pbar"><i class="'+bc+'" style="width:'+x.pct+'%"></i></span>'+x.pct+'%</td><td class="r"><span class="heat '+hc+'">'+x.over+'</span></td></tr>';});
  return b+'</tbody></table>';}
+var COH_MON=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+function chartCohort(coh){
+ if(!coh||!coh.length)return "";
+ var max=Math.max.apply(null,coh.map(function(x){return x.approved;}))||1;
+ var totA=coh.reduce(function(a,x){return a+x.approved;},0),totS=coh.reduce(function(a,x){return a+x.signed;},0);
+ var b='<div class="cohlgd"><span><i class="sw g"></i> เซ็นแล้ว '+totS+'</span><span><i class="sw a"></i> ยังไม่เซ็น '+(totA-totS)+'</span><span style="margin-left:auto;color:var(--muted)">รวมอนุมัติ '+totA+' · ปิดได้ '+(totA?Math.round(100*totS/totA):0)+'%</span></div>';
+ b+='<div class="cohwrap">';
+ coh.forEach(function(x){var y=x.m.split("-");var lbl=COH_MON[(+y[1])-1]+" "+String(+y[0]+543).slice(-2);
+   var pct=x.approved?Math.round(100*x.signed/x.approved):0;
+   var hA=Math.max(4,Math.round(150*x.approved/max));var hS=Math.round(hA*(x.signed/(x.approved||1)));
+   b+='<div class="cohcol" title="'+lbl+' — อนุมัติ '+x.approved+' · เซ็น '+x.signed+' ('+pct+'%)"><div class="cohn">'+x.approved+'</div><div class="cohbar" style="height:'+hA+'px"><div class="cohb a" style="height:'+(hA-hS)+'px"></div><div class="cohb g" style="height:'+hS+'px"></div></div><div class="cohm">'+lbl+'</div></div>';
+ });
+ b+='</div>';
+ return b;
+}
 function perfNeg(p){var b=lensH("📊 มุมงาน");
  b+='<div class="kpis">'+kpiC(p.nego.total,"สัญญาทั้งหมด")+kpiC(p.nego.signed,"✅ เซ็นแล้ว ("+p.nego.close_pct+"%)","good")+kpiC(p.nego.pending,"📄 ค้าง","warn")+kpiC(p.nego.over,"🔴 เกิน 90 วัน","bad")+kpiC(p.nego.sla_pct+"%","✅ ตรง SLA","good")+'</div>';
+ b+=chartCohort(p.cohort);
  var mx=Math.max.apply(null,p.problems.map(function(x){return x[1];}).concat([p.nego.final]))||1;
  var topc=Math.max.apply(null,p.problems.map(function(x){return x[1];}))||0;
  b+='<div class="pfun">'+p.problems.map(function(x){var stp=x[0].replace(/^\S+\s/,"");return pfrow(x[0],x[1],Math.round(100*x[1]/mx),x[1]===topc&&topc>0?"hot":"","drillStep(\''+stp+'\')");}).join("")+pfrow("✅ เซ็นแล้ว (จบ)",p.nego.final,Math.round(100*p.nego.final/mx),"done")+'</div>';
@@ -772,6 +798,7 @@ function dbRegDocs(tasks,N){
 function dashNeg(p){var t=DATA.nego.tasks,ss=DATA.nego.steps,fin=DATA.nego.final;
  var total=p.nego.total||t.length;
  var b='<div class="kpis k4">'+kpiC(p.nego.signed+'<span style="font-size:15px;color:var(--faint);font-weight:400"> / '+total+'</span>',"✅ เซ็นแล้ว","good")+kpiC(p.nego.pending,"📄 ค้างอยู่","")+kpiC(p.nego.over,"🔴 เกิน 90 วัน","bad")+kpiC(p.nego.sla_pct+"%","🎯 ตรง SLA","good")+'</div>';
+ b+='<div class="dsec"><span class="dic">📅</span>อนุมัติรถตู้แต่ละเดือน → ปิดดีล (เซ็นสัญญา) <span class="dsub">แต่ละเดือน = เดือนที่อนุมัติรถตู้ · เขียว = เซ็นจบแล้ว</span></div>'+chartCohort(p.cohort);
  b+='<div class="dsec"><span class="dic">📊</span>งานค้างแต่ละขั้น <span class="dsub">แถบแดง = เกิน SLA</span></div>'+dbStages(t,ss,fin);
  b+='<div class="dsec"><span class="dic">🔥</span>ต้องเร่งด่วนที่สุด <span class="dsub">ค้างนานสุด · คลิกเพื่อตอบผล</span></div>'+dbUrgent(t,'neg',fin);
  return b;}
@@ -1175,6 +1202,14 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
  var pn=[];Object.keys(nowner).sort(function(a,b){return nowner[b]-nowner[a];}).forEach(function(o){if(o=="(ไม่ระบุ)")return;var tot=nowner[o],s=nsigned[o]||0,ov=negT.filter(function(t){return t.owner==o&&t.st=="red";}).length;pn.push({nm:o,hold:tot,pct:tot?Math.round(100*s/tot):0,over:ov});});
  var rown={};ratT.forEach(function(t){if(t.step!=OF)rown[t.owner]=(rown[t.owner]||0)+1;});
  var pr=[];Object.keys(rown).sort(function(a,b){return rown[b]-rown[a];}).forEach(function(o){if(o=="(ไม่ระบุ)")return;var ov=ratT.filter(function(t){return t.owner==o&&t.st=="red";}).length;pr.push({nm:o,hold:rown[o],over:ov});});
+ // ---- Cohort: อนุมัติรถตู้เดือนไหน → ปิดดีล (เซ็นสัญญา) ไปเท่าไหร่ (col11 วันอนุมัติ · col73 ผล · col26 วันเซ็น) ----
+ var COH={};
+ for(i=hr+1;i<sla.length;i++){var r=sla[i];var c=cc(r,0);if(!c)continue;
+   if(cc(r,73).indexOf("Approve")<0)continue;var ad=pdate(cc(r,11));if(!ad)continue;
+   var mk=ad.getFullYear()+"-"+("0"+(ad.getMonth()+1)).slice(-2);
+   var o=COH[mk]||(COH[mk]={m:mk,approved:0,signed:0});o.approved++;
+   if(cc(r,26)||cc(r,25))o.signed++;}
+ var cohort=Object.keys(COH).sort().map(function(k){return COH[k];});
  return {updated:iso(TODAY),wh:NOTES_WH,_opened:opened,
    nego:{owners:owners(negT),tasks:negT,steps:NEGO_STEPS,final:NF},
    survey:{owners:owners(svyT),tasks:svyT,steps:SVY_STEPS,final:SVF},
@@ -1182,7 +1217,7 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
    perf:{nego:{total:nTotal,signed:nSignedAll,pending:nPending,final:nFinal,at_sign:negT.filter(function(t){return t.step=="รอเซ็นสัญญา";}).length,over:nOver,close_pct:nTotal?Math.round(100*nSignedAll/nTotal):0,sla_pct:nSla?Math.round(100*(nSla-nOver)/nSla):100},
      survey:{over:svOver,wait:svWait,appoint:svAppt,measured:svMeas,done:svDone},
      ratkit:{got:oGot,wait:rSub,prep:rPrep,waiver:oWai,over:rOver,reg_wait:regT.length,reg_over:regOver,sla_pct:rSub?Math.round(100*(rSub-rOver)/rSub):100},
-     problems:RG?[]:[],persons_nego:pn,persons_rat:pr}};
+     problems:RG?[]:[],persons_nego:pn,persons_rat:pr,cohort:cohort}};
 }
 
 async function boot(silent){
