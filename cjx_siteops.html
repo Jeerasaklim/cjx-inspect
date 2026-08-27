@@ -407,7 +407,7 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 var NOTES_WH="https://script.google.com/macros/s/AKfycbwpSe8-xhAr7sT24kVUZc8FAWxBPOWyD-a5EiTjqZ9dvK8P7u97mcKqYnDn5WAjy7k_rg/exec";
 var WRITE_URL="https://script.google.com/macros/s/AKfycbwcTzrkPICy3E2cZuJA93_OWNSg0ezNzs8zV4S_4n8XvoMRcJRM2aMQq3HfIn7nTUdS/exec";var WSECRET="cjx-siteops-write-2026";
 var DATA={updated:"—",wh:NOTES_WH,nego:{owners:[],tasks:[],steps:[],final:""},survey:{owners:[],tasks:[],steps:[],final:""},ratkit:{o1:{owners:[],tasks:[],steps:[],final:""},reg:{owners:[],tasks:[],steps:[],final:""}},perf:{nego:{over:0,pending:0,signed:0,final:0,at_sign:0,close_pct:0,sla_pct:0,total:0},survey:{over:0,wait:0,appoint:0,measured:0,done:0},ratkit:{over:0,reg_over:0,got:0,wait:0,prep:0,waiver:0,sla_pct:0},problems:[],persons_nego:[],persons_rat:[]}};
-var MODE="nego",RATSUB="o1",PSUB="all",OPENTRK="",VIEW="flow",ACTIVE=null,WH=NOTES_WH,SEARCH="",FSTAT="",FCAT="",FOWN="";
+var MODE="nego",RATSUB="o1",PSUB="all",OPENTRK="",VIEW="flow",ACTIVE=null,WH=NOTES_WH,SEARCH="",FSTAT="",FCAT="",FOWN="",SITETRK="";
 var TITLES={nego:{t:"🤝 ท่อนเจรจา — สัญญา",s:"เจรจา → เสนอ KT → รอเซ็น → รอส่งตรวจ → รอกฎหมายตรวจ → เซ็นแล้ว · (สถานะติดขัด/นำเสนอใหม่ = ตัวกรอง)"},survey:{t:"📐 งานรังวัด — ทีมเจรจา",s:"รอรังวัด → นัดวันรังวัด → รังวัด → ส่งผลให้ก่อสร้าง · SLA รอรังวัด 10 วันทำการ จากวันอนุมัติทำเล"},ratkit:{t:"🏛️ ท่อนรัฐกิจ",s:"ยื่น + ติดตามใบ อ.1 / อนุโลม ตาม SLA"},site:{t:"🏪 รายสาขา — งานค้าง",s:"เลือกสาขา เพื่อดูว่าสาขานั้นมีงานอะไรค้างอยู่บ้าง (รวมทุกท่อน: เจรจา / รังวัด / อ.1 / ทะเบียน) · คลิกเปิดจัดการได้เลย"},boss:{t:"📊 Dashboard",s:"ภาพรวมแต่ละสาย · ตัวเลขหลัก + งานค้างแต่ละขั้น + งานเร่งด่วน · คลิกเปิดดูรายสาขา"},cal:{t:"📅 ปฏิทินงาน — ดูรายวัน",s:"งานครบกำหนดแต่ละวัน · เขียว/เหลือง/แดง ตาม SLA · D-day"}};
 function esc(s){s=(s==null?"":String(s));return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function md(){return MODE==="ratkit"?DATA.ratkit[RATSUB]:DATA[MODE];}
@@ -579,16 +579,29 @@ function siteAgg(){
  arr.sort(function(a,b){return (b.sev-a.sev)||(b.over-a.over)||(b.items.length-a.items.length)||((a.code>b.code)?1:-1);});
  return arr;
 }
+var SITE_TRK=[["nego","🤝","เจรจา"],["survey","📐","รังวัด"],["o1","🏛️","อ.1"],["reg","📋","ทะเบียน"]];
+function setSiteTrk(t){SITETRK=(SITETRK===t?"":t);render();}
 function renderSite(){var arr=siteAgg();
  var overSites=arr.filter(function(m){return m.over>0;}).length;
  var totItems=arr.reduce(function(a,m){return a+m.items.length;},0);
  var overItems=arr.reduce(function(a,m){return a+m.over;},0);
- var b='<div class="kpis">'+kpiC(arr.length,"🏪 สาขาที่มีงานค้าง")+kpiC(overSites,"🔴 สาขามีงานเกิน SLA","bad")+kpiC(totItems,"📋 งานค้างรวม (ทุกท่อน)")+kpiC(overItems,"🔴 งานเกิน SLA รวม","bad")+'</div>';
- b+='<div class="tbar"><input id="q" class="qbox" placeholder="🔍 ค้นหา Site Code / ชื่อสาขา / จังหวัด..." value="'+esc(SEARCH)+'" oninput="SEARCH=this.value;siteFilter()"><span class="pill">🏪 <b id="cnt">0</b> สาขา</span><span style="margin-left:auto;color:var(--faint);font-size:12px">เรียง: งานด่วน/ค้างมากก่อน</span></div>';
+ var openedN=Object.keys(DATA._opened||{}).length;
+ var b='<div class="kpis">'+kpiC(arr.length,"🏪 สาขาที่มีงานค้าง")+kpiC(overSites,"🔴 สาขามีงานเกิน SLA","bad")+kpiC(totItems,"📋 งานค้างรวม (ทุกท่อน)")+kpiC(overItems,"🔴 งานเกิน SLA รวม","bad")+kpiC(openedN,"🏢 เปิดแล้ว (ไม่มีงาน)","good")+'</div>';
+ // rail: แยกตามท่อน (เจรจา→รังวัด→อ.1→ทะเบียน) คลิกกรองได้ — โครงเดียวกับหน้าอื่น
+ var tc={},to={};
+ arr.forEach(function(m){var seen={};m.items.forEach(function(it){if(!seen[it.trk]){seen[it.trk]=1;tc[it.trk]=(tc[it.trk]||0)+1;}if(it.st==="red")to[it.trk]=(to[it.trk]||0)+1;});});
+ b+='<div class="rail">';
+ SITE_TRK.forEach(function(x,i){var n=tc[x[0]]||0,ov=to[x[0]]||0;
+   b+='<div class="node'+(ov>0?" hot":"")+(SITETRK===x[0]?" on":"")+'" onclick="setSiteTrk(\''+x[0]+'\')"><div class="nh"><span class="ni">'+x[1]+'</span><span class="nt">'+x[2]+'</span><span class="nn tnum">'+n+'</span></div><div class="ntask">สาขาที่มีงานค้างท่อนนี้</div><div class="nsla"><span class="chip">🏪 '+n+' สาขา</span>'+(ov>0?'<span class="chip red">🔴 เกิน '+ov+'</span>':"")+'</div></div>';
+   if(i<SITE_TRK.length-1)b+='<div class="railgap">→</div>';
+ });
+ b+='</div>';
+ b+='<div class="tbar"><input id="q" class="qbox" placeholder="🔍 ค้นหา Site Code / ชื่อสาขา / จังหวัด..." value="'+esc(SEARCH)+'" oninput="SEARCH=this.value;siteFilter()"><span class="pill">🏪 <b id="cnt">0</b> สาขา</span>'+(SITETRK?'<span class="chip">ท่อน: '+esc((SITE_TRK.filter(function(z){return z[0]===SITETRK;})[0]||["","",SITETRK])[2])+'</span><span class="clr" onclick="SITETRK=\'\';render()">✕ ล้าง</span>':"")+'<span style="margin-left:auto;color:var(--faint);font-size:12px">เรียง: งานด่วน/ค้างมากก่อน</span></div>';
  return b+'<div id="tblbox"></div>';
 }
 function siteFilter(){var arr=siteAgg();var q=(SEARCH||"").toLowerCase();
  var list=q?arr.filter(function(m){return ((m.code||"")+" "+(m.name||"")+" "+(m.prov||"")).toLowerCase().indexOf(q)>=0;}):arr;
+ if(SITETRK)list=list.filter(function(m){return m.items.some(function(it){return it.trk===SITETRK;});});
  var h;
  if(!list.length){h='<div class="tblwrap"><table><tbody><tr><td style="text-align:center;color:var(--faint);padding:34px">ไม่พบสาขา หรือไม่มีงานค้าง 🎉</td></tr></tbody></table></div>';}
  else{h='<div class="tblwrap"><table><thead><tr><th>สาขา</th><th>จังหวัด</th><th>งานค้าง</th><th>ท่อนที่ต้องทำ</th><th class="r act"></th></tr></thead><tbody>';
@@ -894,7 +907,7 @@ function exportCSV(){var list=visRows();var hdr,rows;
 function exportPerf(){var rows;var trk=(PSUB==="o1"||PSUB==="reg")?PSUB:"neg";
  if(trk==="neg"){rows=[["อันดับ","ชื่อ","งานในมือ","% เซ็น","เกิน SLA"]];DATA.perf.persons_nego.forEach(function(x,i){rows.push([i+1,x.nm,x.hold,x.pct+"%",x.over]);});downloadCSV("CJX_Perf_เจรจา_รายคน_"+DATA.updated+".csv",rows);}
  else{var arr=(trk==="o1"?DATA.ratkit.o1.tasks:DATA.ratkit.reg.tasks);rows=[["Site Code","ชื่อสาขา","จังหวัด","ผู้รับผิดชอบ","ขั้นตอน","สถานะ SLA"]];arr.forEach(function(t){rows.push([t.code,t.name,t.prov,t.owner,t.step,t.slatxt]);});downloadCSV("CJX_Perf_"+(trk==="o1"?"อ.1":"ทะเบียน")+"_"+DATA.updated+".csv",rows);}}
-function setMode(m){MODE=m;RATSUB="o1";PSUB="all";VIEW="flow";ACTIVE=null;SEARCH="";FSTAT="";FCAT="";FOWN="";document.getElementById("app").setAttribute("data-mode",m);["nego","survey","ratkit","site","boss","cal"].forEach(function(x){var e=document.getElementById("mb-"+x);if(e)e.className=(x===m?"on":"");});closeSide();fillWho();render();}
+function setMode(m){MODE=m;RATSUB="o1";PSUB="all";VIEW="flow";ACTIVE=null;SEARCH="";FSTAT="";FCAT="";FOWN="";SITETRK="";document.getElementById("app").setAttribute("data-mode",m);["nego","survey","ratkit","site","boss","cal"].forEach(function(x){var e=document.getElementById("mb-"+x);if(e)e.className=(x===m?"on":"");});closeSide();fillWho();render();}
 function toggleSide(){var s=document.getElementById("side");if(!s)return;var op=s.classList.toggle("open");var sc=document.getElementById("sidescrim");if(sc)sc.classList.toggle("show",op);}
 function closeSide(){var s=document.getElementById("side");if(s)s.classList.remove("open");var sc=document.getElementById("sidescrim");if(sc)sc.classList.remove("show");}
 
