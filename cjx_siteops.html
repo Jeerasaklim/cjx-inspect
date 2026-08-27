@@ -366,21 +366,8 @@ tbody tr:hover .gobtn{background:var(--accent);color:#fff;border-color:var(--acc
 .si-next{font-size:12px;color:var(--accent);font-weight:600;margin-top:6px}
 .si-go{margin-top:10px;width:100%;border:1px solid var(--border);background:var(--surface);color:var(--accent);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12.5px;padding:9px;border-radius:9px;cursor:pointer}
 .si-go:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-.slist{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
-.srow{display:flex;align-items:center;gap:16px;padding:12px 18px;border-bottom:1px solid var(--line)}
-.srow:last-child{border-bottom:none}
-.srow.body{cursor:pointer;transition:background .1s}.srow.body:hover{background:var(--surface2)}
-.srow.shead{background:var(--surface2);font-family:"IBM Plex Sans Thai";font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--faint)}
-.s-main{flex:1 1 240px;min-width:190px;display:flex;align-items:center;gap:10px;min-width:0}
-.s-main .nm2{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.s-prov{flex:0 0 110px;color:var(--muted);font-size:12.5px}
-.srow.shead .s-prov{color:var(--faint)}
-.s-cnt{flex:0 0 100px;display:flex;justify-content:center}
-.s-trk{flex:2 1 300px;display:flex;flex-wrap:wrap;gap:6px}
-.s-act{flex:0 0 auto;margin-left:auto}
 .cntpill{display:inline-block;font-family:"IBM Plex Sans Thai";font-weight:700;font-size:12px;padding:4px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);white-space:nowrap;color:var(--muted)}
 .cntpill.over{background:var(--bad-soft);color:var(--bad);border-color:transparent}
-@media(max-width:820px){.srow{flex-wrap:wrap;gap:9px}.s-prov,.s-cnt{flex:0 0 auto}.s-trk{flex:1 1 100%}.s-act{margin-left:0}.srow.shead{display:none}}
 </style>
 <div id="app" data-mode="nego">
   <aside class="sidebar" id="side">
@@ -603,17 +590,12 @@ function renderSite(){var arr=siteAgg();
 function siteFilter(){var arr=siteAgg();var q=(SEARCH||"").toLowerCase();
  var list=q?arr.filter(function(m){return ((m.code||"")+" "+(m.name||"")+" "+(m.prov||"")).toLowerCase().indexOf(q)>=0;}):arr;
  var h;
- if(!list.length){h='<div class="slist"><div class="srow" style="justify-content:center;color:var(--faint);padding:34px">ไม่พบสาขา หรือไม่มีงานค้าง 🎉</div></div>';}
- else{h='<div class="slist"><div class="srow shead"><span class="s-main">สาขา</span><span class="s-prov">จังหวัด</span><span class="s-cnt">งานค้าง</span><span class="s-trk">ท่อนที่ต้องทำ</span><span class="s-act"></span></div>';
+ if(!list.length){h='<div class="tblwrap"><table><tbody><tr><td style="text-align:center;color:var(--faint);padding:34px">ไม่พบสาขา หรือไม่มีงานค้าง 🎉</td></tr></tbody></table></div>';}
+ else{h='<div class="tblwrap"><table><thead><tr><th>สาขา</th><th>จังหวัด</th><th>งานค้าง</th><th>ท่อนที่ต้องทำ</th><th class="r act"></th></tr></thead><tbody>';
    h+=list.map(function(m){var dot=({3:"red",2:"amber",1:"green",0:"none"})[m.sev]||"none";
      var badges=m.items.map(function(it){return '<span class="trkbadge '+it.st+'" title="'+esc(it.tlabel+" · SLA: "+it.slatxt)+'">'+it.ico+" "+esc(it.step)+'</span>';}).join("");
-     return '<div class="srow body" onclick="openSiteAll(\''+esc(m.code)+'\')">'
-       +'<span class="s-main"><span class="sdot '+dot+'"></span><span style="min-width:0"><span class="code">'+esc(m.code)+'</span><span class="nm2">'+esc(m.name||"")+'</span></span></span>'
-       +'<span class="s-prov">'+esc(m.prov||"")+'</span>'
-       +'<span class="s-cnt"><span class="cntpill'+(m.over?" over":"")+'">'+m.items.length+" งาน"+(m.over?" · เกิน "+m.over:"")+'</span></span>'
-       +'<span class="s-trk">'+badges+'</span>'
-       +'<span class="s-act"><span class="gobtn">ดูงาน ›</span></span></div>';
-   }).join("")+'</div>';}
+     return '<tr onclick="openSiteAll(\''+esc(m.code)+'\')"><td><div class="c1"><span class="sdot '+dot+'"></span><div><div class="code">'+esc(m.code)+'</div><div class="nm2">'+esc(m.name||"")+'</div></div></div></td><td>'+esc(m.prov||"")+'</td><td><span class="cntpill'+(m.over?" over":"")+'">'+m.items.length+" งาน"+(m.over?" · เกิน "+m.over:"")+'</span></td><td><div class="trkbadges">'+badges+'</div></td><td class="r act"><span class="gobtn">ดูงาน ›</span></td></tr>';
+   }).join("")+'</tbody></table></div>';}
  var box=document.getElementById("tblbox");if(box)box.innerHTML=h;var c=document.getElementById("cnt");if(c)c.textContent=list.length;
 }
 function openSiteAll(code){var arr=siteAgg(),m=null;for(var i=0;i<arr.length;i++)if(arr[i].code===code){m=arr[i];break;}if(!m)return;
