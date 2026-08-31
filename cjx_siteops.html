@@ -1188,7 +1188,7 @@ function compute(neg,sla,reg,constr,ratown,upd,flow){
  for(i=hr+1;i<sla.length;i++){var r=sla[i];var c=cc(r,0);if(!c||opened[c])continue;
    var se8=cc(r,8),se9=cc(r,9);if((se8+" "+se9).indexOf("ยกเลิก")>=0)continue;      // ตัดที่ยกเลิก
    var vanRes=cc(r,73),apprD=pdate(cc(r,11)),svD=pdate(cc(r,12)),sentD=pdate(cc(r,13))||pdate(cc(r,56));
-   var isAppr=(vanRes.indexOf("Approve")>=0)||!!apprD;
+   var isAppr=(vanRes.indexOf("Approve")>=0);   // อนุมัติรถตู้จริง (ไม่ใช่แค่ขึ้นรถตู้/มีวันพิจารณาทำเล)
    var surveyed=!!svD||!!svy_surveyed[c],sent=!!sentD||!!svy_sent[c],appointed=!!svy_appoint[c];
    var hasMs=surveyed||sent||appointed;
    if(!hasMs&&!isAppr)continue;                                                        // เข้า track = อนุมัติทำเลแล้ว · เปิดแล้ว/ยกเลิก ตัดไปแล้ว (นับหมดทุกสาขาที่ยังไม่รังวัด)
