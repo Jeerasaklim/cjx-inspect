@@ -2083,7 +2083,8 @@ $('btnImport').onclick = async ()=>{
   const rows=parseCSV(await f.text()); if(!rows.length) return msg($('importMsg'),'ไฟล์ว่าง','err')
   const head=rows[0].map(h=>h.trim().toLowerCase()), col=n=>head.findIndex(h=>h===n.toLowerCase())
   const iC=col('Store Code'),iN=col('Store Name'),iP=col('Province'),iB=col('Building Type'),iO=col('Opening Date'),iR=col('Contractor')
-  if(iC<0||iN<0) return msg($('importMsg'),'ไม่พบคอลัมน์ Store Code / Store Name','err')
+  if(iC<0||iN<0){ const found=rows[0].map(h=>h.trim()).filter(Boolean)
+    return msg($('importMsg'),'ไม่พบคอลัมน์ Store Code / Store Name — ไฟล์นี้มีคอลัมน์: '+found.slice(0,8).join(', ')+(found.length>8?' …':'')+' · น่าจะหยิบผิดไฟล์ (ต้องใช้ไฟล์ Store Report)','err') }
   const recs=[]
   for(let r=1;r<rows.length;r++){ const c=rows[r]; const code=(c[iC]||'').trim().toUpperCase(); if(!code) continue
     recs.push({ code, name:(c[iN]||'').trim(), province:iP>=0?(c[iP]||'').trim():null,

@@ -1,0 +1,208 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ข้อมูลจากชีตสู่ App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Sarabun:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f2efe8; --panel:#fbfaf6; --panel2:#f6f3ec; --ink:#1c242d; --muted:#5d6b78; --faint:#93a0ac;
+  --line:#e4ded2; --hair:#eee9df; --gold:#a9761a; --gold-soft:#f4e9d2;
+  --nego:#a9761a; --survey:#0a8a5f; --o1:#7241b8; --reg:#b5532a; --sys:#3a6ea5;
+  --nego-s:#f4e9d2; --survey-s:#d8f0e6; --o1-s:#eee3fb; --reg-s:#f7e2d7; --sys-s:#dde9f5;
+  --good:#0a8a5f;
+  --shadow:0 1px 2px rgba(20,30,45,.04),0 8px 24px rgba(20,30,45,.06);
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#0e141a; --panel:#161f28; --panel2:#1b2632; --ink:#e7eef4; --muted:#9fadba; --faint:#657482;
+  --line:#26323e; --hair:#202b36; --gold:#e0ad4c; --gold-soft:#33280f;
+  --nego:#e0ad4c; --survey:#43c98d; --o1:#b28bec; --reg:#e08a5f; --sys:#6fa3d6;
+  --nego-s:#33280f; --survey-s:#0f3327; --o1-s:#241634; --reg-s:#331d12; --sys-s:#12263a;
+  --good:#43c98d;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+}}
+:root[data-theme=dark]{
+  --bg:#0e141a; --panel:#161f28; --panel2:#1b2632; --ink:#e7eef4; --muted:#9fadba; --faint:#657482;
+  --line:#26323e; --hair:#202b36; --gold:#e0ad4c; --gold-soft:#33280f;
+  --nego:#e0ad4c; --survey:#43c98d; --o1:#b28bec; --reg:#e08a5f; --sys:#6fa3d6;
+  --nego-s:#33280f; --survey-s:#0f3327; --o1-s:#241634; --reg-s:#331d12; --sys-s:#12263a;
+  --good:#43c98d;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sarabun",system-ui,sans-serif;font-size:15.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:46px 24px 90px}
+h1,h2,h3{font-family:"IBM Plex Sans Thai",sans-serif;margin:0;line-height:1.25;text-wrap:balance}
+.tnum{font-variant-numeric:tabular-nums}
+
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+h1{font-size:33px;font-weight:700;margin:12px 0 12px}
+.lede{font-size:17px;color:var(--muted);max-width:62ch}
+.lede b{color:var(--ink);font-weight:600}
+.meta{margin-top:18px;display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px;color:var(--faint);font-family:"IBM Plex Mono",monospace}
+.meta b{color:var(--muted);font-weight:600}
+.rule{height:1px;background:var(--line);border:0;margin:32px 0}
+
+h2{font-size:13px;font-family:"IBM Plex Mono",monospace;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:46px 0 16px;display:flex;align-items:center;gap:10px}
+h2::after{content:"";flex:1;height:1px;background:var(--hair)}
+
+.src{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);margin-bottom:22px;overflow:hidden}
+.src>.head{padding:19px 22px 17px;border-bottom:1px solid var(--hair);border-left:5px solid var(--tone,var(--gold))}
+.src h3{font-size:20px;font-weight:700;margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.src h3 .ic{width:32px;height:32px;border-radius:9px;background:var(--tone-s);color:var(--tone);display:inline-grid;place-items:center;font-size:17px;flex-shrink:0}
+.src .owner{font-size:13.5px;color:var(--muted)}
+.src .shows{margin-top:11px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--faint)}
+.shows .pill{display:inline-block;font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12.5px;padding:3px 11px;border-radius:20px;background:var(--tone-s);color:var(--tone)}
+
+.tbl-scroll{overflow-x:auto}
+.cols{width:100%;border-collapse:collapse;font-size:14.5px;table-layout:fixed}
+.cols th,.cols td{text-align:left;padding:11px 22px;border-bottom:1px solid var(--hair);vertical-align:top;word-break:break-word;overflow-wrap:anywhere}
+.cols thead th{font-family:"IBM Plex Sans Thai";font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);background:var(--panel2)}
+.cols tbody tr:last-child td{border-bottom:0}
+.cols tbody tr:hover{background:var(--panel2)}
+.cols td.name,.cols th:first-child{width:46%}
+.cols td.name{font-family:"IBM Plex Sans Thai";font-weight:600;color:var(--ink)}
+.loc{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;color:var(--tone,var(--gold));background:var(--tone-s,var(--gold-soft));padding:1px 7px;border-radius:6px;margin-top:5px;letter-spacing:.01em}
+.loc.none{color:var(--faint);background:var(--panel2)}
+.glink{margin-top:9px;font-size:12.5px;color:var(--muted)}
+.glink a{color:var(--survey);word-break:break-all}
+.cols td.use{color:var(--muted)}
+.cols td.use b{color:var(--ink);font-weight:600}
+.grp{padding:9px 22px;background:var(--panel2);font-family:"IBM Plex Sans Thai";font-weight:600;font-size:12px;color:var(--muted);border-bottom:1px solid var(--hair);letter-spacing:.02em}
+
+.callout{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--good);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow)}
+.callout h3{font-size:17px;font-weight:700;margin:0 0 12px;color:var(--ink)}
+.chk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+.chk li{display:flex;gap:11px;font-size:15px;color:var(--muted)}
+.chk li b{color:var(--ink);font-weight:600}
+.chk .m{color:var(--good);font-weight:700;flex-shrink:0}
+
+footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--faint);font-family:"IBM Plex Mono",monospace}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Site Nego Portal</div>
+    <h1>ข้อมูลที่ App ดึงมาจากชีตของแต่ละทีม</h1>
+    <p class="lede">App ดึงข้อมูล <b>สดจากชีตของทีมโดยตรง</b> ทุกครั้งที่เปิด — ไม่ต้องกรอกซ้ำที่ไหนอีก ตารางด้านล่างสรุปว่าแอปหยิบ <b>คอลัมน์ไหนจากชีตของคุณ</b> ไปแสดงเป็นอะไร โปรดช่วยตรวจว่า <b>ครบและตรง</b> กับที่ทีมใช้จริงไหม — ถ้าครบแล้ว ต่อไปดูงานผ่านแอปได้เลย</p>
+    <div class="meta">
+      <span><b>อัปเดต:</b> 27 ส.ค. 2026</span>
+      <span><b>สำหรับ:</b> เจ้าของข้อมูลแต่ละทีม</span>
+    </div>
+  </header>
+
+  <hr class="rule">
+
+  <!-- เจรจา -->
+  <section class="src" style="--tone:var(--nego);--tone-s:var(--nego-s)">
+    <div class="head">
+      <h3><span class="ic">🤝</span> ชีตทีมเจรจา</h3>
+      <div class="owner">Pipeline Commit Nego — งานเจรจา/สัญญา · 1 แถว = 1 สาขา</div>
+      <div class="shows">แสดงในแอปหน้า <span class="pill">เจรจา</span></div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th>คอลัมน์ในชีตของคุณ</th><th>แอปเอาไปแสดงเป็น</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Site Code</td><td class="use">รหัสสาขา — <b>ตัวเชื่อมข้อมูลทุกทีม</b></td></tr>
+        <tr><td class="name">ชื่อสาขา</td><td class="use">ชื่อสาขาที่แสดง</td></tr>
+        <tr><td class="name">จังหวัด</td><td class="use">จังหวัด</td></tr>
+        <tr><td class="name">เจรจา</td><td class="use">ชื่อผู้รับผิดชอบ</td></tr>
+        <tr><td class="name">Main Status</td><td class="use">สถานะสัญญา — <b>3 หรือ 4 = เซ็นสัญญาแล้ว (จบเจรจา)</b></td></tr>
+        <tr><td class="name">Sub status</td><td class="use">สถานะย่อย</td></tr>
+        <tr><td class="name">อุปสรรค/ปัญหา</td><td class="use">สาเหตุที่งานค้าง</td></tr>
+        <tr><td class="name">หมายเหตุปัญหา</td><td class="use">โน้ตความคืบหน้าล่าสุด</td></tr>
+        <tr><td class="name">SLA (วันค้าง)</td><td class="use">จำนวนวันที่ค้าง — <b>เกิน 90 วัน = ขึ้นแดง</b></td></tr>
+        <tr><td class="name">วันนำเสนอ KT</td><td class="use">แสดงในรายละเอียดสาขา</td></tr>
+        <tr><td class="name">วันส่งกฎหมาย · กฎหมายส่งกลับ · ส่งเจ้าของเซ็น · วันเซ็น</td><td class="use">ใช้ระบุว่าอยู่ขั้นไหน (รอเซ็น / ส่งกฎหมายตรวจ ฯลฯ)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- SLA / Data Site Nego -->
+  <section class="src" style="--tone:var(--survey);--tone-s:var(--survey-s)">
+    <div class="head">
+      <h3><span class="ic">📐</span> ชีตข้อมูล Site Nego</h3>
+      <div class="owner">Google Sheet เดียว — 2 ชีทย่อย: <b>Data Site Nego-2026</b> และ <b>วันรังวัดสอบหมุดเจรจา</b></div>
+      <div class="shows">แสดงในแอปหน้า <span class="pill">รังวัด</span> <span class="pill">อ.1</span> <span class="pill">Dashboard</span></div>
+      <div class="glink">🔗 <a href="https://docs.google.com/spreadsheets/d/1yHsbntgr5F5yCditjQYVWuGaCcVtUBRMEM8PiEbYqkI/edit" target="_blank" rel="noopener">docs.google.com/…/1yHsbntgr5F5yCditjQYVWuGaCcVtUBRMEM8PiEbYqkI</a></div>
+    </div>
+    <div class="grp">งานรังวัด</div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th>คอลัมน์ในชีตของคุณ</th><th>แอปเอาไปแสดงเป็น</th></tr></thead>
+      <tbody>
+        <tr><td class="name">วันที่ผู้บริหารพิจารณาทำเล<span class="loc">Data Site Nego-2026 · Col L</span></td><td class="use"><b>วันอนุมัติรถตู้</b> — จุดเริ่มนับ SLA รังวัด (10 วันทำการ) + แกนกราฟรายเดือน</td></tr>
+        <tr><td class="name">ผลอนุมัติรถตู้<span class="loc">Data Site Nego-2026 · Col AK</span></td><td class="use">= “Approved” → เข้าคิวงานรังวัด</td></tr>
+        <tr><td class="name">รังวัดพื้นที่<span class="loc">วันรังวัดสอบหมุดเจรจา · Col F</span></td><td class="use">วันรังวัด — <b>มีค่า = รังวัดเสร็จ</b></td></tr>
+        <tr><td class="name">วันที่ส่งผลรังวัด<span class="loc">วันรังวัดสอบหมุดเจรจา · Col J</span></td><td class="use">ส่งผลรังวัดให้ก่อสร้างแล้ว (จบงานรังวัด)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="grp">งานสัญญา / อ.1</div>
+    <div class="tbl-scroll"><table class="cols">
+      <tbody>
+        <tr><td class="name">เดือน/วันเซ็นสัญญาจริง<span class="loc">Data Site Nego-2026 · Col R</span></td><td class="use"><b>ปิดดีลแล้ว</b> — นับใน Dashboard (กราฟอนุมัติ→ปิดดีล)</td></tr>
+        <tr><td class="name">ยื่น อ.1<span class="loc">Data Site Nego-2026 · Col AG</span></td><td class="use">วันยื่น → เริ่มติดตาม SLA อ.1 (ตจว. 45 / กทม. 60 วัน)</td></tr>
+        <tr><td class="name">ได้ อ.1<span class="loc">Data Site Nego-2026 · Col AH</span></td><td class="use">ได้ใบอนุญาต อ.1 แล้ว (จบ)</td></tr>
+        <tr><td class="name">วันที่อนุโลม อ.1<span class="loc none">ยังไม่มีคอลัมน์ต้นทาง</span></td><td class="use">ได้รับอนุโลม (ก่อสร้างก่อนได้ใบ) — <b>ต้องเพิ่มคอลัมน์นี้ในชีตถ้าจะใช้</b></td></tr>
+        <tr><td class="name">รัฐกิจ (ผู้รับผิดชอบ)<span class="loc">Data Site Nego-2026 · Col G</span></td><td class="use">ผู้รับผิดชอบงาน อ.1</td></tr>
+      </tbody>
+    </table></div>
+    <div class="grp">ข้อมูลสาขา</div>
+    <div class="tbl-scroll"><table class="cols">
+      <tbody>
+        <tr><td class="name">Site Code · ชื่อสาขา · จังหวัด<span class="loc">Data Site Nego-2026 · Col A, C, D</span></td><td class="use">รหัส/ชื่อ/จังหวัด</td></tr>
+        <tr><td class="name">Status APPSHEET<span class="loc">Data Site Nego-2026 · Col I</span></td><td class="use">ใช้ดูว่าร้าน <b>เปิดแล้ว</b> (9.Opened)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ทะเบียน -->
+  <section class="src" style="--tone:var(--reg);--tone-s:var(--reg-s)">
+    <div class="head">
+      <h3><span class="ic">📋</span> ชีตทีมทะเบียน</h3>
+      <div class="owner">Pipeline งานทะเบียนและรัฐกิจ — เอกสารแต่ละใบ นับ D-day จากวันเปิด</div>
+      <div class="shows">แสดงในแอปหน้า <span class="pill">ทะเบียน</span></div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th>คอลัมน์ในชีตของคุณ</th><th>แอปเอาไปแสดงเป็น</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Site Code · ชื่อสาขา · จังหวัด · รัฐกิจ</td><td class="use">รหัส/ชื่อ/จังหวัด/ผู้รับผิดชอบ</td></tr>
+        <tr><td class="name">วันเปิด (D-0)</td><td class="use"><b>จุดอ้างอิงนับ D-day</b> ของเอกสารทุกใบ</td></tr>
+        <tr><td class="name">ได้น้ำ-ไฟ ชั่วคราว · น้ำถาวร · ไฟถาวร</td><td class="use">เช็คลิสต์กลุ่มน้ำ-ไฟ (เสร็จ/ค้าง)</td></tr>
+        <tr><td class="name">ได้รับทะเบียนบ้าน (D-9) · ภ.พ.09</td><td class="use">เช็คลิสต์กลุ่มทะเบียนบ้าน</td></tr>
+        <tr><td class="name">ถังเทศบาล · ขอใช้เสียง · สุรา+อาหารสัตว์ · ภาษีป้าย · ค้าซากสัตว์ · สะสม+จำหน่ายอาหาร · ยาฆ่าแมลง · แก็ซ · ภพ.06 · ภอ.11</td><td class="use">เช็คลิสต์ใบอนุญาต — <b>แต่ละใบเตือน D-day เอง</b></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ก่อสร้าง -->
+  <section class="src" style="--tone:var(--sys);--tone-s:var(--sys-s)">
+    <div class="head">
+      <h3><span class="ic">🏗️</span> ชีตทีมก่อสร้าง</h3>
+      <div class="owner">Construction Tracking — สถานะการเปิดร้าน</div>
+      <div class="shows">ใช้ทั่วทั้งแอป</div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th>คอลัมน์ในชีตของคุณ</th><th>แอปเอาไปแสดงเป็น</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Site Code · ชื่อ · จังหวัด</td><td class="use">รหัส/ชื่อ/จังหวัด</td></tr>
+        <tr><td class="name">วันเปิดร้าน + สถานะ (Active / Hide)</td><td class="use">แอปใช้ดูว่า <b>ร้านเปิดแล้วหรือยัง</b> — เปิดแล้ว = ถือว่าจบงาน ไม่ต้องติดตามต่อ</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <h2>ถ้าข้อมูลด้านบนครบและตรง</h2>
+  <div class="callout">
+    <h3>✅ ดูงานผ่าน App ได้เลย ไม่ต้องเปิดชีตอีก</h3>
+    <ul class="chk">
+      <li><span class="m">→</span><div><b>ข้อมูลเป็นสด</b> — แอปดึงจากชีตของคุณทุกครั้งที่เปิด แก้ในชีตแล้วเห็นในแอปทันที (รีเฟรชอัตโนมัติทุก 5 นาที)</div></li>
+      <li><span class="m">→</span><div><b>ตัวเชื่อมคือ Site Code</b> — ขอแค่รหัสสาขาตรงกันทุกทีม ข้อมูลจะมารวมเป็นภาพเดียวให้เอง</div></li>
+      <li><span class="m">→</span><div><b>อัปเดตงานในแอปได้</b> — กดปุ่ม “ตอบผล” ในแอปเพื่อมาร์คความคืบหน้าได้เลย ไม่ต้องสลับไปกรอกชีต</div></li>
+      <li><span class="m">→</span><div><b>เห็นภาพรวมข้ามทีม</b> — เจรจา · รังวัด · อ.1 · ทะเบียน มารวมในที่เดียว + ดูรายสาขาว่าค้างอะไรบ้าง</div></li>
+    </ul>
+  </div>
+
+  <footer>Site Nego Portal — เอกสารตรวจสอบข้อมูลสำหรับเจ้าของชีตแต่ละทีม</footer>
+
+</div>

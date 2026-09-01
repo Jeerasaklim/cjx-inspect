@@ -1,0 +1,239 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>คู่มือ Site Nego Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Sarabun:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f2efe8; --panel:#fbfaf6; --panel2:#f6f3ec; --ink:#1c242d; --muted:#5d6b78; --faint:#93a0ac;
+  --line:#e4ded2; --hair:#eee9df; --gold:#a9761a; --gold-soft:#f4e9d2;
+  --nego:#a9761a; --survey:#0a8a5f; --o1:#7241b8; --reg:#b5532a; --sys:#3a6ea5; --boss:#0e7268;
+  --nego-s:#f4e9d2; --survey-s:#d8f0e6; --o1-s:#eee3fb; --reg-s:#f7e2d7; --sys-s:#dde9f5; --boss-s:#d5f0ec;
+  --shadow:0 1px 2px rgba(20,30,45,.04),0 8px 24px rgba(20,30,45,.06);
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#0e141a; --panel:#161f28; --panel2:#1b2632; --ink:#e7eef4; --muted:#9fadba; --faint:#657482;
+  --line:#26323e; --hair:#202b36; --gold:#e0ad4c; --gold-soft:#33280f;
+  --nego:#e0ad4c; --survey:#43c98d; --o1:#b28bec; --reg:#e08a5f; --sys:#6fa3d6; --boss:#3fbdb0;
+  --nego-s:#33280f; --survey-s:#0f3327; --o1-s:#241634; --reg-s:#331d12; --sys-s:#12263a; --boss-s:#0f3330;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+}}
+:root[data-theme=dark]{
+  --bg:#0e141a; --panel:#161f28; --panel2:#1b2632; --ink:#e7eef4; --muted:#9fadba; --faint:#657482;
+  --line:#26323e; --hair:#202b36; --gold:#e0ad4c; --gold-soft:#33280f;
+  --nego:#e0ad4c; --survey:#43c98d; --o1:#b28bec; --reg:#e08a5f; --sys:#6fa3d6; --boss:#3fbdb0;
+  --nego-s:#33280f; --survey-s:#0f3327; --o1-s:#241634; --reg-s:#331d12; --sys-s:#12263a; --boss-s:#0f3330;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sarabun",system-ui,sans-serif;font-size:15.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:46px 24px 90px}
+h1,h2,h3,h4{font-family:"IBM Plex Sans Thai",sans-serif;margin:0;line-height:1.25;text-wrap:balance}
+.mono{font-family:"IBM Plex Mono","IBM Plex Sans Thai",monospace}
+.tnum{font-variant-numeric:tabular-nums}
+
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+h1{font-size:34px;font-weight:700;margin:12px 0 12px}
+.lede{font-size:16.5px;color:var(--muted);max-width:66ch}
+.meta{margin-top:18px;display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px;color:var(--faint);font-family:"IBM Plex Mono",monospace}
+.meta b{color:var(--muted);font-weight:600}
+
+/* section toc nav */
+.toc{display:flex;gap:9px;flex-wrap:wrap;margin:26px 0 6px}
+.toc a{font-family:"IBM Plex Sans Thai";font-weight:600;font-size:13.5px;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:7px 15px;box-shadow:var(--shadow)}
+.toc a:hover{border-color:var(--gold)}
+
+h2{font-size:13px;font-family:"IBM Plex Mono",monospace;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:52px 0 18px;display:flex;align-items:center;gap:10px;scroll-margin-top:18px}
+h2 .n{color:var(--gold)}
+h2::after{content:"";flex:1;height:1px;background:var(--hair)}
+
+/* docs cards */
+.docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.doc{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px 18px;box-shadow:var(--shadow);border-top:3px solid var(--tone,var(--gold));transition:transform .12s,box-shadow .12s}
+.doc:hover{transform:translateY(-2px);box-shadow:0 3px 6px rgba(20,30,45,.08),0 14px 30px rgba(20,30,45,.12)}
+.doc .dt{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:16px;display:flex;align-items:center;gap:9px}
+.doc .dd{font-size:13px;color:var(--muted);margin-top:7px}
+.doc .go{margin-top:11px;font-family:"IBM Plex Mono";font-size:12px;font-weight:600;color:var(--tone,var(--gold))}
+
+/* feature grid */
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.feat{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.feat .fh{display:flex;align-items:center;gap:11px;padding:14px 17px 13px;border-bottom:1px solid var(--hair);border-left:4px solid var(--tone,var(--gold))}
+.feat .ic{width:34px;height:34px;border-radius:9px;background:var(--tone-s);color:var(--tone);display:grid;place-items:center;font-size:17px;flex-shrink:0}
+.feat .ft{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:16px}
+.feat .fs{font-size:11.5px;color:var(--faint);margin-top:1px}
+.feat ul{list-style:none;margin:0;padding:12px 17px 15px;display:flex;flex-direction:column;gap:8px}
+.feat li{font-size:13.5px;color:var(--muted);padding-left:17px;position:relative;line-height:1.5}
+.feat li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--tone,var(--gold))}
+.feat li b{color:var(--ink);font-weight:600}
+
+/* logic list */
+.logic{display:flex;flex-direction:column;gap:12px;counter-reset:lg}
+.lg{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 18px 15px 58px;box-shadow:var(--shadow);position:relative}
+.lg::before{counter-increment:lg;content:counter(lg);position:absolute;left:16px;top:15px;width:28px;height:28px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-family:"IBM Plex Mono";font-weight:600;font-size:14px;display:grid;place-items:center}
+.lg h4{font-size:15.5px;font-weight:700;margin:0 0 3px}
+.lg p{margin:0;font-size:14px;color:var(--muted)}
+.lg p b{color:var(--ink);font-weight:600}
+.lg code{font-family:"IBM Plex Mono";font-size:12.5px;background:var(--panel2);padding:1px 6px;border-radius:5px;color:var(--ink)}
+.lg .sla{display:inline-flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.lg .sla span{font-family:"IBM Plex Mono";font-size:12px;padding:2px 9px;border-radius:20px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--faint);font-family:"IBM Plex Mono",monospace}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Site Nego Portal · Reference</div>
+    <h1>คู่มือ &amp; ตรรกะการทำงาน</h1>
+    <p class="lede">สารบัญรวมของ Site Nego Portal — รวม <b>คู่มือ</b> ที่มีทั้งหมด, <b>ความสามารถ</b> ของแต่ละหน้า, และ <b>ตรรกะ/กติกา</b> ที่แอปใช้คำนวณสถานะและ SLA ไว้ในที่เดียว</p>
+    <div class="meta">
+      <span><b>อัปเดต:</b> 31 ส.ค. 2026</span>
+      <span><b>แอป:</b> Site Nego Portal (live)</span>
+    </div>
+    <nav class="toc">
+      <a href="#docs">📚 คู่มือ</a>
+      <a href="#skill">⚡ ความสามารถ</a>
+      <a href="#logic">🧠 ตรรกะ</a>
+    </nav>
+  </header>
+
+  <h2 id="docs"><span class="n">01</span> คู่มือ · เอกสารที่มี</h2>
+  <div class="docs">
+    <a class="doc" style="--tone:var(--gold)" href="https://jeerasaklim.github.io/cjx-inspect/cjx_siteops.html" target="_blank" rel="noopener">
+      <div class="dt">🏗️ ตัวแอป (Live)</div>
+      <div class="dd">Site Nego Portal ตัวจริง — เจรจา · รังวัด · รัฐกิจ · รายสาขา · Dashboard</div>
+      <div class="go">เปิดแอป →</div>
+    </a>
+    <a class="doc" style="--tone:var(--survey)" href="https://claude.ai/code/artifact/06c2ac09-a482-4dd7-888e-dc4877d7eab6" target="_blank" rel="noopener">
+      <div class="dt">📋 ข้อมูลจากชีตสู่ App</div>
+      <div class="dd">สำหรับเจ้าของชีตตรวจสอบ — แอปดึงคอลัมน์ไหนจากชีตไหนไปแสดงเป็นอะไร (ระบุชีทย่อย+คอลัมน์จริง)</div>
+      <div class="go">เปิดเอกสาร →</div>
+    </a>
+    <a class="doc" style="--tone:var(--o1)" href="https://claude.ai/code/artifact/ac4840f2-db97-40a3-a201-8b1455ec6ca0" target="_blank" rel="noopener">
+      <div class="dt">🗂️ คู่มือแหล่งข้อมูล (ละเอียด)</div>
+      <div class="dd">Data lineage เชิงเทคนิค — ทุกแหล่ง, คอลัมน์, overlay, matrix หน้า↔แหล่ง (สำหรับผู้ดูแล)</div>
+      <div class="go">เปิดเอกสาร →</div>
+    </a>
+  </div>
+
+  <h2 id="skill"><span class="n">02</span> ความสามารถของแอป · แต่ละหน้า</h2>
+  <div class="feats">
+
+    <div class="feat" style="--tone:var(--nego);--tone-s:var(--nego-s)">
+      <div class="fh"><span class="ic">🤝</span><div><div class="ft">เจรจา</div><div class="fs">งานสัญญา</div></div></div>
+      <ul>
+        <li>ติดตามสัญญา <b>6 ขั้น</b>: เจรจา → เสนอ KT → รอเซ็น → รอส่งตรวจ → รอกฎหมายตรวจ → เซ็นแล้ว</li>
+        <li>เตือนงาน <b>ค้างเกิน 90 วัน</b> (แดง) เรียงค้างนานสุดก่อน</li>
+        <li>ปุ่มตอบผล “เซ็นสัญญาแล้ว” → ปิดงานเจรจา</li>
+      </ul>
+    </div>
+
+    <div class="feat" style="--tone:var(--survey);--tone-s:var(--survey-s)">
+      <div class="fh"><span class="ic">📐</span><div><div class="ft">รังวัด</div><div class="fs">งานทีมเจรจา</div></div></div>
+      <ul>
+        <li>4 ขั้น: รอรังวัด → นัดวันรังวัด → รังวัด → ส่งผลให้ก่อสร้าง</li>
+        <li>SLA รอรังวัด <b>10 วันทำการ</b> จากวันอนุมัติรถตู้</li>
+        <li>ปุ่มตอบผลไล่สถานะได้ทีละขั้น</li>
+      </ul>
+    </div>
+
+    <div class="feat" style="--tone:var(--o1);--tone-s:var(--o1-s)">
+      <div class="fh"><span class="ic">🏛️</span><div><div class="ft">รัฐกิจ</div><div class="fs">อ.1 + ทะเบียน</div></div></div>
+      <ul>
+        <li><b>อ.1</b> 5 ขั้น (ติดตามเอกสาร → ยื่น → ติดตาม → ได้ใบ) · SLA ตจว. 45 / กทม. 60 วัน</li>
+        <li><b>ทะเบียน</b> เช็คลิสต์ ~15 ใบ พร้อมเตือน D-day จากวันเปิด</li>
+        <li>รองรับ “อนุโลม” (ก่อสร้างก่อนได้ใบ)</li>
+      </ul>
+    </div>
+
+    <div class="feat" style="--tone:var(--reg);--tone-s:var(--reg-s)">
+      <div class="fh"><span class="ic">🏪</span><div><div class="ft">รายสาขา</div><div class="fs">งานค้างต่อสาขา</div></div></div>
+      <ul>
+        <li>รวมงานค้าง <b>ทุกท่อน</b> ของแต่ละสาขาไว้ในแถวเดียว</li>
+        <li>กรองด้วย rail (เจรจา/รังวัด/อ.1/ทะเบียน) · KPI · จังหวัด · เฉพาะเกิน SLA</li>
+        <li>คลิกสาขา → เห็นทุกงานที่ต้องทำ + <b>ปุ่มเปิดจัดการข้ามท่อน</b></li>
+      </ul>
+    </div>
+
+    <div class="feat" style="--tone:var(--boss);--tone-s:var(--boss-s)">
+      <div class="fh"><span class="ic">📊</span><div><div class="ft">Dashboard</div><div class="fs">ภาพรวม</div></div></div>
+      <ul>
+        <li>KPI หลัก + งานค้างแต่ละขั้น + งานเร่งด่วนที่สุด</li>
+        <li>กราฟ <b>อนุมัติรถตู้รายเดือน → ปิดดีล</b> (cohort)</li>
+        <li>ค้นหาข้ามทุกท่อน · Export CSV</li>
+      </ul>
+    </div>
+
+    <div class="feat" style="--tone:var(--sys);--tone-s:var(--sys-s)">
+      <div class="fh"><span class="ic">⚙️</span><div><div class="ft">ทั่วทั้งแอป</div><div class="fs">ใช้ได้ทุกหน้า</div></div></div>
+      <ul>
+        <li><b>ค้นหาแล้วไฮไลต์กล่อง</b> step ที่สาขานั้นอยู่ (เลื่อนมากลางจอ)</li>
+        <li>ตอบผลในแอป → เขียนกลับชีตกลาง (ไม่ต้องเปิด Gsheet)</li>
+        <li>Google login + สิทธิ์ตามบทบาท · รีเฟรชอัตโนมัติทุก 5 นาที</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <h2 id="logic"><span class="n">03</span> ตรรกะ &amp; กติกาที่แอปใช้</h2>
+  <div class="logic">
+
+    <div class="lg">
+      <h4>ข้อมูลเป็น Live — คำนวณในเบราว์เซอร์</h4>
+      <p>ไม่ฝังข้อมูล ดึงสดจากชีตทุกครั้งที่เปิด แล้วคำนวณ step/SLA/สถานะเอง · รีเฟรชอัตโนมัติทุก 5 นาที</p>
+    </div>
+
+    <div class="lg">
+      <h4>Site Code = คีย์เชื่อมทุกทีม</h4>
+      <p>ข้อมูลจากชีตเจรจา · SLA · ทะเบียน · ก่อสร้าง ถูก join เข้าด้วยกันด้วย <code>Site Code</code> — ถ้ารหัสไม่ตรงกัน ข้อมูลจะไม่มารวม</p>
+    </div>
+
+    <div class="lg">
+      <h4>“ร้านเปิดแล้ว = ไม่มีงานค้าง”</h4>
+      <p>สาขาที่เปิดแล้วถูกตัดออกจากทุกท่อน (<b>ยกเว้นทะเบียน</b> ที่ทำต่อหลังเปิดได้) · ตรวจ “เปิดแล้ว” จากชีตก่อสร้าง (Active/Hide + วันเปิด ≤ วันนี้) เสริมด้วยสถานะในชีต SLA (9.Opened)</p>
+    </div>
+
+    <div class="lg">
+      <h4>การแบ่งขั้น (step) ของงานเจรจา</h4>
+      <p><b>Main Status 3 หรือ 4 = เซ็นแล้ว (จบ)</b> · ที่เหลือแกะจากวันหมุด (ส่งกฎหมาย → กฎหมายกลับ → ส่งเจ้าของเซ็น) · ถ้าชีตมีคอลัมน์ “สถานะสัญญา” จะใช้ระบุขั้นตรงๆ (แม่นสุด)</p>
+    </div>
+
+    <div class="lg">
+      <h4>เกณฑ์ SLA แต่ละท่อน</h4>
+      <p>เกินกำหนด = ขึ้นแดง เรียงด่วนสุดก่อน</p>
+      <div class="sla"><span>เจรจา · 90 วัน</span><span>รังวัด · 10 วันทำการ</span><span>อ.1 · ตจว. 45 / กทม. 60 วัน</span><span>ทะเบียน · D-day จากวันเปิด</span></div>
+    </div>
+
+    <div class="lg">
+      <h4>งานรังวัด — นับทุกสาขาที่ยังไม่รังวัด</h4>
+      <p>สาขาที่ <b>อนุมัติทำเลแล้ว + ยังไม่มีวันรังวัด + ยังไม่เปิด</b> = เข้าคิวรอรังวัด (opened เท่านั้นที่ตัดออก)</p>
+    </div>
+
+    <div class="lg">
+      <h4>ทะเบียน — ใช้เกณฑ์ “จดครบ = จบ” ของตัวเอง</h4>
+      <p>งานทะเบียนทำช่วงใกล้/หลังเปิดร้าน จึง<b>ไม่ตัดสาขาที่เปิดแล้ว</b> — สาขาเปิดแล้วแต่เอกสารยังไม่ครบยังแสดงอยู่ จนจดครบทุกใบ</p>
+    </div>
+
+    <div class="lg">
+      <h4>“ตอบผล” ในแอป = Overlay (ไม่แก้ชีตต้นทาง)</h4>
+      <p>เมื่อทีมกดตอบผล ระบบเก็บลง<b>ชีตกลาง</b> แล้วเอามาทับข้อมูลฐานตอนแสดงผล · ชีตต้นทางของแต่ละทีมยังเป็นเจ้าของเหมือนเดิม</p>
+    </div>
+
+    <div class="lg">
+      <h4>กราฟ Cohort — อนุมัติรถตู้ → ปิดดีล</h4>
+      <p>จัดกลุ่มสาขาตาม<b>เดือนที่อนุมัติรถตู้</b> แล้วนับว่ากี่รายเซ็นสัญญาจบแล้ว (เขียว) เทียบกับยังไม่เซ็น (เหลือง) + %ปิดดีล</p>
+    </div>
+
+    <div class="lg">
+      <h4>สิทธิ์การเข้าถึง (Role)</h4>
+      <p><b>member</b> เห็นเฉพาะงานตัวเอง · <b>governance</b> แก้ได้เฉพาะ อ.1 + ทะเบียน · <b>admin / หัวหน้า</b> เห็นและแก้ได้ทุกอย่าง</p>
+    </div>
+
+  </div>
+
+  <footer>Site Nego Portal — คู่มือ · ความสามารถ · ตรรกะ · อ้างอิงจากโค้ดจริงของแอป</footer>
+
+</div>

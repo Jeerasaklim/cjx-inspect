@@ -1,0 +1,385 @@
+<title>คู่มือแหล่งข้อมูล Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Sarabun:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f2efe8; --panel:#fbfaf6; --panel2:#f6f3ec; --ink:#1c242d; --muted:#5d6b78; --faint:#93a0ac;
+  --line:#e4ded2; --hair:#eee9df; --gold:#a9761a; --gold-soft:#f4e9d2;
+  --nego:#a9761a; --survey:#0a8a5f; --o1:#7241b8; --reg:#b5532a; --sys:#3a6ea5;
+  --nego-s:#f4e9d2; --survey-s:#d8f0e6; --o1-s:#eee3fb; --reg-s:#f7e2d7; --sys-s:#dde9f5;
+  --shadow:0 1px 2px rgba(20,30,45,.04),0 8px 24px rgba(20,30,45,.06);
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#0e141a; --panel:#161f28; --panel2:#1b2632; --ink:#e7eef4; --muted:#9fadba; --faint:#657482;
+  --line:#26323e; --hair:#202b36; --gold:#e0ad4c; --gold-soft:#33280f;
+  --nego:#e0ad4c; --survey:#43c98d; --o1:#b28bec; --reg:#e08a5f; --sys:#6fa3d6;
+  --nego-s:#33280f; --survey-s:#0f3327; --o1-s:#241634; --reg-s:#331d12; --sys-s:#12263a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+}}
+:root[data-theme=dark]{
+  --bg:#0e141a; --panel:#161f28; --panel2:#1b2632; --ink:#e7eef4; --muted:#9fadba; --faint:#657482;
+  --line:#26323e; --hair:#202b36; --gold:#e0ad4c; --gold-soft:#33280f;
+  --nego:#e0ad4c; --survey:#43c98d; --o1:#b28bec; --reg:#e08a5f; --sys:#6fa3d6;
+  --nego-s:#33280f; --survey-s:#0f3327; --o1-s:#241634; --reg-s:#331d12; --sys-s:#12263a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sarabun",system-ui,sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:44px 24px 90px}
+h1,h2,h3{font-family:"IBM Plex Sans Thai",sans-serif;margin:0;line-height:1.25;text-wrap:balance}
+code,.mono{font-family:"IBM Plex Mono","IBM Plex Sans Thai",monospace}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* header */
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+h1{font-size:34px;font-weight:700;margin:12px 0 10px}
+.lede{font-size:16.5px;color:var(--muted);max-width:64ch}
+.meta{margin-top:18px;display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px;color:var(--faint);font-family:"IBM Plex Mono",monospace}
+.meta b{color:var(--muted);font-weight:600}
+.rule{height:1px;background:var(--line);border:0;margin:30px 0}
+
+/* flow */
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin:6px 0 4px}
+.flow .box{flex:1;min-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 16px;box-shadow:var(--shadow)}
+.flow .box .k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.flow .box .t{font-family:"IBM Plex Sans Thai";font-weight:700;font-size:15px;margin:5px 0 4px}
+.flow .box .d{font-size:12.5px;color:var(--muted);line-height:1.45}
+.flow .arr{display:flex;align-items:center;color:var(--faint);font-size:20px;padding:0 8px;flex-shrink:0}
+@media(max-width:640px){.flow .arr{transform:rotate(90deg);padding:4px 0;width:100%;justify-content:center}}
+
+h2{font-size:13px;font-family:"IBM Plex Mono",monospace;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:44px 0 16px;display:flex;align-items:center;gap:10px}
+h2::after{content:"";flex:1;height:1px;background:var(--hair)}
+
+/* quick index table */
+.idx{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow);font-size:14px}
+.idx th,.idx td{text-align:left;padding:12px 15px;border-bottom:1px solid var(--hair);vertical-align:top}
+.idx thead th{font-family:"IBM Plex Sans Thai";font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);background:var(--panel2)}
+.idx tbody tr:last-child td{border-bottom:0}
+.idx td:first-child{white-space:nowrap}
+
+/* source cards */
+.src{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+.src>.head{padding:18px 20px 16px;border-bottom:1px solid var(--hair);border-left:4px solid var(--tone,var(--gold))}
+.src .tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;padding:3px 9px;border-radius:7px;background:var(--tone-s,var(--gold-soft));color:var(--tone,var(--gold))}
+.src h3{font-size:19px;font-weight:700;margin:9px 0 3px}
+.src .sheet{font-size:13px;color:var(--muted)}
+.src .sheet b{color:var(--ink);font-weight:600}
+.src .powers{margin-top:9px;font-size:13.5px;color:var(--muted)}
+.src .powers b{color:var(--tone,var(--gold));font-weight:600}
+.tbl-scroll{overflow-x:auto}
+.cols{width:100%;border-collapse:collapse;font-size:14px;min-width:520px}
+.cols th,.cols td{text-align:left;padding:9px 20px;border-bottom:1px solid var(--hair)}
+.cols thead th{font-family:"IBM Plex Sans Thai";font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.cols tbody tr:last-child td{border-bottom:0}
+.cols tbody tr:hover{background:var(--panel2)}
+.col-i{width:1%;white-space:nowrap}
+.chip{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;min-width:26px;text-align:center;padding:2px 7px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.cols td.name{font-family:"IBM Plex Sans Thai";font-weight:600;color:var(--ink);white-space:nowrap}
+.cols td.use{color:var(--muted);font-size:13.5px}
+.hint{padding:11px 20px 15px;font-size:12.5px;color:var(--faint);background:var(--panel2);border-top:1px solid var(--hair)}
+.hint b{color:var(--muted)}
+
+/* matrix */
+.mtx{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow);font-size:13.5px;min-width:560px}
+.mtx th,.mtx td{padding:11px 13px;border-bottom:1px solid var(--hair);text-align:left;vertical-align:top}
+.mtx thead th{font-family:"IBM Plex Sans Thai";font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);background:var(--panel2)}
+.mtx tbody tr:last-child td{border-bottom:0}
+.mtx td:first-child{font-family:"IBM Plex Sans Thai";font-weight:700;white-space:nowrap}
+.pg{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.s-nego{background:var(--nego)}.s-survey{background:var(--survey)}.s-o1{background:var(--o1)}.s-reg{background:var(--reg)}
+.tags-inline{display:flex;flex-wrap:wrap;gap:5px}
+.tags-inline .m{font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:2px 7px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+
+.note{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--sys);border-radius:12px;padding:15px 18px;box-shadow:var(--shadow);font-size:14px;color:var(--muted)}
+.note b{color:var(--ink)}
+.note code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12.5px;color:var(--ink)}
+footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--faint);font-family:"IBM Plex Mono",monospace}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Data lineage · Site Nego Portal</div>
+    <h1>คู่มือแหล่งข้อมูลของแอป</h1>
+    <p class="lede">แอปนี้ทำงานแบบ <b>live</b> — ไม่ได้ฝังข้อมูลไว้ในไฟล์ แต่ดึงสดจาก Google Sheets หลายชีตทุกครั้งที่เปิด แล้วคำนวณสถานะ/SLA ในเบราว์เซอร์ เอกสารนี้สรุปว่าแต่ละส่วนของแอปดึงข้อมูลจาก <b>ชีตไหน คอลัมน์ไหน</b> และใช้ทำอะไร</p>
+    <div class="meta">
+      <span><b>อัปเดตเอกสาร:</b> 27 ส.ค. 2026</span>
+      <span><b>แอป:</b> cjx_siteops.html</span>
+      <span><b>โหมด:</b> live · fetch + คำนวณฝั่ง client</span>
+    </div>
+  </header>
+
+  <hr class="rule">
+
+  <div class="flow">
+    <div class="box">
+      <div class="k">ต้นทาง</div>
+      <div class="t">Google Sheets</div>
+      <div class="d">7 ชีต/ช่วงข้อมูล — pipeline เจรจา, SLA master, ทะเบียน, ก่อสร้าง, รายชื่อผู้ใช้</div>
+    </div>
+    <div class="arr">→</div>
+    <div class="box">
+      <div class="k">ตัวกลาง</div>
+      <div class="t">Apps Script</div>
+      <div class="d">ตัวเดียว ทำหน้าที่ proxy อ่านทุกชีต (เรียกด้วย <code class="mono">?tab=ชื่อ</code>) และรับ "ตอบผล" เขียนกลับ</div>
+    </div>
+    <div class="arr">→</div>
+    <div class="box">
+      <div class="k">ปลายทาง</div>
+      <div class="t">Portal (เบราว์เซอร์)</div>
+      <div class="d">คำนวณ step/SLA/opened เอง + เอาผลที่ทีมกรอกในแอปมาทับข้อมูลฐาน</div>
+    </div>
+  </div>
+
+  <h2>สรุปแหล่งข้อมูลทั้งหมด</h2>
+  <table class="idx">
+    <thead><tr><th>tab (ที่แอปเรียก)</th><th>ชีตต้นทาง</th><th>ป้อนให้ส่วนไหน</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip">src_nego</span></td><td>Pipeline Commit Nego-2026</td><td>ท่อนเจรจา · ชื่อ/จังหวัด/ผู้รับผิดชอบ</td></tr>
+      <tr><td><span class="chip">src_flow</span></td><td>Milestone เจรจา (จาก pipeline)</td><td>แกะ step ละเอียดของเจรจา</td></tr>
+      <tr><td><span class="chip">src_sla</span></td><td>SLA Master “SA BuDdy V3”</td><td>รังวัด · อ.1 · กราฟ cohort · เช็ค “เปิดแล้ว”</td></tr>
+      <tr><td><span class="chip">src_ratown</span></td><td>SLA Master (คอลัมน์ผู้รับผิดชอบ)</td><td>ผู้รับผิดชอบ/จังหวัด ของงาน อ.1</td></tr>
+      <tr><td><span class="chip">src_reg</span></td><td>Pipeline งานทะเบียนและรัฐกิจ</td><td>ท่อนทะเบียน (เช็คลิสต์เอกสาร + D-day)</td></tr>
+      <tr><td><span class="chip">src_constr</span></td><td>Construction Tracking (Mirror)</td><td>เช็ค “ร้านเปิดแล้ว = ไม่มีงานค้าง”</td></tr>
+      <tr><td><span class="chip">people</span></td><td>CJX Site Ops – รายชื่อผู้ใช้</td><td>Google login + สิทธิ์การเข้าถึง</td></tr>
+      <tr><td><span class="chip">updates</span></td><td>CJX Site Ops – App Updates</td><td>ผลที่ทีมกด “ตอบผล” ในแอป (ทับข้อมูลฐาน)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>รายละเอียดแต่ละแหล่ง · คอลัมน์ที่ใช้จริง</h2>
+
+  <!-- src_nego -->
+  <section class="src" style="--tone:var(--nego);--tone-s:var(--nego-s)">
+    <div class="head">
+      <span class="tag">src_nego</span>
+      <h3>Pipeline Commit Nego-2026</h3>
+      <div class="sheet">ชีตงานเจรจา/สัญญา — 1 แถว = 1 สาขา</div>
+      <div class="powers">ป้อน: <b>🤝 ท่อนเจรจา</b> และชื่อ/จังหวัด/ผู้รับผิดชอบที่ใช้ทั้งแอป</div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th class="col-i">คอลัมน์</th><th>ชื่อคอลัมน์</th><th>แอปใช้ทำอะไร</th></tr></thead>
+      <tbody>
+        <tr><td class="col-i"><span class="chip">0</span></td><td class="name">Site Code</td><td class="use">รหัสสาขา (คีย์เชื่อมทุกชีต)</td></tr>
+        <tr><td class="col-i"><span class="chip">1</span></td><td class="name">ชื่อสาขา</td><td class="use">ชื่อที่แสดง</td></tr>
+        <tr><td class="col-i"><span class="chip">2</span></td><td class="name">จังหวัด</td><td class="use">จังหวัด</td></tr>
+        <tr><td class="col-i"><span class="chip">3</span></td><td class="name">เจรจา</td><td class="use">ผู้รับผิดชอบท่อนเจรจา</td></tr>
+        <tr><td class="col-i"><span class="chip">5</span></td><td class="name">Main Status</td><td class="use">สถานะหลัก — เลข 3/4 = เซ็นสัญญาแล้ว (จบเจรจา)</td></tr>
+        <tr><td class="col-i"><span class="chip">6</span></td><td class="name">Sub status</td><td class="use">สถานะย่อย</td></tr>
+        <tr><td class="col-i"><span class="chip">7</span></td><td class="name">อุปสรรค/ปัญหา</td><td class="use">สาเหตุที่ค้าง</td></tr>
+        <tr><td class="col-i"><span class="chip">8</span></td><td class="name">หมายเหตุปัญหา</td><td class="use">โน้ตความคืบหน้า</td></tr>
+        <tr><td class="col-i"><span class="chip">24</span></td><td class="name">SLA (aging)</td><td class="use">จำนวนวันค้าง — เกิน 90 = แดง</td></tr>
+        <tr><td class="col-i"><span class="chip">25</span></td><td class="name">วันนำเสนอ KT</td><td class="use">แสดงในรายละเอียดสาขา</td></tr>
+        <tr><td class="col-i"><span class="chip mono">*</span></td><td class="name">สถานะสัญญา</td><td class="use">ถ้ามีคอลัมน์นี้ = ใช้ระบุ step ตรงๆ (แม่นสุด)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- src_flow -->
+  <section class="src" style="--tone:var(--nego);--tone-s:var(--nego-s)">
+    <div class="head">
+      <span class="tag">src_flow</span>
+      <h3>Milestone เจรจา</h3>
+      <div class="sheet">วันที่แต่ละหมุดของงานสัญญา — ใช้แกะว่าอยู่ step ไหน</div>
+      <div class="powers">ป้อน: <b>step ละเอียดของท่อนเจรจา</b> (ส่งกฎหมาย → กฎหมายกลับ → รอเซ็น)</div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th class="col-i">คอลัมน์</th><th>ชื่อคอลัมน์</th><th>แอปใช้ทำอะไร</th></tr></thead>
+      <tbody>
+        <tr><td class="col-i"><span class="chip">0</span></td><td class="name">code</td><td class="use">รหัสสาขา</td></tr>
+        <tr><td class="col-i"><span class="chip">1</span></td><td class="name">send_legal</td><td class="use">วันส่งกฎหมายตรวจสัญญา</td></tr>
+        <tr><td class="col-i"><span class="chip">2</span></td><td class="name">legal_back</td><td class="use">วันกฎหมายส่งกลับ</td></tr>
+        <tr><td class="col-i"><span class="chip">3</span></td><td class="name">sign_owner</td><td class="use">วันส่งเจ้าของที่ดินเซ็น</td></tr>
+        <tr><td class="col-i"><span class="chip">4</span></td><td class="name">signed</td><td class="use">วันเซ็นสัญญาแล้ว</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- src_sla -->
+  <section class="src" style="--tone:var(--survey);--tone-s:var(--survey-s)">
+    <div class="head">
+      <span class="tag">src_sla</span>
+      <h3>SLA Master — “SA BuDdy V3”</h3>
+      <div class="sheet">ชีตกลางใหญ่สุด (103 คอลัมน์) — <b>gid 238646031</b></div>
+      <div class="powers">ป้อน: <b>📐 รังวัด · 🏛️ อ.1 · กราฟ cohort · การเช็ค “เปิดแล้ว”</b></div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th class="col-i">คอลัมน์</th><th>ชื่อคอลัมน์</th><th>แอปใช้ทำอะไร</th></tr></thead>
+      <tbody>
+        <tr><td class="col-i"><span class="chip">0</span></td><td class="name">Site Code</td><td class="use">รหัสสาขา</td></tr>
+        <tr><td class="col-i"><span class="chip">3</span></td><td class="name">จังหวัด</td><td class="use">จังหวัด</td></tr>
+        <tr><td class="col-i"><span class="chip">4</span></td><td class="name">ชื่อสาขาใหม่</td><td class="use">ชื่อสำรอง</td></tr>
+        <tr><td class="col-i"><span class="chip">6</span></td><td class="name">Status APPSHEET</td><td class="use">= “9. Opened” → ถือว่าเปิดแล้ว</td></tr>
+        <tr><td class="col-i"><span class="chip">8</span></td><td class="name">Status Site Expansion</td><td class="use">“01.เปิดแล้ว” → เปิดแล้ว · “ยกเลิก” → ตัดออก</td></tr>
+        <tr><td class="col-i"><span class="chip">11</span></td><td class="name">วันที่ผู้บริหารพิจารณาทำเล</td><td class="use"><b>= วันอนุมัติรถตู้</b> · จุดเริ่ม SLA รังวัด + แกน cohort</td></tr>
+        <tr><td class="col-i"><span class="chip">12</span></td><td class="name">รังวัดพื้นที่</td><td class="use">วันรังวัด — มีค่า = รังวัดเสร็จ</td></tr>
+        <tr><td class="col-i"><span class="chip">13</span></td><td class="name">วันที่ส่งผลรังวัด</td><td class="use">ส่งผลให้ก่อสร้างแล้ว (จบรังวัด)</td></tr>
+        <tr><td class="col-i"><span class="chip">25</span></td><td class="name">เดือนที่เซ็นสัญญาจริง</td><td class="use">นับ “ปิดดีล” ในกราฟ cohort</td></tr>
+        <tr><td class="col-i"><span class="chip">26</span></td><td class="name">วันเซ็นสัญญาจริง</td><td class="use">= ปิดดีลแล้ว (เขียวในกราฟ)</td></tr>
+        <tr><td class="col-i"><span class="chip">33</span></td><td class="name">ยื่น อ.1</td><td class="use">วันยื่น อ.1 → เริ่มจับ SLA อ.1</td></tr>
+        <tr><td class="col-i"><span class="chip">34</span></td><td class="name">ได้ อ.1</td><td class="use">ได้ใบ อ.1 แล้ว (จบ)</td></tr>
+        <tr><td class="col-i"><span class="chip">46</span></td><td class="name">วันที่อนุโลม อ.1</td><td class="use">ได้รับอนุโลม (ก่อสร้างก่อนได้ใบ)</td></tr>
+        <tr><td class="col-i"><span class="chip">56</span></td><td class="name">รับผลรังวัดจากเจรจา</td><td class="use">ก่อสร้างรับผลรังวัดแล้ว (จบรังวัด อีกสัญญาณ)</td></tr>
+        <tr><td class="col-i"><span class="chip">73</span></td><td class="name">ผลอนุมัติรถตู้</td><td class="use">= “Approved” → เข้าเงื่อนไขรังวัด/cohort</td></tr>
+      </tbody>
+    </table></div>
+    <div class="hint"><b>หมายเหตุ:</b> header จริงของชีตนี้อยู่ที่ <b>แถวที่ 2</b> (แถวแรกเป็นหัวข้อกลุ่ม) — แอปตรวจหาคำว่า “Site Code” เองเพื่อหาแถว header</div>
+  </section>
+
+  <!-- src_ratown -->
+  <section class="src" style="--tone:var(--o1);--tone-s:var(--o1-s)">
+    <div class="head">
+      <span class="tag">src_ratown</span>
+      <h3>SLA Master — คอลัมน์ผู้รับผิดชอบ</h3>
+      <div class="sheet">ช่วงข้อมูลอีกส่วนของ SLA master (header อยู่แถว 2)</div>
+      <div class="powers">ป้อน: <b>ผู้รับผิดชอบ + จังหวัด ของงาน 🏛️ อ.1</b></div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th class="col-i">คอลัมน์</th><th>ชื่อคอลัมน์</th><th>แอปใช้ทำอะไร</th></tr></thead>
+      <tbody>
+        <tr><td class="col-i"><span class="chip">0</span></td><td class="name">Site Code</td><td class="use">รหัสสาขา</td></tr>
+        <tr><td class="col-i"><span class="chip">4</span></td><td class="name">จังหวัด</td><td class="use">จังหวัด (สำรอง)</td></tr>
+        <tr><td class="col-i"><span class="chip">5</span></td><td class="name">รัฐกิจ</td><td class="use">ผู้รับผิดชอบงานรัฐกิจ/อ.1</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- src_reg -->
+  <section class="src" style="--tone:var(--reg);--tone-s:var(--reg-s)">
+    <div class="head">
+      <span class="tag">src_reg</span>
+      <h3>Pipeline งานทะเบียนและรัฐกิจ</h3>
+      <div class="sheet">งานทะเบียนแบบ D-day (นับถอยหลังจากวันเปิด)</div>
+      <div class="powers">ป้อน: <b>📋 ท่อนทะเบียน</b> — เช็คลิสต์เอกสารแต่ละใบ · สาขาจะเข้าท่อนนี้เมื่อเริ่มมีข้อมูลคอลัมน์ 14–33</div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th class="col-i">คอลัมน์</th><th>ชื่อคอลัมน์</th><th>แอปใช้ทำอะไร</th></tr></thead>
+      <tbody>
+        <tr><td class="col-i"><span class="chip">0</span></td><td class="name">Site Code</td><td class="use">รหัสสาขา</td></tr>
+        <tr><td class="col-i"><span class="chip">1</span></td><td class="name">ชื่อสาขา</td><td class="use">ชื่อที่แสดง</td></tr>
+        <tr><td class="col-i"><span class="chip">2</span></td><td class="name">จังหวัด</td><td class="use">จังหวัด</td></tr>
+        <tr><td class="col-i"><span class="chip">3</span></td><td class="name">รัฐกิจ</td><td class="use">ผู้รับผิดชอบ</td></tr>
+        <tr><td class="col-i"><span class="chip">4</span></td><td class="name">วันเปิด (D-0)</td><td class="use">จุดอ้างอิงคำนวณ D-day ทุกใบ</td></tr>
+        <tr><td class="col-i"><span class="chip">7</span></td><td class="name">ได้น้ำ-ไฟ ชั่วคราว</td><td class="use">เช็คลิสต์: กลุ่มน้ำ-ไฟ</td></tr>
+        <tr><td class="col-i"><span class="chip">10</span></td><td class="name">ได้น้ำ ถาวร</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">13</span></td><td class="name">ได้ไฟ ถาวร</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">15</span></td><td class="name">ได้รับทะเบียนบ้าน (D-9)</td><td class="use">เช็คลิสต์: ทะเบียนบ้าน</td></tr>
+        <tr><td class="col-i"><span class="chip">17</span></td><td class="name">ได้รับ ภ.พ.09</td><td class="use">เช็คลิสต์: เพิ่มสาขา</td></tr>
+        <tr><td class="col-i"><span class="chip">18</span></td><td class="name">ถังเทศบาล</td><td class="use">เช็คลิสต์: ใบอนุญาต</td></tr>
+        <tr><td class="col-i"><span class="chip">20</span></td><td class="name">ขอใช้เสียง</td><td class="use">เช็คลิสต์: ใบอนุญาต</td></tr>
+        <tr><td class="col-i"><span class="chip">22</span></td><td class="name">สุรา + อาหารสัตว์</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">23</span></td><td class="name">ภาษีป้าย + สิ่งปลูกสร้าง</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">25</span></td><td class="name">ค้าซากสัตว์</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">27</span></td><td class="name">สะสม+จำหน่ายอาหาร</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">29</span></td><td class="name">ยาฆ่าแมลง</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">31</span></td><td class="name">แก็ซ</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">32</span></td><td class="name">ภพ.06</td><td class="use">เช็คลิสต์</td></tr>
+        <tr><td class="col-i"><span class="chip">33</span></td><td class="name">ภอ.11</td><td class="use">เช็คลิสต์</td></tr>
+      </tbody>
+    </table></div>
+    <div class="hint"><b>หมายเหตุ:</b> ท่อนทะเบียนใช้เกณฑ์ “จดครบทุกใบ = จบ” ของตัวเอง — สาขาที่เปิดแล้วแต่ทะเบียนยังไม่ครบ <b>ยังแสดงอยู่</b> (ต่างจากท่อนอื่น)</div>
+  </section>
+
+  <!-- src_constr -->
+  <section class="src" style="--tone:var(--sys);--tone-s:var(--sys-s)">
+    <div class="head">
+      <span class="tag">src_constr</span>
+      <h3>Construction Tracking (Mirror)</h3>
+      <div class="sheet">ข้อมูลก่อสร้าง — ผ่านการ normalize เหลือ 6 คอลัมน์</div>
+      <div class="powers">ป้อน: <b>การเช็ค “ร้านเปิดแล้ว = ไม่มีงานค้าง”</b> (กฎทั้งแอป)</div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th class="col-i">คอลัมน์</th><th>ชื่อคอลัมน์</th><th>แอปใช้ทำอะไร</th></tr></thead>
+      <tbody>
+        <tr><td class="col-i"><span class="chip">0</span></td><td class="name">code</td><td class="use">รหัสสาขา</td></tr>
+        <tr><td class="col-i"><span class="chip">1</span></td><td class="name">name</td><td class="use">ชื่อ (สำรอง)</td></tr>
+        <tr><td class="col-i"><span class="chip">2</span></td><td class="name">prov</td><td class="use">จังหวัด (สำรอง)</td></tr>
+        <tr><td class="col-i"><span class="chip">3</span></td><td class="name">open</td><td class="use">วันเปิดร้าน</td></tr>
+        <tr><td class="col-i"><span class="chip">4</span></td><td class="name">active</td><td class="use">= “Active”</td></tr>
+        <tr><td class="col-i"><span class="chip">5</span></td><td class="name">hide</td><td class="use">= “Hide”</td></tr>
+      </tbody>
+    </table></div>
+    <div class="hint"><b>เกณฑ์ “เปิดแล้ว”:</b> (<code>active = Active</code> หรือ <code>hide = Hide</code>) และ <code>วันเปิด ≤ วันนี้</code> · เสริมด้วยชีต SLA (Status = 9.Opened / 01.เปิดแล้ว) กันเคสไม่ได้กรอกในชีตก่อสร้าง</div>
+  </section>
+
+  <!-- people -->
+  <section class="src" style="--tone:var(--sys);--tone-s:var(--sys-s)">
+    <div class="head">
+      <span class="tag">people</span>
+      <h3>รายชื่อผู้ใช้ + สิทธิ์</h3>
+      <div class="sheet">ผูกอีเมล Google กับชื่อ + บทบาท</div>
+      <div class="powers">ป้อน: <b>การเข้าสู่ระบบ (Google login) และสิทธิ์การเห็น/แก้</b></div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th class="col-i">คอลัมน์</th><th>ชื่อคอลัมน์</th><th>แอปใช้ทำอะไร</th></tr></thead>
+      <tbody>
+        <tr><td class="col-i"><span class="chip">0</span></td><td class="name">Email</td><td class="use">อีเมล @cjmart.co.th (คีย์ login)</td></tr>
+        <tr><td class="col-i"><span class="chip">1</span></td><td class="name">Name</td><td class="use">ชื่อที่แสดง</td></tr>
+        <tr><td class="col-i"><span class="chip">2</span></td><td class="name">Role</td><td class="use"><b>member</b> เห็นเฉพาะงานตัวเอง · <b>governance</b> แก้ได้เฉพาะ อ.1+ทะเบียน · <b>admin/head</b> เห็น+แก้ทุกอย่าง</td></tr>
+      </tbody>
+    </table></div>
+    <div class="hint"><b>หมายเหตุ:</b> อีเมลแอดมินเจ้าของระบบถูกใส่ allowlist ไว้ในโค้ด → เข้าได้เสมอแม้ยังไม่กรอกในชีตนี้</div>
+  </section>
+
+  <!-- updates -->
+  <section class="src" style="--tone:var(--sys);--tone-s:var(--sys-s)">
+    <div class="head">
+      <span class="tag">updates</span>
+      <h3>CJX Site Ops – App Updates</h3>
+      <div class="sheet">ชีตกลางที่แอป <b>เขียนกลับ</b> เมื่อทีมกด “ตอบผล”</div>
+      <div class="powers">ป้อน: <b>overlay</b> — ผลที่ทีมกรอกในแอปมา “ทับ” ข้อมูลฐาน (เช่น มาร์คเซ็นแล้ว / ยื่น อ.1 / นัดรังวัด / ทะเบียนเสร็จ) โดยไม่ต้องแก้ชีตต้นทาง</div>
+    </div>
+    <div class="tbl-scroll"><table class="cols">
+      <thead><tr><th class="col-i">คอลัมน์</th><th>ชื่อคอลัมน์</th><th>แอปใช้ทำอะไร</th></tr></thead>
+      <tbody>
+        <tr><td class="col-i"><span class="chip">1</span></td><td class="name">code</td><td class="use">รหัสสาขาที่กรอก</td></tr>
+        <tr><td class="col-i"><span class="chip">2</span></td><td class="name">track</td><td class="use">ท่อน: <code>nego</code> / <code>survey</code> / <code>o1</code> / <code>reg</code></td></tr>
+        <tr><td class="col-i"><span class="chip">3</span></td><td class="name">field</td><td class="use">สิ่งที่ทำ เช่น signed, submit, got, waiver, appoint, surveyed, sent, done, step</td></tr>
+        <tr><td class="col-i"><span class="chip">4</span></td><td class="name">value</td><td class="use">ค่า/วันที่ (ถ้ามี)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <h2>แต่ละหน้าในแอป ใช้แหล่งไหนบ้าง</h2>
+  <div class="tbl-scroll"><table class="mtx">
+    <thead><tr><th>หน้า / ท่อน</th><th>แหล่งข้อมูลที่ใช้</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="pg s-nego"></span>เจรจา</td>
+        <td><div class="tags-inline"><span class="m">src_nego</span><span class="m">src_flow</span><span class="m">updates · nego</span></div></td>
+      </tr>
+      <tr>
+        <td><span class="pg s-survey"></span>รังวัด</td>
+        <td><div class="tags-inline"><span class="m">src_sla · 11,12,13,56,73</span><span class="m">src_constr</span><span class="m">updates · survey</span></div></td>
+      </tr>
+      <tr>
+        <td><span class="pg s-o1"></span>อ.1</td>
+        <td><div class="tags-inline"><span class="m">src_sla · 33,34,46</span><span class="m">src_ratown</span><span class="m">src_nego</span><span class="m">src_constr</span><span class="m">updates · o1</span></div></td>
+      </tr>
+      <tr>
+        <td><span class="pg s-reg"></span>ทะเบียน</td>
+        <td><div class="tags-inline"><span class="m">src_reg</span><span class="m">updates · reg</span></div></td>
+      </tr>
+      <tr>
+        <td>🏪 รายสาขา</td>
+        <td><div class="tags-inline"><span class="m">รวมทุกท่อน</span><span class="m">src_constr (ตัดเปิดแล้ว)</span></div></td>
+      </tr>
+      <tr>
+        <td>📊 Dashboard</td>
+        <td><div class="tags-inline"><span class="m">ทุกท่อน</span><span class="m">cohort = src_sla · 11,73,26</span></div></td>
+      </tr>
+    </tbody>
+  </table></div>
+
+  <h2>สิ่งที่ควรรู้</h2>
+  <div class="note">
+    <p style="margin:0 0 10px"><b>1. ข้อมูลเป็น live</b> — เปิดแอปทีไรดึงสดทุกครั้ง ไม่มีการฝังข้อมูล เปลี่ยนในชีตแล้วรีเฟรชเห็นเลย (แอป auto-refresh ทุก 5 นาที)</p>
+    <p style="margin:0 0 10px"><b>2. คีย์เชื่อมทุกชีตคือ Site Code</b> — ถ้ารหัสสาขาในชีตต่างกัน ข้อมูลจะไม่ join กัน</p>
+    <p style="margin:0 0 10px"><b>3. “ตอบผล” ในแอปไม่แก้ชีตต้นทาง</b> — จะเก็บใน <code>updates</code> แล้วเอามาทับตอนแสดงผล (overlay) ชีตต้นทางยังเป็นของทีมเจ้าของเหมือนเดิม</p>
+    <p style="margin:0"><b>4. “ร้านเปิดแล้ว = ไม่มีงานค้าง”</b> เป็นกฎหลัก — สาขาที่เปิดแล้วถูกตัดออกจากทุกท่อน (ยกเว้นทะเบียนที่ยังทำต่อหลังเปิดได้)</p>
+  </div>
+
+  <footer>CJX Site Ops · Site Nego Portal — คู่มือแหล่งข้อมูล · จัดทำจากโค้ดจริงของแอป (compute) + header จริงของแต่ละชีต</footer>
+
+</div>
