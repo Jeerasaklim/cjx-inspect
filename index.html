@@ -503,8 +503,8 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
       <div id="secUsers" class="asec hide">
         <div class="apanel">
           <div class="ap-t">ผู้ใช้ &amp; สิทธิ์ (Role)</div>
-          <div class="ap-d">กำหนดสิทธิ์ให้แต่ละคน — <b>เลือกจากช่องแล้วบันทึกทันที</b> ไม่ต้องกดยืนยัน</div>
-          <button class="btn gho sm" id="btnUsers">โหลดรายชื่อผู้ใช้</button>
+          <div class="ap-d">กำหนดสิทธิ์ให้แต่ละคน — <b>เลือกจากช่องแล้วบันทึกทันที</b> ไม่ต้องกดยืนยัน · กด <b>Export CSV</b> เพื่อโหลดรายชื่อทั้งหมด (email, name, role) ไปแก้/ทำ roster</div>
+          <div class="filerow"><button class="btn gho sm" id="btnUsers">โหลดรายชื่อผู้ใช้</button><button class="btn gho sm" id="btnUsersCsv">⬇ Export CSV</button></div>
           <div id="usersBox" style="margin-top:12px"></div>
         </div>
       </div>
@@ -521,8 +521,9 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
           <div class="filerow" style="margin-top:8px">
             <input type="file" id="rosCsv" accept=".csv" style="flex:1;min-width:0">
             <button class="btn gho sm" id="btnRosImport">นำเข้า CSV</button>
-            <button class="btn gho sm" id="btnRosTpl">template</button>
+            <button class="btn gho sm" id="btnRosTpl">template .xlsx</button>
           </div>
+          <div class="uhint" style="margin-top:6px">วิธีเร็ว: ไปหน้า <b>ผู้ใช้ &amp; สิทธิ์ → Export CSV</b> ได้ไฟล์รายชื่อพร้อม role → แก้ role → กลับมา <b>นำเข้า CSV</b> ที่นี่ · หรือกด <b>template .xlsx</b> (role เป็น dropdown) สำหรับคนใหม่ → กรอกแล้ว <b>Save As → CSV UTF-8</b> ก่อนนำเข้า</div>
           <div id="rosMsg"></div>
           <div id="rosBox" style="margin-top:12px"></div>
         </div>
@@ -2380,6 +2381,14 @@ $('btnUsers').onclick = async ()=>{
   if(error){ $('usersBox').innerHTML=`<div class="msg err">โหลดไม่สำเร็จ: ${esc(error.message)}</div>`; return }
   _users=data||[]; drawUsers()
 }
+$('btnUsersCsv').onclick = async ()=>{
+  if(!_users.length){ const { data } = await sb.from('profiles').select('id,name,email,role').order('email'); _users=data||[] }
+  if(!_users.length) return toast('ยังไม่มีผู้ใช้','err')
+  const rows=[['email','name','role']].concat(_users.map(u=>[u.email||'', u.name||'', u.role||'']))
+  const csv='﻿'+rows.map(r=>r.map(c=>/[",\n]/.test(c)?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\r\n')
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
+  a.download='cjx_users.csv'; a.click(); URL.revokeObjectURL(a.href); toast(`ดาวน์โหลด ${_users.length} รายชื่อแล้ว`)
+}
 function drawUsers(){
   if(!_users.length){ $('usersBox').innerHTML='<div class="uhint">ยังไม่มีผู้ใช้ — สร้างที่ Supabase → Authentication → Users แล้วกลับมาโหลดใหม่</div>'; return }
   const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['admin','Admin']]
@@ -2467,10 +2476,8 @@ $('btnRosAdd').onclick = async ()=>{
   msg($('rosMsg'),'บันทึก '+email+' → '+(ROLE_TH[role]||role)+' แล้ว','ok'); renderRoster()
 }
 $('btnRosTpl').onclick = ()=>{
-  const rows=[['email','name','role'],['somchai@cjmart.co.th','สมชาย','cm'],['boss@cjmart.co.th','หัวหน้า','head_cm']]
-  const csv='﻿'+rows.map(r=>r.map(c=>/[",\n]/.test(c)?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\r\n')
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
-  a.download='roster_template.csv'; a.click(); URL.revokeObjectURL(a.href); toast('ดาวน์โหลด template แล้ว')
+  const a=document.createElement('a'); a.href='./roster_template.xlsx'; a.download='roster_template.xlsx'; a.click()
+  toast('ดาวน์โหลด template (.xlsx) — role เลือกจาก dropdown ได้')
 }
 $('btnRosImport').onclick = async ()=>{
   const f=$('rosCsv').files[0]; if(!f) return msg($('rosMsg'),'เลือกไฟล์ CSV ก่อน','err')
