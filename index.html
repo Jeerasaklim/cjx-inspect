@@ -521,6 +521,7 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
           <div class="filerow" style="margin-top:8px">
             <input type="file" id="rosCsv" accept=".csv" style="flex:1;min-width:0">
             <button class="btn gho sm" id="btnRosImport">นำเข้า CSV</button>
+            <button class="btn gho sm" id="btnRosExport">⬇ Export</button>
             <button class="btn gho sm" id="btnRosTpl">template .xlsx</button>
           </div>
           <div class="uhint" style="margin-top:6px">วิธีเร็ว: ไปหน้า <b>ผู้ใช้ &amp; สิทธิ์ → Export CSV</b> ได้ไฟล์รายชื่อพร้อม role → แก้ role → กลับมา <b>นำเข้า CSV</b> ที่นี่ · หรือกด <b>template .xlsx</b> (role เป็น dropdown) สำหรับคนใหม่ → กรอกแล้ว <b>Save As → CSV UTF-8</b> ก่อนนำเข้า</div>
@@ -2478,6 +2479,14 @@ $('btnRosAdd').onclick = async ()=>{
 $('btnRosTpl').onclick = ()=>{
   const a=document.createElement('a'); a.href='./roster_template.xlsx'; a.download='roster_template.xlsx'; a.click()
   toast('ดาวน์โหลด template (.xlsx) — role เลือกจาก dropdown ได้')
+}
+$('btnRosExport').onclick = async ()=>{
+  if(!_roster.length){ const { data } = await sb.from('roster').select('email,name,role').order('email'); _roster=data||[] }
+  if(!_roster.length) return toast('ทะเบียนยังว่าง','err')
+  const rows=[['email','name','role']].concat(_roster.map(r=>[r.email||'', r.name||'', r.role||'']))
+  const csv='﻿'+rows.map(r=>r.map(c=>/[",\n]/.test(c)?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\r\n')
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
+  a.download='cjx_roster.csv'; a.click(); URL.revokeObjectURL(a.href); toast(`ดาวน์โหลด ${_roster.length} รายชื่อแล้ว`)
 }
 $('btnRosImport').onclick = async ()=>{
   const f=$('rosCsv').files[0]; if(!f) return msg($('rosMsg'),'เลือกไฟล์ CSV ก่อน','err')
