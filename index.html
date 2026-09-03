@@ -368,6 +368,18 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
     </div>
   </div>
 
+  <!-- ===== PENDING (รอกำหนดสิทธิ์) ===== -->
+  <div id="viewPending" class="hide">
+    <div class="card" style="text-align:center">
+      <div style="font-size:40px;margin-bottom:6px">⏳</div>
+      <h2 style="margin:0 0 6px">รอผู้ดูแลกำหนดสิทธิ์</h2>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 4px">บัญชีของคุณเข้าระบบแล้ว แต่ยังไม่ได้รับสิทธิ์ใช้งาน</p>
+      <p id="pendEmail" style="color:var(--faint);font-size:13px;font-family:monospace;margin:0 0 16px"></p>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 18px">แจ้งผู้ดูแลให้เพิ่มอีเมลของคุณในทะเบียนสิทธิ์ แล้วเข้าใหม่อีกครั้ง</p>
+      <button class="btn gho" id="btnPendLogout" style="width:100%">ออกจากระบบ</button>
+    </div>
+  </div>
+
   <!-- ===== HOME ===== -->
   <div id="viewHome" class="hide">
     <div class="actbtn" id="homeActs"></div>
@@ -454,6 +466,7 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
         <div class="aitem" data-sec="store"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></div><div class="at"><b>รายชื่อสาขา</b><span>อัป CSV เพิ่ม/อัปเดตสาขา</span></div><span class="chev">›</span></div>
         <div class="aitem" data-sec="checklist"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="at"><b>Checklist (Pre-Con + 9 งวด)</b><span>โหลดรายการตรวจมาตรฐาน 170 ข้อ</span></div><span class="chev">›</span></div>
         <div class="aitem" data-sec="users"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="at"><b>ผู้ใช้ &amp; สิทธิ์</b><span>กำหนด Role รายคน</span></div><span class="chev">›</span></div>
+        <div class="aitem" data-sec="roster"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-1.5-1.5"/></svg></div><div class="at"><b>ทะเบียนสิทธิ์ (Roster)</b><span>กำหนด/นำเข้า email→role ล่วงหน้า · กันคนนอก</span></div><span class="chev">›</span></div>
         <div class="aitem" data-sec="contractor"><div class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg></div><div class="at"><b>ผู้รับเหมา (ผรม.)</b><span>รายชื่อบริษัทผู้รับเหมา</span></div><span class="chev">›</span></div>
       </div>
     </div>
@@ -493,6 +506,25 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
           <div class="ap-d">กำหนดสิทธิ์ให้แต่ละคน — <b>เลือกจากช่องแล้วบันทึกทันที</b> ไม่ต้องกดยืนยัน</div>
           <button class="btn gho sm" id="btnUsers">โหลดรายชื่อผู้ใช้</button>
           <div id="usersBox" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div id="secRoster" class="asec hide">
+        <div class="apanel">
+          <div class="ap-t">ทะเบียนสิทธิ์ (Roster)</div>
+          <div class="ap-d">กำหนด role ให้ <b>email ล่วงหน้าได้เลย</b> (ก่อนคนล็อกอิน) · อีเมลที่ไม่อยู่ในทะเบียน = เข้าไม่ได้ (pending) · แก้ role ที่นี่มีผลกับคนที่ล็อกอินไปแล้วด้วย</div>
+          <div class="filerow" style="flex-wrap:wrap">
+            <input type="email" id="rosEmail" placeholder="email@cjmart.co.th" style="flex:2;min-width:150px">
+            <input type="text" id="rosName" placeholder="ชื่อ (ไม่บังคับ)" style="flex:1;min-width:90px">
+            <select id="rosRole"></select>
+            <button class="btn pri sm" id="btnRosAdd">เพิ่ม/อัปเดต</button>
+          </div>
+          <div class="filerow" style="margin-top:8px">
+            <input type="file" id="rosCsv" accept=".csv" style="flex:1;min-width:0">
+            <button class="btn gho sm" id="btnRosImport">นำเข้า CSV</button>
+            <button class="btn gho sm" id="btnRosTpl">template</button>
+          </div>
+          <div id="rosMsg"></div>
+          <div id="rosBox" style="margin-top:12px"></div>
         </div>
       </div>
       <div id="secContractor" class="asec hide">
@@ -1101,7 +1133,7 @@ async function boot(){
     if(err) msg($('authMsg'),'เข้าด้วย Google ไม่สำเร็จ: '+decodeURIComponent(err)+' — ใช้อีเมล/รหัสผ่านไปก่อนได้','err')
   }catch(e){}
 }
-function hideAllViews(){ ['viewAuth','viewHome','viewLanding','viewSite','viewPhase','viewDash','viewPick','viewReport','viewAdmin','viewProfile'].forEach(v=>show($(v),false)) }
+function hideAllViews(){ ['viewAuth','viewPending','viewHome','viewLanding','viewSite','viewPhase','viewDash','viewPick','viewReport','viewAdmin','viewProfile'].forEach(v=>show($(v),false)) }
 function showTabbar(on){ show($('tabbar'),on); document.body.classList.toggle('hastab',on) }
 function markTab(t){ _tab=t; $('tabbar').querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.dataset.tab===t)) }
 function switchTab(t){
@@ -1135,6 +1167,8 @@ function showAuth(){ hideAllViews(); showTabbar(false); show($('viewAuth'),true)
   const b=$('bell'); if(b) show(b,false)   // ซ่อนกระดิ่งในหน้า login
   const np=$('notiPanel'); if(np) np.classList.remove('on')
   try{ if('clearAppBadge' in navigator) navigator.clearAppBadge() }catch(e){} }
+function showPending(email){ hideAllViews(); showTabbar(false); show($('viewPending'),true); show($('who'),false)
+  const b=$('bell'); if(b) show(b,false); $('pendEmail').textContent=email||'' }
 
 async function enterApp(){
   const { data:{ user } } = await sb.auth.getUser()
@@ -1142,6 +1176,7 @@ async function enterApp(){
   const { data:prof } = await sb.from('profiles').select('*').eq('id',user.id).single()
   profile = prof || { name:user.email, role:'cm' }
   if(!profile.email) profile.email = user.email
+  if(profile.role==='pending'){ showPending(profile.email); return }   // ยังไม่ได้รับสิทธิ์ = กันไว้ก่อน
   const dispName=profile.name||user.email
   $('who').innerHTML = `<span class="wav">${esc((dispName||'?').trim().charAt(0).toUpperCase())}</span><span class="wtx"><b>${esc(dispName)}</b><span class="role">${ROLE_TH[profile.role]||profile.role}</span></span><span class="wcv">▾</span>`
   show($('who'),true); show($('viewAuth'),false)
@@ -1155,8 +1190,9 @@ function renderHomeActs(){ $('homeActs').innerHTML='' }
 function openAdmin(){ hideAllViews(); showTabbar(false); show($('viewAdmin'),true); show($('adminMenu'),true); show($('adminSec'),false); window.scrollTo(0,0) }
 function openAdminSec(sec){
   show($('adminMenu'),false); show($('adminSec'),true)
-  ;['store','checklist','users','contractor'].forEach(k=> show($('sec'+k.charAt(0).toUpperCase()+k.slice(1)), k===sec))
+  ;['store','checklist','users','roster','contractor'].forEach(k=> show($('sec'+k.charAt(0).toUpperCase()+k.slice(1)), k===sec))
   if(sec==='contractor') renderCtrList()
+  if(sec==='roster') renderRoster()
   window.scrollTo(0,0)
 }
 async function renderCtrList(){
@@ -2376,6 +2412,82 @@ function drawUsers(){
     await loadNames()
     if(id===myUid){ profile.role=role; renderHomeActs() }
   })
+}
+$('btnPendLogout').onclick = async ()=>{ await sb.auth.signOut(); profile=null; showAuth() }
+
+// ---- ทะเบียนสิทธิ์ (roster) — กำหนดล่วงหน้า + กันคนนอก ----
+const _ROSTER_ROLES=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['admin','Admin']]
+let _roster=[]
+function _rosOpts(sel){ return _ROSTER_ROLES.map(([k,l])=>`<option value="${k}" ${sel===k?'selected':''}>${l}</option>`).join('') }
+async function _rosterSet(email,name,role){
+  email=(email||'').trim().toLowerCase(); if(!email) return 'ไม่มีอีเมล'
+  const rec={ email, role }; if(name!=null) rec.name=(name||'').trim()||null
+  const { error } = await sb.from('roster').upsert(rec,{ onConflict:'email' })
+  if(error) return error.message
+  await sb.from('profiles').update({ role }).eq('email', email)   // sync คนที่ล็อกอินไปแล้วให้ได้สิทธิ์ทันที
+  return null
+}
+async function renderRoster(){
+  const rr=$('rosRole'); if(rr && !rr.dataset.init){ rr.innerHTML=_rosOpts('cm'); rr.dataset.init='1' }
+  $('rosBox').innerHTML='<div class="spin" style="padding:8px 0">กำลังโหลด…</div>'
+  const { data, error } = await sb.from('roster').select('email,name,role').order('email')
+  if(error){ $('rosBox').innerHTML=`<div class="msg err">โหลดไม่สำเร็จ: ${esc(error.message)} — ต้องรัน sql/25_roster_gate.sql ใน Supabase ก่อน</div>`; return }
+  _roster=data||[]; drawRoster()
+}
+function drawRoster(){
+  if(!_roster.length){ $('rosBox').innerHTML='<div class="uhint">ยังไม่มีในทะเบียน — เพิ่มด้านบน หรือกด “นำเข้า CSV”</div>'; return }
+  const rows=_roster.map(r=>{ const rc=ROLE_COLOR[r.role]||'#9AA7B2'
+    return `<div class="urow">
+      <div class="un"><b>${esc(r.name||r.email)}</b><span class="uem">${esc(r.email)}</span>
+        <span class="rpill" style="color:${rc};background:${rc}22">${esc(ROLE_TH[r.role]||r.role)}</span></div>
+      <span class="rdel" data-rdel="${esc(r.email)}" style="cursor:pointer;color:#e06;padding:0 8px;font-weight:800">✕</span>
+      <select data-remail="${esc(r.email)}">${_rosOpts(r.role)}</select>
+    </div>`}).join('')
+  $('rosBox').innerHTML=`<div class="uhint">${_roster.length} รายชื่อในทะเบียน</div>`+rows
+  $('rosBox').querySelectorAll('select[data-remail]').forEach(sel=> sel.onchange=async()=>{
+    const email=sel.dataset.remail, role=sel.value; sel.disabled=true
+    const err=await _rosterSet(email,null,role); sel.disabled=false
+    if(err){ toast('บันทึกไม่สำเร็จ: '+err,'err'); return }
+    const r=_roster.find(x=>x.email===email); if(r) r.role=role
+    toast('ตั้ง '+email+' → '+(ROLE_TH[role]||role),'ok'); drawRoster()
+  })
+  $('rosBox').querySelectorAll('[data-rdel]').forEach(x=> x.onclick=async()=>{
+    const email=x.dataset.rdel; if(!confirm('ลบ '+email+' ออกจากทะเบียน?')) return
+    const { error } = await sb.from('roster').delete().eq('email',email)
+    if(error){ toast('ลบไม่สำเร็จ: '+error.message,'err'); return }
+    _roster=_roster.filter(r=>r.email!==email); drawRoster(); toast('ลบแล้ว')
+  })
+}
+$('btnRosAdd').onclick = async ()=>{
+  const email=$('rosEmail').value.trim().toLowerCase(), name=$('rosName').value.trim(), role=$('rosRole').value
+  if(!/^\S+@\S+\.\S+$/.test(email)) return msg($('rosMsg'),'อีเมลไม่ถูกต้อง','err')
+  const err=await _rosterSet(email,name,role)
+  if(err) return msg($('rosMsg'),'ไม่สำเร็จ: '+err,'err')
+  $('rosEmail').value=''; $('rosName').value=''
+  msg($('rosMsg'),'บันทึก '+email+' → '+(ROLE_TH[role]||role)+' แล้ว','ok'); renderRoster()
+}
+$('btnRosTpl').onclick = ()=>{
+  const rows=[['email','name','role'],['somchai@cjmart.co.th','สมชาย','cm'],['boss@cjmart.co.th','หัวหน้า','head_cm']]
+  const csv='﻿'+rows.map(r=>r.map(c=>/[",\n]/.test(c)?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\r\n')
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
+  a.download='roster_template.csv'; a.click(); URL.revokeObjectURL(a.href); toast('ดาวน์โหลด template แล้ว')
+}
+$('btnRosImport').onclick = async ()=>{
+  const f=$('rosCsv').files[0]; if(!f) return msg($('rosMsg'),'เลือกไฟล์ CSV ก่อน','err')
+  const rows=parseCSV(await f.text()); if(!rows.length) return msg($('rosMsg'),'ไฟล์ว่าง','err')
+  const head=rows[0].map(h=>h.trim().toLowerCase()), col=n=>head.findIndex(h=>h===n)
+  const iE=col('email'), iN=col('name'), iR=col('role')
+  if(iE<0) return msg($('rosMsg'),'ไม่พบคอลัมน์ email — ไฟล์นี้มี: '+rows[0].map(h=>h.trim()).filter(Boolean).join(', '),'err')
+  const valid=new Set(_ROSTER_ROLES.map(r=>r[0])); const recs=[]
+  for(let i=1;i<rows.length;i++){ const c=rows[i]; const email=(c[iE]||'').trim().toLowerCase(); if(!email) continue
+    let role=iR>=0?(c[iR]||'').trim().toLowerCase():'cm'; if(!valid.has(role)) role='cm'
+    recs.push({ email, name:iN>=0?((c[iN]||'').trim()||null):null, role }) }
+  if(!recs.length) return msg($('rosMsg'),'ไม่พบข้อมูลในไฟล์','err')
+  msg($('rosMsg'),`กำลังบันทึก ${recs.length} รายชื่อ…`,'ok')
+  const { error } = await sb.from('roster').upsert(recs,{ onConflict:'email' })
+  if(error) return msg($('rosMsg'),'ไม่สำเร็จ: '+error.message,'err')
+  for(const r of recs){ await sb.from('profiles').update({ role:r.role }).eq('email', r.email) }   // sync คนที่ล็อกอินแล้ว
+  msg($('rosMsg'),`นำเข้า ${recs.length} รายชื่อสำเร็จ`,'ok'); toast(`นำเข้าทะเบียน ${recs.length} รายชื่อ`); renderRoster()
 }
 
 // ========== B · REPORT / CERTIFICATE (print → PDF) ==========
