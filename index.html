@@ -2685,24 +2685,19 @@ async function generateSetupReport(code){
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
   const sc=computeSetupScore(events)
   const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543}`
-  let body='', brk=''
+  let brk='', passShots=[]
   SETUP_SECTIONS.forEach(([pn,name,weight])=>{
     const cps=checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort)
     const ss=sc.sections.find(x=>x.phase===pn)||{earned:0,done:0,fail:0,total:cps.length}
     brk+=`<tr><td>${esc(name)}</td><td class="c">${ss.earned.toFixed(1)} / ${weight}</td><td class="c">${ss.done}/${ss.total}</td><td class="c" style="color:${ss.fail?'#c0392b':'#999'}">${ss.fail||'—'}</td></tr>`
-    let lastGrp='__x__', rows=''
-    cps.forEach(c=>{ const e=cur[String(c.id)]
-      if(c.group_title && c.group_title!==lastGrp){ rows+=`<tr><td colspan="4" class="grp">${esc(c.group_title)}</td></tr>`; lastGrp=c.group_title }
-      const ims=(mediaByCp[String(c.id)]||[])
-      const sup=c.supplier==='ซัพย่อย'?'<span class="sup y">ย่อย</span>':(c.supplier?'<span class="sup m">หลัก</span>':'')
-      rows+=`<tr><td>${esc(c.label)}${sup}${e&&e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td>
-        <td class="st" style="color:${statusColor(e&&e.status)}">${statusTxt(e&&e.status)}${e&&e.round>1?`<br><small>รอบ ${e.round}</small>`:''}</td>
-        <td class="mt">${e?esc(nameOf(e.by))+'<br><small>'+fmtDate(e.created_at)+'</small>':'—'}</td>
-        <td class="im">${ims.map(repImg).join('')||'—'}</td></tr>`
-    })
-    body+=`<h2>${esc(name)} <span class="okpill">${ss.earned.toFixed(1)}/${weight}</span></h2>
-      <table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
+    cps.forEach(c=>{ const e=cur[String(c.id)]; if(!e||e.status!=='pass') return
+      ;(mediaByCp[String(c.id)]||[]).forEach(m=>passShots.push({m,c})) })
   })
+  const passGrid = passShots.length
+    ? `<div class="pgwrap"><div class="pgh">✅ รูปหลักฐานที่ผ่าน ${passShots.length} รูป</div><div class="pgrid">`
+      + passShots.map(({m,c})=>`<div class="pcell">${repImg(m)}<div class="pcap">${esc((c.no?c.no+' ':'')+c.label)}</div></div>`).join('')
+      + `</div></div>`
+    : ''
   const passAll = sc.allDone && sc.failItems===0 && sc.fixedItems===0
   // ออกรายงานได้ทุกสถานะ — ผ่าน 100% = ใบตรวจรับ · ยังไม่ผ่าน = รายงานสรุป + จุด Defect (ไว้ใช้รายงาน)
   // ประวัติการตรวจแต่ละรอบ (เกรด/คะแนน ณ สิ้นแต่ละรอบ)
@@ -2734,6 +2729,12 @@ async function generateSetupReport(code){
   *{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
   .cert{border:2px solid #37A06B;border-radius:14px;padding:22px 24px;margin-bottom:22px}
   .cert.f{border-color:#E0A800}
+  .passbar{background:#eaf7f0;border:1px solid #bfe6d0;color:#137a43;font-weight:800;border-radius:10px;padding:11px 16px;margin:0 0 20px;font-size:13.5px}
+  .pgwrap{margin:0 0 20px}.pgh{font-weight:800;font-size:14px;color:#137a43;margin-bottom:10px}
+  .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .pcell{border:1px solid #e2e2e2;border-radius:8px;overflow:hidden;background:#fafafa;page-break-inside:avoid}
+  .pcell .iw{display:block;margin:0;width:100%}.pcell .iw img{width:100%;height:150px;object-fit:cover;display:block;border:0;border-radius:0;margin:0}
+  .pcap{font-size:10.5px;color:#555;padding:5px 7px;line-height:1.3}
   .brand{font-weight:800;font-size:15px;letter-spacing:1px;color:#111}.brand b{color:#E0A800}
   h1{font-size:21px;margin:6px 0 12px}
   .site{font-size:18px;font-weight:800}.site span{color:#888;font-weight:600;font-size:14px}
@@ -2798,9 +2799,9 @@ async function generateSetupReport(code){
     <div class="issued">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}</div>
     ${passAll?'<div class="stmt">ขอรับรองว่าร้านนี้ผ่านการตรวจรับจากทีม Set-Up (NSA) ครบถ้วน 100% — ใช้แนบประกอบการจ่ายงวดสุดท้าย คู่กับเอกสารตรวจ Check Point งานก่อสร้าง</div>':''}
   </div>
+  ${suFail.length ? suFailHtml : '<div class="passbar">✓ ไม่ผ่าน 0 จุด — ตรวจรับผ่านครบทุกข้อ</div>'}
   ${fixHistHtml}
-  ${suFailHtml}
-  ${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจรับ</p>'}
+  ${passGrid || '<p style="color:#999">— ยังไม่มีรูปหลักฐานที่ผ่าน —</p>'}
   <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${cmCell}</div>
   </body></html>`
   frame.srcdoc=html
