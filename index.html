@@ -1994,9 +1994,10 @@ async function reverseGeo(lat,lng){
     return out.join(' · ')||null
   }catch(e){ return null }
 }
-async function makeThumb(srcBlob){ const img=await loadImage(srcBlob); let w=img.naturalWidth,h=img.naturalHeight
+async function makeThumb(srcBlob){ const img=await loadImage(srcBlob); let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height
   const s=Math.min(1,400/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h)
+  if(img.close) img.close()
   return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('t')),'image/jpeg',0.55)) }
 function capturePhoto(cpId){ if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว — เพิ่มรูปไม่ได้'); return }
   const cp=pctx&&pctx.cps.find(c=>String(c.id)===String(cpId)), vid=cpVideo(cp)
@@ -2104,12 +2105,18 @@ async function updatePendBadge(){ let n=0, stuck=0
 window.addEventListener('online', ()=>syncQueue())
 window.addEventListener('offline', ()=>updatePendBadge())
 setInterval(()=>{ if(navigator.onLine) syncQueue() }, 30000)
-function loadImage(file){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image()
-  img.onload=()=>{URL.revokeObjectURL(url);res(img)}; img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))}; img.src=url }) }
+async function loadImage(file){
+  // มือถือ (โดยเฉพาะ iOS) event onload ยิง "ก่อน" รูป decode เสร็จ → drawImage ลง canvas ได้ภาพดำ
+  // ใช้ createImageBitmap ที่ decode ให้ครบก่อนคืนค่า = กันรูปดำ (fallback เป็น Image + .decode())
+  if(window.createImageBitmap){ try{ return await createImageBitmap(file,{imageOrientation:'from-image'}) }catch(e){ try{ return await createImageBitmap(file) }catch(e2){} } }
+  return await new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image()
+    img.onload=async()=>{ try{ if(img.decode) await img.decode() }catch(e){} URL.revokeObjectURL(url); res(img) }
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))}; img.src=url }) }
 async function watermark(file, loc, cp){
-  const img=await loadImage(file); let w=img.naturalWidth,h=img.naturalHeight
+  const img=await loadImage(file); let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height
   const s=Math.min(1,1600/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0,w,h)
+  if(img.close) img.close()
   const d=new Date(), p2=n=>String(n).padStart(2,'0')
   const lines=[]
   const cpt=((cp&&cp.no?cp.no+' ':'')+(cp?cp.label:'')).trim(); if(cpt) lines.push({t:cpt.slice(0,74), c:'#FFE08A', wt:800, sc:1})
@@ -2672,9 +2679,8 @@ async function generateSetupReport(code){
   let events=[], media=[]
   if(ids.length){
     const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
-    const {data:m}=await sb.from('media').select('checkpoint,path,thumb_path,round,by').in('inspection_id',ids); media=m||[]
-    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),60*60*24*365); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'')
-      const {data:ts}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.thumb_path||x.path),60*60*24*365); media.forEach((x,i)=>x.thumbUrl=(ts&&ts[i]&&ts[i].signedUrl)||'') }
+    const {data:m}=await sb.from('media').select('checkpoint,path,round,by').in('inspection_id',ids); media=m||[]
+    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),60*60*24*365); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
   }
   const { data:sg } = await sb.from('signoffs').select('kind,by,created_at,image').eq('store_code',code).eq('scope','setup')
   const pickSig=(kind)=>{ const a=(sg||[]).filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
