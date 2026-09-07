@@ -2517,7 +2517,7 @@ function repImg(m){ const u=m&&m.url||''; if(!u) return ''
   const fname=((m.path||'file').split('/').pop())||'file'
   const dl=u+(u.includes('?')?'&':'?')+'download='+encodeURIComponent(fname)
   if(m.kind==='video') return `<span class="iw vid"><a href="${u}" target="_blank" rel="noopener">🎥 วิดีโอ</a><a class="dlt" href="${dl}">⬇ โหลด</a></span>`
-  return `<span class="iw"><a href="${u}" target="_blank" rel="noopener"><img src="${u}"></a><a class="dl" href="${dl}" title="โหลดรูปลงเครื่อง">⬇</a></span>` }
+  return `<span class="iw"><a href="${u}" target="_blank" rel="noopener"><img src="${m.thumbUrl||u}"></a><a class="dl" href="${dl}" title="โหลดรูปลงเครื่อง">⬇</a></span>` }
 // Before/After: แยกรูปด้วย "คนถ่าย" — รูปของ CM (คนแก้ = ผู้ส่ง fixed) = หลังแก้ · รูปคนอื่น = ก่อนแก้ (Set-Up ตีกลับ)
 const BA_CSS = '.ba{display:flex;gap:12px;margin-top:7px;flex-wrap:wrap}.bacol{flex:1;min-width:150px}.balb{font-size:11px;font-weight:800;margin-bottom:4px}.balb.bef{color:#c0392b}.balb.aft{color:#137a43}.baimgs{display:flex;flex-wrap:wrap}.baimgs img{width:150px;height:150px;object-fit:cover;border-radius:7px;margin:2px;border:1px solid #cfe0d4}.baempty{color:#999;font-size:11px}'
 function baHtml(ims, cmUid){
@@ -2672,8 +2672,9 @@ async function generateSetupReport(code){
   let events=[], media=[]
   if(ids.length){
     const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
-    const {data:m}=await sb.from('media').select('checkpoint,path,round,by').in('inspection_id',ids); media=m||[]
-    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),60*60*24*365); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'') }
+    const {data:m}=await sb.from('media').select('checkpoint,path,thumb_path,round,by').in('inspection_id',ids); media=m||[]
+    if(media.length){ const {data:us}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),60*60*24*365); media.forEach((x,i)=>x.url=(us&&us[i]&&us[i].signedUrl)||'')
+      const {data:ts}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.thumb_path||x.path),60*60*24*365); media.forEach((x,i)=>x.thumbUrl=(ts&&ts[i]&&ts[i].signedUrl)||'') }
   }
   const { data:sg } = await sb.from('signoffs').select('kind,by,created_at,image').eq('store_code',code).eq('scope','setup')
   const pickSig=(kind)=>{ const a=(sg||[]).filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
@@ -2690,12 +2691,13 @@ async function generateSetupReport(code){
     const cps=checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort)
     const ss=sc.sections.find(x=>x.phase===pn)||{earned:0,done:0,fail:0,total:cps.length}
     brk+=`<tr><td>${esc(name)}</td><td class="c">${ss.earned.toFixed(1)} / ${weight}</td><td class="c">${ss.done}/${ss.total}</td><td class="c" style="color:${ss.fail?'#c0392b':'#999'}">${ss.fail||'—'}</td></tr>`
-    cps.forEach(c=>{ const e=cur[String(c.id)]; if(!e||e.status!=='pass') return
-      ;(mediaByCp[String(c.id)]||[]).forEach(m=>passShots.push({m,c})) })
+    // รูปตัวแทนหมวดละ 1 รูป (ข้อแรกที่ผ่าน + มีรูปภาพ) — ไม่ดั๊กทุกรูป
+    for(const c of cps){ const e=cur[String(c.id)]; if(!e||e.status!=='pass') continue
+      const im=(mediaByCp[String(c.id)]||[]).find(m=>m.kind!=='video'); if(im){ passShots.push({m:im,name}); break } }
   })
   const passGrid = passShots.length
-    ? `<div class="pgwrap"><div class="pgh">✅ รูปหลักฐานที่ผ่าน ${passShots.length} รูป</div><div class="pgrid">`
-      + passShots.map(({m,c})=>`<div class="pcell">${repImg(m)}<div class="pcap">${esc((c.no?c.no+' ':'')+c.label)}</div></div>`).join('')
+    ? `<div class="pgwrap"><div class="pgh">✅ รูปตัวแทนที่ผ่าน (หมวดละ 1 รูป) ${passShots.length} หมวด</div><div class="pgrid">`
+      + passShots.map(({m,name})=>`<div class="pcell">${repImg(m)}<div class="pcap">${esc(name)}</div></div>`).join('')
       + `</div></div>`
     : ''
   const passAll = sc.allDone && sc.failItems===0 && sc.fixedItems===0
