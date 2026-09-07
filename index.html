@@ -2732,8 +2732,20 @@ async function generateSetupReport(code){
   // ช่อง CM: ลายเซ็นที่ CM เซ็นหน้างาน + ชื่อ CM ตัวจริงเสมอ (จากงานก่อสร้าง ไม่ใช่ชื่อคนล็อกอิน)
   const cmDisp=cmSig?(nameOf(cmSig.by)||cmName):cmName
   const cmCell=`<div>${cmSig&&cmSig.image?`<img src="${cmSig.image}">`:'<div class="sigsp"></div>'}<div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${cmDisp?esc(cmDisp):'—'}${cmSig?'<br>'+fmtDate(cmSig.created_at):(cmDate?'<br>รับมอบงาน '+cmDate:'')}</div></div>`
+  // ---- จัดหน้าแบบ "ใบส่งมอบร้าน" (ใช้ข้อมูล 8 หมวดเดิม) ----
+  const gcol = !sc.doneItems?'#9aa7b2':(sc.total>=97?'#137a43':sc.total>=90?'#37A06B':sc.total>=80?'#E0A800':'#c0392b')
+  const secData=SETUP_SECTIONS.map(([pn,name,weight],i)=>{ const ss=sc.sections.find(x=>x.phase===pn)||{earned:0,done:0,total:0,fail:0}; return {no:i+1,name:name.replace(/^หมวด \d+ · /,''),weight,ss} })
+  const catTbl=(rows,color,title)=>{ const se=rows.reduce((a,r)=>a+r.ss.earned,0), sw=rows.reduce((a,r)=>a+r.weight,0)
+    return `<div class="stbl"><div class="sthd" style="background:${color}"><span>${title}</span><span>${se.toFixed(1)} / ${sw}</span></div>`
+      + rows.map(r=>`<div class="strow"><span class="stn"><b>${r.no}.</b> ${esc(r.name)}</span><span class="stv${r.ss.fail?' f':''}">${r.ss.earned.toFixed(1)}/${r.weight}${r.ss.fail?` · ${r.ss.fail}✗`:''}</span></div>`).join('')+`</div>` }
+  const catCols=`<div class="cols"><div class="col">${catTbl(secData.slice(0,4),'#2f7d55','ตรวจรับ · หมวด 1-4')}</div><div class="col">${catTbl(secData.slice(4),'#c79200','ตรวจรับ · หมวด 5-8')}</div></div>`
+  const editHistHtml = fixCps.length ? `<div class="ehist"><div class="ehh">📝 ประวัติการแก้ไข · ${fixCps.length} จุด</div><div class="egrid">`+fixCps.map(({c,fe})=>`<div class="eitem">${esc((c.no?c.no+' ':'')+c.label)} <span class="ed">· ${fmtDate(fe.created_at)}</span></div>`).join('')+`</div></div>` : ''
+  const photoGrid = passShots.length ? `<div class="pgwrap"><div class="pgh">📸 รูปส่งร้าน · ${passShots.length} รูป</div><div class="pgrid">`+passShots.map(({m,name})=>`<div class="pcell">${repImg(m)}<div class="pcap">${esc(name.replace(/^หมวด \d+ · /,''))}</div></div>`).join('')+`</div></div>` : ''
+  const sgBox=(sig,label,fbName,fbDate)=>`<div class="sgbox"><div class="sgt">${esc(label)}</div>${sig&&sig.image?`<img class="sgimg" src="${sig.image}">`:'<div class="sgsp"></div>'}<div class="sgnm">${(sig?nameOf(sig.by):fbName)?esc(sig?nameOf(sig.by):fbName):'..............'}</div><div class="sgdt">${sig?fmtDate(sig.created_at):(fbDate||'')}</div></div>`
+  const signHtml=`<div class="sgrow">${sgBox(nsaSig,'ผู้ตรวจรับ · ทีม Set-Up (NSA)','','')}${sgBox(cmSig,'ทีมก่อสร้าง (CM)',cmName,cmDate?('รับมอบงาน '+cmDate):'')}</div>`
+  const statusBar = suFail.length ? `<div class="stbar f">✕ ไม่ผ่าน ${suFail.length} จุด</div>` : `<div class="stbar p">✓ ไม่ผ่าน 0 จุด — ตรวจรับผ่านครบ</div>`
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ใบตรวจรับร้าน ${esc(s.name||code)}</title><style>
+  <title>ใบส่งมอบร้าน ${esc(s.name||code)}</title><style>
   *{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0;padding:26px;font-size:13px;line-height:1.5;background:#fff}
   .cert{border:2px solid #37A06B;border-radius:14px;padding:22px 24px;margin-bottom:22px}
   .cert.f{border-color:#E0A800}
@@ -2743,6 +2755,25 @@ async function generateSetupReport(code){
   .pcell{border:1px solid #e2e2e2;border-radius:8px;overflow:hidden;background:#fafafa;page-break-inside:avoid}
   .pcell .iw{display:block;margin:0;width:100%}.pcell .iw img{width:100%;height:150px;object-fit:cover;display:block;border:0;border-radius:0;margin:0}
   .pcap{font-size:10.5px;color:#555;padding:5px 7px;line-height:1.3}
+  .rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:3px solid #2f7d55;padding-bottom:12px;margin-bottom:16px}
+  .rtitle{font-size:22px;font-weight:800;color:#111}.rsub{color:#666;font-size:12px;margin-top:4px}
+  .rh-r{display:flex;align-items:center;gap:12px;flex:none}
+  .rscorebox{text-align:right}.rnum{font-size:30px;font-weight:800;line-height:1;color:#111}.rden{font-size:11px;color:#888;margin-top:2px}
+  .rgrade{width:54px;height:54px;border-radius:50%;color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+  .cols{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}.col{flex:1;min-width:0}
+  .stbl{border:1px solid #ddd;border-radius:10px;overflow:hidden}
+  .sthd{color:#fff;font-weight:800;font-size:12.5px;padding:8px 12px;display:flex;justify-content:space-between;gap:8px}
+  .strow{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-top:1px solid #eee;font-size:12px}
+  .stn{color:#333}.stn b{color:#111}.stv{font-weight:800;white-space:nowrap;color:#137a43;font-variant-numeric:tabular-nums}.stv.f{color:#c0392b}
+  .sgrow{display:flex;gap:20px;margin-bottom:16px}.sgbox{flex:1;border:1px solid #e2e2e2;border-radius:10px;padding:12px 14px;text-align:center}
+  .sgt{font-size:12px;font-weight:800;color:#444;margin-bottom:8px}
+  .sgimg{max-height:56px;max-width:90%;object-fit:contain;display:block;margin:0 auto}
+  .sgsp{height:48px}.sgnm{border-top:1px solid #999;margin:6px 16px 0;padding-top:6px;font-weight:700;font-size:12px;color:#222}.sgdt{font-size:10.5px;color:#888;margin-top:2px}
+  .stbar{border-radius:10px;padding:10px 16px;font-weight:800;font-size:14px;margin-bottom:16px}
+  .stbar.p{background:#eaf7f0;border:1px solid #bfe6d0;color:#137a43}.stbar.f{background:#fbe9e7;border:1px solid #e6b0b0;color:#c0392b}
+  .ehist{border:1px solid #cfe0d4;background:#f6faf7;border-radius:10px;padding:12px 14px;margin-bottom:16px;page-break-inside:avoid}
+  .ehh{font-weight:800;font-size:13px;color:#137a43;margin-bottom:8px}
+  .egrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}.eitem{font-size:11.5px;color:#333}.ed{color:#888}
   .brand{font-weight:800;font-size:15px;letter-spacing:1px;color:#111}.brand b{color:#E0A800}
   h1{font-size:21px;margin:6px 0 12px}
   .site{font-size:18px;font-weight:800}.site span{color:#888;font-weight:600;font-size:14px}
@@ -2793,24 +2824,14 @@ async function generateSetupReport(code){
   @media print{.noprint{display:none}body{padding:0}}
   ${REP_IMG_CSS} ${BA_CSS}
   </style></head><body>
-  <div class="cert ${passAll?'':'f'}">
-    <div class="brand">CJ<b>X</b> INSPECT</div>
-    <h1>${passAll?'ใบตรวจรับร้าน':'รายงานสรุปการตรวจรับ'} (Set-Up · NSA)</h1>
-    <div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
-    <div class="scope">การตรวจรับอาคารจากทีมก่อสร้าง · ให้คะแนน 8 หมวด (100 คะแนน)${s.province?' · '+esc(s.province):''}</div>
-    <div class="scorebox ${passAll?'':'f'}"><div class="g">${sc.doneItems?sc.grade:'—'}</div>
-      <div><div class="num">${sc.total.toFixed(0)} / 100 คะแนน</div>
-      <div class="sub">${passAll?'✓ ตรวจรับผ่าน 100% พร้อมรับร้าน':`ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?' · '+sc.failItems+' รายการไม่ผ่าน':''}`}</div></div></div>
-    <div class="split"><div class="m">ซัพหลัก ${sc.main.pct.toFixed(0)}%</div><div class="y">ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div>
-    ${roundHist}
-    <table class="brkT"><thead><tr><th>หมวด</th><th class="c">คะแนน</th><th class="c">ตรวจ</th><th class="c">ไม่ผ่าน</th></tr></thead><tbody>${brk}</tbody></table>
-    <div class="issued">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}</div>
-    ${passAll?'<div class="stmt">ขอรับรองว่าร้านนี้ผ่านการตรวจรับจากทีม Set-Up (NSA) ครบถ้วน 100% — ใช้แนบประกอบการจ่ายงวดสุดท้าย คู่กับเอกสารตรวจ Check Point งานก่อสร้าง</div>':''}
-  </div>
-  ${suFail.length ? suFailHtml : '<div class="passbar">✓ ไม่ผ่าน 0 จุด — ตรวจรับผ่านครบทุกข้อ</div>'}
-  ${fixHistHtml}
-  ${passGrid || '<p style="color:#999">— ยังไม่มีรูปหลักฐานที่ผ่าน —</p>'}
-  <div class="sign">${sigCell(nsaSig,'ผู้ตรวจรับ (Set-Up / NSA)')}${cmCell}</div>
+  <div class="rhead"><div class="rh-l"><div class="rtitle">ใบส่งมอบร้าน — ${esc(code)} ${esc(s.name||'')}</div><div class="rsub">${s.opening_date?'เปิดร้าน '+esc(String(s.opening_date))+' · ':''}พิมพ์เมื่อ ${today}${s.province?' · '+esc(s.province):''} · CJX Inspect (Set-Up · NSA)</div></div>
+    <div class="rh-r"><div class="rscorebox"><div class="rnum">${sc.doneItems?sc.total.toFixed(1):'—'}</div><div class="rden">/ 100 · ซัพหลัก ${sc.main.pct.toFixed(0)}% · ซัพย่อย ${sc.sub.pct.toFixed(0)}%</div></div><div class="rgrade" style="background:${gcol}">${sc.doneItems?sc.grade:'—'}</div></div></div>
+  ${catCols}
+  ${signHtml}
+  ${statusBar}
+  ${editHistHtml}
+  ${suFail.length?suFailHtml:''}
+  ${photoGrid}
   </body></html>`
   frame.srcdoc=html
   frame.onload=null   // ความสูงคงที่ + scroll ภายใน iframe (เมาส์บนคอมเลื่อนได้)
