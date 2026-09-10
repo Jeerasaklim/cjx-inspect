@@ -1,741 +1,784 @@
-<!doctype html><html lang="th"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CJX Inspect · Dashboard (HQ)</title>
+<!DOCTYPE html>
+<html class="dark" lang="th"><head><meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CJX Inspect HQ — Central Command</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{
+"surface":"#131314","surface-dim":"#131314","surface-container-lowest":"#0e0e0f","surface-container-low":"#1c1b1c","surface-container":"#201f20","surface-container-high":"#2a2a2b","surface-container-highest":"#353436","surface-card":"#191A1D","surface-control":"#141416","surface-elevated":"#232327","surface-bright":"#39393a","surface-variant":"#353436",
+"surface-pass":"#12271B","surface-warning":"#1C1608","surface-fail":"#241416",
+"ink-primary":"#F5F5F2","ink-muted":"#9A9A93","ink-faint":"#67675F","ink-pass":"#7EE6B0","ink-warning":"#D9B84A","ink-fail":"#FF9B9B","ink-on-yellow":"#1A1500",
+"primary-container":"#f5c518","primary-fixed-dim":"#f0c110","primary":"#ffe5a0",
+"role-setup":"#37D98B","role-head-setup":"#4FD1B5","role-head-cm":"#FF9F1C","role-head-const":"#F5C518","role-cm":"#8FB4FF",
+"status-fail":"#FF5C5C","secondary":"#41e091","border-subtle":"#2A2A2E","border-strong":"#3E3E44","border-pass":"#23503A","on-primary":"#3d2f00","on-surface":"#e5e2e3","outline":"#9a9078"},
+borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},
+spacing:{"space-xxs":"2px","space-xs":"4px","space-sm":"8px","space-md":"12px","space-lg":"16px","space-xl":"20px","space-2xl":"24px","space-3xl":"32px","tap-min":"48px"},
+fontFamily:{"hero-display":["Noto Sans Thai"],"headline-lg":["Noto Sans Thai"],"headline-md":["Noto Sans Thai"],"title-md":["Noto Sans Thai"],"title-sm":["Noto Sans Thai"],"body-base":["Noto Sans Thai"],"body-sm":["Noto Sans Thai"],"label-caps":["Noto Sans Thai"],"label-micro":["Noto Sans Thai"],"kpi-metric":["Noto Sans Thai"],"data-mono":["ui-monospace","monospace"]},
+fontSize:{"hero-display":["44px",{lineHeight:"44px",letterSpacing:"-0.02em",fontWeight:"800"}],"headline-lg":["24px",{lineHeight:"32px",letterSpacing:"-0.02em",fontWeight:"800"}],"headline-md":["20px",{lineHeight:"28px",letterSpacing:"-0.015em",fontWeight:"800"}],"kpi-metric":["38px",{lineHeight:"40px",letterSpacing:"-0.03em",fontWeight:"800"}],"title-md":["17px",{lineHeight:"24px",letterSpacing:"-0.01em",fontWeight:"700"}],"title-sm":["15px",{lineHeight:"22px",letterSpacing:"-0.01em",fontWeight:"700"}],"body-base":["15px",{lineHeight:"24px",fontWeight:"400"}],"body-sm":["13px",{lineHeight:"20px",fontWeight:"500"}],"label-caps":["11px",{lineHeight:"14px",letterSpacing:"0.08em",fontWeight:"700"}],"label-micro":["10px",{lineHeight:"12px",letterSpacing:"0.02em",fontWeight:"700"}],"data-mono":["13px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"700"}]}}}}</script>
 <style>
-  :root{--bg:#0D0D0E;--ink:#F6F6F2;--mut:#9C9C93;--faint:#66665f;--y:#F5C518;--yInk:#1A1500;
-    --line:#26262b;--card:#17181B;--card2:#1c1d21;--pass:#37D98B;--fail:#FF6B6B;--build:#FF9F1C;--idle:#5a5a55;--main:#8FB4FF;--sub:#F5A524}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--ink);font-family:"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums}
-  a{color:inherit}
+  body{margin:0;background:#0e0e0f}
+  .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
+  ::-webkit-scrollbar{height:8px;width:8px}::-webkit-scrollbar-thumb{background:#2A2A2E;border-radius:8px}
+  .navlink.on{background:#f5c518;color:#1A1500;font-weight:700;box-shadow:0 2px 8px rgba(245,197,24,.35)}
+  [hidden]{display:none!important}
+  .celldot{width:26px;height:26px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center}
+  a{text-decoration:none}
+</style>
+</head>
+<body class="bg-surface-container-lowest text-ink-primary" style="font-family:'Noto Sans Thai',sans-serif">
 
-  /* login */
-  #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
-  .lcard{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:30px 26px}
-  .brand{font-weight:800;font-size:20px;letter-spacing:.02em;margin-bottom:4px}.brand b{color:var(--y)}
-  .lsub{font-size:13px;color:var(--mut);margin-bottom:22px}
-  label{display:block;font-size:12px;color:var(--mut);margin:14px 0 6px}
-  input{width:100%;background:#0e0e0f;border:1px solid var(--line);border-radius:11px;padding:12px 13px;color:var(--ink);font-size:15px;font-family:inherit}
-  input:focus{outline:2px solid var(--y);border-color:var(--y)}
-  .btn{width:100%;margin-top:20px;background:var(--y);color:var(--yInk);border:0;border-radius:11px;padding:13px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit}
-  .msg{font-size:12.5px;margin-top:12px;min-height:16px}.msg.err{color:var(--fail)}.msg.ok{color:var(--pass)}
-
-  /* dashboard */
-  #dash{display:none;padding:22px clamp(16px,3vw,40px) 60px;max-width:1500px;margin:0 auto}
-  .top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
-  .top .h{font-size:clamp(20px,2.4vw,30px);font-weight:800;letter-spacing:-.02em}
-  .top .h b{color:var(--y)}
-  .top .sp{flex:1}
-  .top .meta{font-size:12px;color:var(--faint);text-align:right}
-  .tbtn{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-  .tbtn.on{border-color:#3a3520;color:var(--y)}
-
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
-  @media(max-width:760px){.kpis{grid-template-columns:1fr 1fr}}
-  .searchbar{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 15px;margin-bottom:16px;color:var(--faint)}
-  .searchbar input{flex:1;background:none;border:0;color:var(--ink);font-size:15px;font-family:inherit;outline:none}
-  .searchbar .qx{display:none;cursor:pointer;font-size:13px;color:var(--mut);width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:#2a2a2e}
-  .modebar{display:inline-flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px;margin-bottom:18px}
-  .modebar b{font-size:13px;font-weight:800;color:var(--mut);padding:9px 18px;border-radius:9px;cursor:pointer}
-  .modebar b.on{background:var(--y);color:var(--yInk)}
-  .gradeb{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;border:1px solid var(--line);font-family:ui-monospace,monospace;font-weight:800;font-size:14px;margin-right:9px;vertical-align:middle}
-  tr.clk{cursor:pointer}
-  .detov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
-  .detcard{width:100%;max-width:720px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-  .deth{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:#141519}
-  .detn{font-size:16px;font-weight:800}.detm{font-size:12px;color:var(--mut);margin-top:3px}
-  .detx{font-size:18px;color:var(--mut);cursor:pointer;line-height:1;padding:2px 8px}
-  .repbtn{background:var(--y,#F5C518);color:#1A1500;border:0;border-radius:9px;padding:8px 13px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap}
-  .detbody{padding:14px 18px 20px;max-height:72vh;overflow-y:auto}
-  .detsec{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px}
-  .detsh{font-size:13px;font-weight:800;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
-  .detcnt{font-size:11px;color:var(--mut);font-weight:600}
-  .detfail{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
-  .dfl{font-size:12px;color:var(--fail);font-weight:600}
-  .dfph{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .dfph img,.dthumb{width:56px;height:56px;object-fit:cover;border-radius:7px;border:1px solid var(--line);cursor:pointer}
-  /* modal สรุปเป็นข้อ (ผ่าน/ไม่ผ่าน) */
-  .detsum{font-size:14px;font-weight:800;padding:10px 13px;background:#141519;border:1px solid var(--line);border-radius:11px;margin-bottom:12px}
-  .detgrp{margin-bottom:12px}
-  .detgh{font-size:13px;font-weight:800;margin-bottom:8px;cursor:default}
-  details.detgrp>summary.detgh{cursor:pointer;list-style:none;padding:11px 13px;background:#141519;border:1px solid var(--line);border-radius:11px;user-select:none}
-  details.detgrp>summary::-webkit-details-marker{display:none}
-  details.detgrp[open]>summary.detgh{border-radius:11px 11px 0 0;margin-bottom:0}
-  .gfail{border:1px solid #4a2a2a;background:#1c1416;border-radius:12px;padding:11px 13px}
-  .ditem{border-top:1px solid #33232a;padding:10px 0}.ditem:first-of-type{border-top:0}
-  .ditl{font-size:13px;font-weight:700;color:var(--ink);line-height:1.4}.ditl b{font-family:ui-monospace,monospace;color:var(--fail)}
-  .dtag{font-size:9.5px;font-weight:800;padding:1px 7px;border-radius:5px;white-space:nowrap;margin-left:4px}
-  .dtag.fl{color:var(--fail);background:#3a1a1a}.dtag.fx{color:var(--build);background:#332411}
-  .dph{font-size:10.5px;color:var(--faint);margin-top:2px}
-  .dnote{font-size:12px;color:#e6b8b8;margin-top:4px}
-  details.gpass{border:1px solid var(--line);border-radius:12px;background:var(--card)}
-  .dpass{padding:8px 13px;border-top:1px solid var(--line)}
-  .dpassh{font-size:11px;font-weight:800;color:var(--mut);margin-bottom:5px}
-  .dpi{font-size:12.5px;color:var(--pass);padding:2px 0}
-  .detitem{border-top:1px solid var(--line);padding:9px 0}
-  .dtop{display:flex;gap:8px;align-items:flex-start}
-  .dst{font-weight:800;font-size:13px;flex:0 0 auto;line-height:1.35}
-  .dfl2{font-size:12.5px;color:var(--ink);line-height:1.35}
-  .detlb{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:120;display:none;align-items:center;justify-content:center}
-  .detlb img{max-width:94vw;max-height:88vh;object-fit:contain;border-radius:8px}
-  .dlbx{position:absolute;top:18px;right:22px;color:#fff;font-size:26px;cursor:pointer;z-index:2}
-  .dlbnav{position:absolute;top:50%;transform:translateY(-50%);color:#fff;font-size:44px;cursor:pointer;padding:10px 18px;user-select:none;opacity:.85}
-  .dlbnav.prev{left:6px}.dlbnav.next{right:6px}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;cursor:pointer;transition:border-color .15s,background .15s}
-  .kpi[data-f]:hover{border-color:#3a3520}
-  .kpi.on{border-color:var(--y);background:#1e1c12}
-  .kpi.kpiflat{cursor:default}
-  .flab{font-size:12px;color:var(--y);cursor:pointer;white-space:nowrap}
-  .kpi .v{font-size:clamp(28px,3.4vw,40px);font-weight:800;line-height:1}
-  .kpi .k{font-size:12.5px;color:var(--mut);margin-top:6px}
-  .statusbar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:#26262b;margin-bottom:8px}
-  .statusbar i{height:100%}
-  .lg{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-bottom:22px}
-  .lg span{display:flex;align-items:center;gap:6px}.lg i{width:10px;height:10px;border-radius:3px}
-  /* insight panels */
-  .ins{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
-  @media(max-width:820px){.ins{grid-template-columns:1fr}}
-  .inscard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 17px}
-  .inst{font-size:13px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:7px}
-  .insrep{font-size:11px;font-weight:700;color:var(--y);cursor:pointer;white-space:nowrap}
-  .insrep:hover{text-decoration:underline}
-  .inssub{font-size:11px;color:var(--faint);margin-bottom:8px}
-  .insrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
-  .insrow:first-of-type{border-top:0}
-  .insrow .rk{font-family:ui-monospace,monospace;color:var(--faint);font-size:11px;width:16px;flex:0 0 auto}
-  .insrow .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .insrow .lbl small{color:var(--faint);font-weight:400}
-  .insrow .insbar{width:64px;height:7px;border-radius:99px;background:#26262b;overflow:hidden;flex:0 0 auto}.insbar i{display:block;height:100%;border-radius:99px}
-  .insrow .cnt{font-weight:800;font-family:ui-monospace,monospace;flex:0 0 auto;min-width:20px;text-align:right}
-  .insempty{font-size:12px;color:var(--faint);padding:10px 0}
-
-  .tablewrap{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden}
-  .thead{display:flex;justify-content:space-between;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
-  .thead .tt{font-size:14px;font-weight:800}
-  .thead .flab{font-size:12px;color:var(--y);cursor:pointer}
-  table{width:100%;border-collapse:collapse}
-  th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding:11px 14px;background:#131418;white-space:nowrap}
-  td{padding:12px 14px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle}
-  tr:hover td{background:#1b1c20}
-  .stname{font-weight:700}.stmeta{font-size:11px;color:var(--faint);margin-top:2px}
-  .cd{font-family:ui-monospace,monospace;color:var(--mut)}
-  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle}
-  .bar{width:120px;height:8px;border-radius:99px;background:#26262b;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:9px}
-  .bar i{display:block;height:100%;border-radius:99px}
-  .pct{font-weight:800;font-family:ui-monospace,monospace}
-  .days{font-weight:800;font-family:ui-monospace,monospace}
-  .fail{color:var(--fail);font-weight:700}
-  .num{text-align:right;font-family:ui-monospace,monospace}
-  .empty{padding:40px;text-align:center;color:var(--faint)}
-  .spin{padding:60px;text-align:center;color:var(--mut)}
-  @media(max-width:820px){ .hidecol{display:none} }
-</style></head><body>
-
-<div id="login">
-  <div class="lcard">
-    <div class="brand">CJ<b>X</b> Inspect</div>
-    <div class="lsub">Dashboard สำหรับ HQ · ภาพรวมก่อสร้าง + ตรวจรับ · เข้าดูด้วยบัญชีเดิม</div>
-    <form id="lform">
-      <label>อีเมล</label><input id="email" type="email" autocomplete="username" placeholder="you@cjmart.co.th">
-      <label>รหัสผ่าน</label><input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
-      <button class="btn" type="submit">เข้าสู่ระบบ</button>
-      <div class="msg" id="lmsg"></div>
-    </form>
+<!-- Sidebar -->
+<aside class="fixed left-0 top-0 h-full w-72 bg-surface-card z-50 flex flex-col justify-between" style="box-shadow:0 14px 40px -14px #000">
+  <div class="flex flex-col">
+    <div class="h-16 px-4 flex items-center gap-2 bg-surface-control">
+      <div class="w-9 h-9 rounded bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-ink-on-yellow font-bold text-[22px]">precision_manufacturing</span></div>
+      <div class="flex flex-col"><div class="flex items-center gap-1.5"><span class="font-title-sm text-title-sm uppercase tracking-tight">CJX Inspect</span><span class="px-1.5 py-0.5 rounded bg-primary-container text-ink-on-yellow font-label-micro text-label-micro uppercase">HQ</span></div><div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-role-setup animate-pulse"></span><span class="font-data-mono text-ink-muted text-[11px]">NODE ENGINE v4.2.0</span></div></div>
+    </div>
+    <div class="px-3 py-2"><div class="px-2 py-1 font-label-caps text-label-caps text-ink-faint uppercase">Main Operations</div></div>
+    <nav class="flex flex-col gap-1 px-2" id="hqNav">
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="1"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>ภาพรวมทุกสาขา (Overview)</span></a>
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="2"><span class="material-symbols-outlined text-[20px]">engineering</span><span>ติดตามงานก่อสร้าง (9 งวด)</span></a>
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="3"><span class="material-symbols-outlined text-[20px]">rule</span><span>ตรวจรับร้าน Set-Up</span></a>
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="4"><span class="material-symbols-outlined text-[20px]">analytics</span><span>วิเคราะห์ผู้รับเหมา</span></a>
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="5"><span class="material-symbols-outlined text-[20px]">picture_as_pdf</span><span>รายงาน (Reports)</span></a>
+    </nav>
   </div>
-</div>
+  <div class="p-3 bg-surface-control m-2 rounded"><div class="flex items-center justify-between font-label-micro text-label-micro text-ink-faint uppercase mb-1"><span>Core Telemetry</span><span class="text-role-setup" id="teleState">LIVE</span></div><div class="font-data-mono text-[11px] text-ink-muted">NODE: BKK-HQ-01</div><div class="font-data-mono text-[10px] text-ink-faint">SYS VER: 4.2.0-STABLE</div></div>
+</aside>
 
-<div id="dash">
-  <div class="top">
-    <div class="h">CJ<b>X</b> Inspect · <span style="font-weight:800">แดชบอร์ด HQ</span></div>
-    <div class="sp"></div>
-    <button class="tbtn" id="autoBtn">⟳ อัปเดตอัตโนมัติ: ปิด</button>
-    <button class="tbtn" id="refBtn">รีเฟรช</button>
-    <button class="tbtn" id="outBtn">ออกจากระบบ</button>
-    <div class="meta" id="meta" style="width:100%"></div>
-  </div>
-  <div id="body"><div class="spin">กำลังโหลดข้อมูล…</div></div>
+<div class="pl-72">
+  <header class="fixed top-0 left-72 right-0 h-16 bg-surface-card z-40 px-6 flex items-center justify-between gap-6" style="box-shadow:0 1px 8px rgba(0,0,0,.5)">
+    <div class="flex items-center gap-4 flex-1 min-w-0">
+      <div class="flex items-center gap-2 shrink-0"><span class="font-headline-md text-headline-md uppercase tracking-tight">CJX Inspect HQ</span><span class="px-2 py-0.5 rounded bg-surface-elevated text-primary-fixed-dim font-label-caps text-label-caps uppercase">Central Command</span></div>
+      <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-pass"><span class="w-1.5 h-1.5 rounded-full bg-role-setup"></span><span class="font-data-mono text-[11px] text-ink-pass font-bold" id="hdrOnline">ONLINE · Telemetry Active</span></div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <button class="h-9 px-3 rounded bg-surface-elevated hover:bg-surface-container-high text-ink-primary font-label-caps text-label-caps flex items-center gap-1" id="btnCpSearch" title="ค้นหาข้อตรวจ เช่น เทสน้ำหลังคา → ดูสาขาไหนทำ/ไม่ทำ + เล่นวิดีโอ"><span class="material-symbols-outlined text-role-setup text-[18px]">manage_search</span>ค้นหารายข้อตรวจ</button>
+      <button class="h-9 px-3 rounded bg-surface-control hover:bg-surface-elevated text-ink-primary font-label-caps text-label-caps flex items-center gap-1" id="btnRefresh"><span class="material-symbols-outlined text-[18px]">sync</span>รีเฟรช</button>
+      <div class="relative">
+        <button id="hdrUser" class="flex items-center gap-2 bg-surface-control hover:bg-surface-elevated py-1 px-2.5 rounded"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col text-left"><span class="font-title-sm text-[13px] leading-tight" id="hdrName">HQ</span><span class="font-label-micro text-label-micro text-primary-fixed-dim uppercase leading-none">Central Command</span></div><span class="material-symbols-outlined text-ink-muted text-[18px]">expand_more</span></button>
+        <div id="hdrMenu" hidden class="absolute right-0 mt-1 w-56 bg-surface-card rounded-lg shadow-md p-1.5 z-50" style="border:1px solid #2A2A2E">
+          <div class="px-2.5 py-2 font-label-micro text-label-micro text-ink-faint truncate" id="hdrEmail">—</div>
+          <div class="h-px my-1" style="background:#2A2A2E"></div>
+          <button id="hqLogout" class="w-full flex items-center gap-2 px-2.5 py-2 rounded hover:bg-surface-fail text-status-fail font-body-sm text-body-sm text-left"><span class="material-symbols-outlined text-[18px]">logout</span>ออกจากระบบ</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="pt-16 min-h-screen bg-surface-container-lowest">
+    <div id="hqBody" class="p-6"><div class="text-ink-muted" style="padding:40px 0;text-align:center">กำลังโหลดข้อมูล HQ…</div></div>
+  </main>
 </div>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-const SUPABASE_URL='https://kmidlzhcdolxzpetecjx.supabase.co'
-const SUPABASE_KEY='sb_publishable_4n3ZiIYvxYV335LLZe7Cnw_QHQeCJ3h'
-const sb=createClient(SUPABASE_URL,SUPABASE_KEY)
+const sb = createClient('https://kmidlzhcdolxzpetecjx.supabase.co','sb_publishable_4n3ZiIYvxYV335LLZe7Cnw_QHQeCJ3h')
 const $=id=>document.getElementById(id)
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
-const CONSTRUCTION_DAYS=40
-const DCOL={fail:'var(--fail)',done:'var(--pass)',progress:'var(--build)',idle:'var(--idle)'}
-let _rows=[], _suRows=[], _filter='all', _mode='con', _auto=null, _names={}, _view='store', _topicPhase=null
-const DCOL2={fail:'var(--fail)',fixed:'var(--build)',progress:'var(--build)',pass:'var(--pass)',none:'#9aa0a6'}
-let _cps=[], _cpMap={}, _storeMap={}, _inspByStore={}, _evsByStore={}, _detImgs=[], _detLbI=0, _q=''
-const SETUP_SECTIONS=[[201,5],[202,10],[203,30],[204,30],[205,5],[206,10],[207,5],[208,5]]
-let _setupCps=[]
-function setupGrade(t){ return t>95?'A':t>=90?'B':t>=80?'C':'D' }
-function gradeColor(g){ return g==='A'?'#37D98B':g==='B'?'#8FD14F':g==='C'?'#F5C518':'#FF6B6B' }
-function computeSetupScore(cur){
+
+const PHASES=[[1,'นัดวางผัง'],[2,'ตอกเสาเข็ม'],[3,'โครงสร้างพื้น'],[4,'งานโครงเหล็ก'],[5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
+const PRECON=[[101,'สำรวจพื้นที่'],[102,'เข้าพื้นที่พร้อม ผรม.'],[103,'ติดตาม Pre-Con'],[104,'ตรวจรับ Pre-Con']]
+const SETUP_SECTIONS=[[201,'ป้ายไฟ / Tower Sign',5],[202,'ภายนอกร้าน',10],[203,'พื้นที่ขาย',30],[204,'พื้นที่สต๊อก',30],[205,'ห้องผู้จัดการ',5],[206,'ห้องน้ำ',10],[207,'จุดซักล้าง',5],[208,'ประปา/สุขาภิบาล',5]]
+const CDAYS=40
+function cs(open){ if(!open) return {key:'unknown',label:'ไม่ระบุ',days:null}
+  const od=new Date(open+'T00:00:00'),now=new Date(); now.setHours(0,0,0,0)
+  const days=Math.round((od-now)/86400000), start=new Date(od); start.setDate(start.getDate()-CDAYS)
+  if(now>od) return {key:'opened',label:'เปิดแล้ว',days}
+  if(now>=start) return {key:'building',label:'กำลังก่อสร้าง',days}
+  return {key:'notyet',label:'ยังไม่ก่อสร้าง',days} }
+
+// ---- data ----
+let stores=[],checkpoints=[],insps=[],events=[],signoffs=[],profiles=[]
+let cur={}, cpByPhase={}, nameByUid={}, _view='1', _q='', _cf='all', _rf='inspected', _mediaThumb={}
+// ตัวกรองมาตรฐาน (Global): กำหนดเปิด / จังหวัด / ผรม. / เรียง — ใช้ทุกหน้า
+let _ft='all', _fpv='all', _fct='all', _sort='open'
+// ตัวกรองเฉพาะหน้า
+let _ovStage='all', _cph='all', _sf='all', _ctf='all', _ctSort='score'
+async function fetchAll(table,cols,order,filt){ let out=[],from=0,size=1000
+  for(;;){ let q=sb.from(table).select(cols).order(order).range(from,from+size-1); if(filt) q=filt(q)
+    const {data,error}=await q; if(error){console.warn(table,error.message);break}; out=out.concat(data||[]); if(!data||data.length<size) break; from+=size } return out }
+
+async function loadAll(){
+  const [st,cp,ins,ev,sg,pf]=await Promise.all([
+    sb.from('stores').select('code,name,province,building_type,opening_date,contractor').order('opening_date'),
+    sb.from('checkpoints').select('*').order('sort'),
+    fetchAll('inspections','id,store_code,phase','id'),
+    fetchAll('check_events','inspection_id,checkpoint,round,status,note,by,created_at','created_at'),
+    fetchAll('signoffs','store_code,scope,kind,by,created_at','created_at'),
+    sb.from('profiles').select('id,name,email,role')
+  ])
+  stores=(st.data||[]).map(s=>({...s,cs:cs(s.opening_date)}))
+  checkpoints=cp.data||[]; insps=ins; events=ev; signoffs=sg; profiles=pf.data||[]
+  nameByUid={}; profiles.forEach(p=>nameByUid[p.id]=p.name||p.email||'')
+  cpByPhase={}; checkpoints.forEach(c=>{ (cpByPhase[c.phase]||(cpByPhase[c.phase]=[])).push(c) })
+  const inspById={}; insps.forEach(i=>inspById[i.id]=i)
+  cur={}; events.forEach(e=>{ const ins2=inspById[e.inspection_id]; if(!ins2) return; const code=ins2.store_code
+    const m=cur[code]||(cur[code]={}); const p=m[e.checkpoint]
+    if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) m[e.checkpoint]={...e,store_code:code} })
+  // โหลด+เซ็นรูป thumbnail เฉพาะข้อที่ไม่ผ่าน/รอตรวจซ้ำ (สำหรับคิว Defect)
+  _mediaThumb={}
+  try{ const md=await fetchAll('media','inspection_id,checkpoint,path,thumb_path','inspection_id')
+    const byKey={}; md.forEach(m=>{ const ins2=inspById[m.inspection_id]; if(!ins2) return; const code=ins2.store_code
+      const e=(cur[code]||{})[m.checkpoint]; if(e&&(e.status==='fail'||e.status==='fixed')){ const k=code+'|'+m.checkpoint; if(!byKey[k]) byKey[k]=m.thumb_path||m.path } })
+    const paths=Object.values(byKey)
+    if(paths.length){ const urlByPath={}
+      for(let i=0;i<paths.length;i+=100){ const chunk=paths.slice(i,i+100); const {data:us}=await sb.storage.from('media').createSignedUrls(chunk,3600); (us||[]).forEach((u,j)=>{ if(u&&u.signedUrl) urlByPath[chunk[j]]=u.signedUrl }) }
+      Object.keys(byKey).forEach(k=>{ const idx=k.indexOf('|'); const code=k.slice(0,idx), cp=k.slice(idx+1); (_mediaThumb[code]||(_mediaThumb[code]={}))[cp]=urlByPath[byKey[k]] }) }
+  }catch(e){ console.warn('media',e.message) }
+}
+const nameOf=u=>nameByUid[u]||'—'
+function phaseStat(code,phase){ const cps=cpByPhase[phase]||[]; const total=cps.length
+  const m=cur[code]||{}; let done=0,pass=0,fail=0,fixed=0
+  cps.forEach(c=>{ const e=m[String(c.id)]; if(e){done++; if(e.status==='pass')pass++; else if(e.status==='fail')fail++; else if(e.status==='fixed')fixed++} })
+  let key='none'; if(done){ key= fail?'fail': done<total?'progress': fixed?'fixed':'pass' }
+  return {key,done,total,pass,fail,fixed} }
+function approved(code,phase){ return signoffs.some(x=>x.store_code===code&&String(x.scope)===String(phase)&&x.kind==='approve') }
+function lastActivity(code){ const m=cur[code]||{}; let last=null; Object.values(m).forEach(e=>{ if(e.created_at&&(!last||e.created_at>last.at)) last={at:e.created_at,by:e.by} }); return last }
+function computeSetupScore(code){ const m=cur[code]||{}
   let total=0,gotMain=0,maxMain=0,gotSub=0,maxSub=0,doneItems=0,failItems=0,fixedItems=0,totalItems=0,wDecided=0
-  SETUP_SECTIONS.forEach(([ph,weight])=>{
-    const items=_setupCps.filter(c=>c.phase===ph)
-    const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1
-    items.forEach(c=>{ const w=(+c.points||1)/raw*weight, isSub=c.supplier==='ซัพย่อย'
-      if(isSub) maxSub+=w; else maxMain+=w; totalItems++
-      const e=cur[String(c.id)]
-      if(e){ doneItems++
-        if(e.status==='fail'){ failItems++; wDecided+=w }
-        else if(e.status==='fixed'){ fixedItems++; wDecided+=w }
-        else if(e.status==='pass'){ total+=w; wDecided+=w; if(isSub) gotSub+=w; else gotMain+=w } } })
-  })
-  const curPct=wDecided>0?total/wDecided*100:0   // เกรดจริง ณ ตอนนี้ = คิดจากข้อที่ตรวจแล้วเท่านั้น
-  return {total,grade:setupGrade(total),curPct,curGrade:setupGrade(curPct),doneItems,totalItems,failItems,fixedItems,allDone:doneItems===totalItems&&totalItems>0,
-    mainPct:maxMain?gotMain/maxMain*100:0, subPct:maxSub?gotSub/maxSub*100:0}
+  const sections=SETUP_SECTIONS.map(([ph,name,weight])=>{ const items=(cpByPhase[ph]||[])
+    const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1; let earned=0,done=0,fail=0,fixed=0
+    items.forEach(c=>{ const w=(+c.points||1)/raw*weight, isSub=c.supplier==='ซัพย่อย'; if(isSub)maxSub+=w; else maxMain+=w; totalItems++
+      const e=m[String(c.id)]; if(e){done++;doneItems++; if(e.status==='fail'){fail++;failItems++;wDecided+=w} else if(e.status==='fixed'){fixed++;fixedItems++;wDecided+=w} else if(e.status==='pass'){earned+=w;wDecided+=w; if(isSub)gotSub+=w; else gotMain+=w}} })
+    total+=earned; return {phase:ph,name,weight,earned,done,fail,fixed,total:items.length} })
+  const curPct=wDecided>0?total/wDecided*100:0
+  const grd=t=>t>95?'A':t>=90?'B':t>=80?'C':'D'
+  return {total,grade:grd(total),curPct,curGrade:grd(curPct),sections,doneItems,totalItems,failItems,fixedItems,
+    main:{pct:maxMain?gotMain/maxMain*100:0},sub:{pct:maxSub?gotSub/maxSub*100:0},allDone:doneItems===totalItems&&totalItems>0} }
+function computeSetupScoreEv(evts, uptoRound){ const m={}
+  evts.forEach(e=>{ if(uptoRound!=null && (+e.round||1)>uptoRound) return; const k=String(e.checkpoint), p=m[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) m[k]=e })
+  let total=0,wDecided=0,doneItems=0,failItems=0,fixedItems=0,totalItems=0
+  SETUP_SECTIONS.forEach(([ph,name,weight])=>{ const items=(cpByPhase[ph]||[]); const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1
+    items.forEach(c=>{ const w=(+c.points||1)/raw*weight; totalItems++; const e=m[String(c.id)]; if(e){doneItems++; if(e.status==='fail'){failItems++;wDecided+=w} else if(e.status==='fixed'){fixedItems++;wDecided+=w} else if(e.status==='pass'){total+=w;wDecided+=w}} }) })
+  const curPct=wDecided>0?total/wDecided*100:0, grd=t=>t>95?'A':t>=90?'B':t>=80?'C':'D'
+  return {total,curPct,curGrade:grd(curPct),doneItems,failItems,fixedItems} }
+// สาขาที่อยู่ในกระบวนการก่อสร้าง (มีการตรวจ หรือกำลังก่อสร้าง)
+function conStores(){ return stores.filter(s=> s.cs.key==='building'||s.cs.key==='notyet'|| (cur[s.code]&&Object.keys(cur[s.code]).some(k=>{const c=checkpoints.find(x=>String(x.id)===k);return c&&c.phase<200}))) }
+function setupStores(){ return stores.filter(s=> (cur[s.code]&&Object.keys(cur[s.code]).some(k=>{const c=checkpoints.find(x=>String(x.id)===k);return c&&c.phase>=201&&c.phase<=208})) || s.cs.key==='building') }
+
+const STC={pass:['#12271B','#7EE6B0','check'],progress:['#1C1608','#FF9F1C','pending'],fail:['#241416','#FF5C5C','close'],fixed:['#1C1608','#D9B84A','build'],none:['#201f20','#67675F','remove']}
+function kpi(color,iconBg,icon,label,val,unit,sub){ return `<div class="bg-surface-card rounded-xl p-5 shadow-md flex flex-col justify-between gap-3 relative overflow-hidden" style="min-height:132px">
+  <div class="flex items-start justify-between"><span class="font-label-caps text-label-caps uppercase tracking-wider" style="color:${color}">${label}</span><div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:${iconBg}"><span class="material-symbols-outlined text-[24px]" style="color:${color}">${icon}</span></div></div>
+  <div><div class="flex items-baseline gap-1.5"><span class="font-kpi-metric text-kpi-metric leading-none" style="color:${color}">${val}</span>${unit?`<span class="font-headline-md text-headline-md text-ink-muted font-normal">${unit}</span>`:''}</div>${sub?`<p class="font-label-micro text-label-micro text-ink-muted mt-2">${sub}</p>`:''}</div></div>` }
+function pageHead(crumb,title,sub){ return `<div class="flex flex-col gap-1 mb-5"><div class="flex items-center gap-1.5 font-label-caps text-label-caps text-ink-faint uppercase"><span>CJX CENTRAL COMMAND</span><span>/</span><span class="text-primary-container font-bold">${crumb}</span></div><h1 class="font-headline-lg text-headline-lg tracking-tight">${title}</h1>${sub?`<p class="font-body-sm text-body-sm text-ink-muted max-w-4xl leading-relaxed">${sub}</p>`:''}</div>` }
+
+// ============ VIEW 1 : OVERVIEW (Store Rollout HQ — ภาพรวมทุกสาขาข้ามเฟส) ============
+function storeStage(s){ if(s.cs.key==='opened') return 'opened'
+  const has=(lo,hi)=> cur[s.code]&&Object.keys(cur[s.code]).some(k=>{const c=checkpoints.find(x=>String(x.id)===k);return c&&c.phase>=lo&&c.phase<=hi})
+  if(has(201,208)) return 'setup'
+  if(has(1,199)||s.cs.key==='building') return 'building'
+  return 'notyet' }
+const STAGE={opened:['เปิดแล้ว','#7EE6B0','#12271B','storefront'],setup:['ตรวจรับ Set-Up','#8FB4FF','#182233','rule'],building:['ก่อสร้าง','#FF9F1C','#1C1608','engineering'],notyet:['ยังไม่เริ่ม','#9A9A93','#201f20','schedule']}
+function renderOverview(){
+  const stg={}; stores.forEach(s=>{ const k=storeStage(s); stg[k]=(stg[k]||0)+1 })
+  const tot=stores.length, building=stg.building||0, setup=stg.setup||0, opened=stg.opened||0, notyet=stg.notyet||0
+  // national defects (ก่อสร้าง + Set-Up)
+  let conDef=0,setupDef=0
+  stores.forEach(s=>{ PHASES.forEach(([p])=>{ conDef+=phaseStat(s.code,p).fail }); setupDef+=computeSetupScore(s.code).failItems })
+  const near=stores.filter(s=>s.cs.days!=null&&s.cs.days<=7&&s.cs.key!=='opened').sort((a,b)=>_openSort(a,b))
+  let h=pageHead('ภาพรวมทุกสาขา (OVERVIEW)','ภาพรวมสาขาและการขยายเครือข่ายทั่วประเทศ (Store Rollout HQ)','มุมมองรวมทุกสาขาข้ามทุกเฟส — ตำแหน่งในไปป์ไลน์ (ก่อสร้าง → ตรวจรับ Set-Up → เปิดบริการ), สาขาใกล้เปิด, และข้อบกพร่องค้างทั้งประเทศ · ดึงจากข้อมูลจริงในระบบ')
+  // KPI
+  h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+    ${kpi('#F5F5F2','#353436','store','สาขาทั้งหมดในระบบ',tot,'สาขา',building+' ก่อสร้าง · '+setup+' Set-Up · '+opened+' เปิดแล้ว')}
+    ${kpi('#FF9F1C','#1C1608','engineering','อยู่ระหว่างก่อสร้าง',building,'สาขา','ตรวจงวด 1–9')}
+    ${kpi('#8FB4FF','#182233','rule','อยู่ระหว่างตรวจรับ Set-Up',setup,'สาขา','NSA Audit ก่อนเปิด')}
+    ${kpi('#FF5C5C','#241416','error','Defect ค้างทั้งประเทศ',conDef+setupDef,'จุด','ก่อสร้าง '+conDef+' · Set-Up '+setupDef)}
+  </div>`
+  // pipeline funnel
+  const seg=(lbl,n,col,bg,ic)=>`<div class="flex-1 min-w-[130px] rounded-xl p-4" style="background:${bg}"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-[20px]" style="color:${col}">${ic}</span><span class="font-label-caps text-label-caps uppercase" style="color:${col}">${lbl}</span></div><div class="font-kpi-metric text-[34px] font-bold mt-1" style="color:${col}">${n}<span class="font-headline-md text-ink-muted font-normal"> สาขา</span></div><div class="font-label-micro text-label-micro text-ink-muted mt-0.5">${tot?Math.round(n/tot*100):0}% ของทั้งหมด</div></div>`
+  const arrow=`<div class="flex items-center justify-center px-1 self-center shrink-0"><span class="material-symbols-outlined text-ink-faint text-[26px]">chevron_right</span></div>`
+  h+=`<div class="bg-surface-card rounded-xl p-5 shadow-md mb-5"><div class="flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-primary-container text-[20px]">conversion_path</span><h3 class="font-title-md text-title-md">ไปป์ไลน์การเปิดสาขา (Rollout Pipeline)</h3><span class="ml-auto font-label-micro text-label-micro text-ink-faint">ลำดับสถานะ: ก่อสร้าง → ตรวจรับ Set-Up → เปิดบริการ</span></div>
+    <div class="flex flex-wrap gap-1">${seg('ยังไม่เริ่ม',notyet,'#9A9A93','#201f20','schedule')}${arrow}${seg('ก่อสร้าง',building,'#FF9F1C','#1C1608','engineering')}${arrow}${seg('ตรวจรับ Set-Up',setup,'#8FB4FF','#182233','rule')}${arrow}${seg('เปิดบริการแล้ว',opened,'#7EE6B0','#12271B','storefront')}</div>
+    <div class="mt-4 h-2.5 w-full rounded-full overflow-hidden flex bg-surface-control">${[['#FF9F1C',building],['#8FB4FF',setup],['#7EE6B0',opened],['#3A3A3E',notyet]].map(([c,n])=>n?`<div style="width:${n/tot*100}%;background:${c}" title="${n}"></div>`:'').join('')}</div></div>`
+  // registry + right column
+  let base=stores.filter(passGlobal)
+  if(_ovStage==='defect') base=base.filter(s=>defTotal(s.code)>0)
+  else if(_ovStage!=='all') base=base.filter(s=>storeStage(s)===_ovStage)
+  const list=sortStores(base)
+  const stChips=[['all','ทั้งหมด'],['notyet','ยังไม่เริ่ม'],['building','ก่อสร้าง'],['setup','Set-Up'],['opened','เปิดแล้ว'],['defect','มี Defect ค้าง']].map(x=>fchip('ov',x[0],_ovStage,x[1])).join('')
+  h+=filterBar({count:list.length,total:stores.length,chips:stChips,chipLabel:'สถานะ'})
+  h+=`<div class="grid grid-cols-1 lg:grid-cols-12 gap-5"><div class="lg:col-span-8"><div class="bg-surface-card rounded-xl shadow-md overflow-hidden">
+    <div class="p-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-container text-[20px]">apartment</span><h3 class="font-title-md text-title-md">ทะเบียนสาขาและสถานะการตรวจสอบ <span class="font-body-sm text-ink-muted font-normal">(Store Registry · ${list.length} สาขา)</span></h3></div>
+    <div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">สาขา &amp; โลเคชั่น</th><th class="py-3 px-3">สถานะปัจจุบัน</th><th class="py-3 px-2 text-center">กำหนดเปิด</th><th class="py-3 px-2 text-center">ก่อสร้าง</th><th class="py-3 px-2 text-center">Set-Up</th><th class="py-3 px-2 text-center">Defect</th><th class="py-3 px-3 text-center">ดู</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
+  list.forEach(s=>{ const stage=STAGE[storeStage(s)]; const conDone=PHASES.filter(([p])=>phaseStat(s.code,p).key==='pass').length, conPct=Math.round(conDone/9*100)
+    const sc=computeSetupScore(s.code); const g=sc.doneItems?sc.curGrade:'—', gc=gradeCol(g)
+    let sFail=0; PHASES.forEach(([p])=>sFail+=phaseStat(s.code,p).fail); sFail+=sc.failItems
+    const dtxt=s.cs.days==null?'—':s.cs.key==='opened'?'เปิดแล้ว':(s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days)
+    const dcol=s.cs.key==='opened'?'#7EE6B0':(s.cs.days!=null&&s.cs.days<=7?'#FF5C5C':'#D9B84A')
+    h+=`<tr class="hover:bg-surface-elevated/30">
+      <td class="py-2.5 px-4"><div data-store="${esc(s.code)}" class="font-title-sm text-[13px] font-bold truncate cursor-pointer hover:text-primary-container" style="max-width:190px" title="ดูรายละเอียดทุกข้อ + รูป/วิดีโอ">${esc(s.name||s.code)}</div><div class="font-data-mono text-[10px] text-ink-faint">${esc(s.code)}${s.province?' · '+esc(s.province):''}</div></td>
+      <td class="py-2.5 px-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-label-micro text-label-micro font-bold" style="background:${stage[2]};color:${stage[1]}"><span class="material-symbols-outlined text-[13px]">${stage[3]}</span>${stage[0]}</span></td>
+      <td class="py-2.5 px-2 text-center"><span class="font-data-mono text-[12px] font-bold" style="color:${dcol}">${dtxt}</span></td>
+      <td class="py-2.5 px-2 text-center">${conDone?`<span class="font-data-mono text-[12px] font-bold ${conPct===100?'text-ink-pass':'text-ink-primary'}">${conPct}%</span>`:'<span class="text-ink-faint">–</span>'}</td>
+      <td class="py-2.5 px-2 text-center">${sc.doneItems?`<span class="inline-flex px-1.5 py-0.5 rounded font-data-mono text-[11px] font-bold" style="background:${gc.bg};color:${gc.fg}">${g} ${sc.curPct.toFixed(0)}</span>`:'<span class="text-ink-faint">–</span>'}</td>
+      <td class="py-2.5 px-2 text-center">${sFail?`<span class="font-data-mono text-[12px] font-bold text-status-fail">${sFail}</span>`:'<span class="text-ink-pass">✓</span>'}</td>
+      <td class="py-2.5 px-3 text-center"><button data-store="${esc(s.code)}" class="w-8 h-8 rounded bg-surface-control hover:bg-surface-elevated text-ink-muted hover:text-primary-container inline-flex items-center justify-center"><span class="material-symbols-outlined text-[18px]">visibility</span></button></td></tr>` })
+  if(!list.length) h+=`<tr><td colspan="7" class="py-8 text-center text-ink-muted">ไม่พบสาขา${_q?' (ลองล้างคำค้นหา)':''}</td></tr>`
+  h+=`</tbody></table></div></div></div>`
+  // right column
+  h+=`<div class="lg:col-span-4 flex flex-col gap-4">`
+  // near-open
+  h+=`<div class="bg-surface-card rounded-xl p-4 shadow-md"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-status-fail text-[20px]">bolt</span><h3 class="font-title-sm text-title-sm">สาขาใกล้เปิด (≤ 7 วัน)</h3><span class="ml-auto font-label-micro text-label-micro px-2 py-0.5 rounded-full" style="background:#241416;color:#FF5C5C">${near.length} สาขา</span></div>`
+  h+= near.length? near.slice(0,6).map(s=>{ const stage=STAGE[storeStage(s)]; return `<div data-store="${esc(s.code)}" class="bg-surface-control rounded-lg p-3 mb-2 cursor-pointer hover:bg-surface-elevated"><div class="flex items-center justify-between gap-2"><span class="font-body-sm text-body-sm font-bold text-ink-primary truncate">${esc(s.name||s.code)}</span><span class="font-data-mono text-[12px] font-bold shrink-0" style="color:#FF5C5C">${s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days}</span></div><div class="flex items-center justify-between mt-1"><span class="font-label-micro text-label-micro" style="color:${stage[1]}">${stage[0]}</span><span class="font-label-micro text-label-micro text-ink-faint">${esc(s.province||'')}</span></div></div>` }).join('') : `<div class="text-ink-muted font-body-sm text-body-sm py-4 text-center">ไม่มีสาขาใกล้เปิดใน 7 วัน</div>`
+  h+=`</div>`
+  // field activity feed
+  const codeBy={}; insps.forEach(i=>codeBy[i.id]=i.store_code)
+  const nmBy={}; stores.forEach(s=>nmBy[s.code]=s.name||s.code)
+  const feed=events.slice().sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).slice(0,12)
+  const stTxt={pass:['ผ่าน','#7EE6B0'],fail:['ตีกลับ','#FF5C5C'],fixed:['แก้แล้ว','#D9B84A'],na:['ไม่มีงาน','#9A9A93']}
+  h+=`<div class="bg-surface-card rounded-xl p-4 shadow-md"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-role-setup text-[20px]">dynamic_feed</span><h3 class="font-title-sm text-title-sm">ฟีดความเคลื่อนไหวหน้างานล่าสุด</h3></div>`
+  h+= feed.length? feed.map(e=>{ const code=codeBy[e.inspection_id]; const c=checkpoints.find(x=>String(x.id)===String(e.checkpoint)); const st=stTxt[e.status]||[e.status,'#9A9A93']
+    return `<div class="flex items-start gap-2 py-1.5" style="border-bottom:1px solid #201f20"><span class="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style="background:${st[1]}"></span><div class="min-w-0 flex-1"><div class="font-body-sm text-[12px] text-ink-primary truncate">${code?`<span data-store="${esc(code)}" class="cursor-pointer hover:text-primary-container font-bold">${esc(nmBy[code]||code)}</span>`:'—'} · <span style="color:${st[1]}">${st[0]}</span></div><div class="font-label-micro text-label-micro text-ink-faint truncate">${c?esc(c.label||c.name||''):('ข้อ '+esc(e.checkpoint))} · ${esc(nameOf(e.by))} · ${e.created_at?fmtDate(e.created_at):''}</div></div></div>` }).join('') : `<div class="text-ink-muted font-body-sm text-body-sm py-4 text-center">ยังไม่มีความเคลื่อนไหว</div>`
+  h+=`</div></div></div>`
+  return h
 }
 
-function cs(open){ if(!open) return {key:'unknown',days:null}
-  const od=new Date(open+'T00:00:00'), now=new Date(); now.setHours(0,0,0,0)
-  const days=Math.round((od-now)/86400000)
-  const start=new Date(od); start.setDate(start.getDate()-CONSTRUCTION_DAYS)
-  if(now>od) return {key:'opened',days}; if(now>=start) return {key:'building',days}; return {key:'notyet',days} }
-function dstt(r){ if(r.fail>0) return 'fail'; if(r.total&&r.done>=r.total) return 'done'; if(r.done>0) return 'progress'; return 'idle' }
-function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso),p=n=>String(n).padStart(2,'0')
-  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543} ${p(d.getHours())}:${p(d.getMinutes())}` }
+// ============ VIEW 2 : CONSTRUCTION (9 งวด) ============
+function renderConstruction(){
+  const rows=conStores()
+  const buildingN=stores.filter(s=>s.cs.key==='building').length
+  let totG=0,apprG=0,defectStores=0,totFail=0
+  rows.forEach(s=>{ let sFail=0; PHASES.forEach(([p])=>{ const st=phaseStat(s.code,p); if(st.total){totG++; if(st.key==='pass'&&approved(s.code,p))apprG++; sFail+=st.fail} }); if(sFail){defectStores++;totFail+=sFail} })
+  const near=rows.filter(s=>s.cs.days!=null&&s.cs.days<=7&&s.cs.key!=='opened').length
+  const doneStores=rows.filter(s=>PHASES.every(([p])=>phaseStat(s.code,p).key==='pass')).length
+  // bottleneck by phase
+  const phAgg=PHASES.map(([p,nm])=>{ let f=0,pr=0; rows.forEach(s=>{const st=phaseStat(s.code,p); if(st.key==='fail')f++; else if(st.key==='progress')pr++}); return {p,nm,f,pr} }).sort((a,b)=>(b.f-a.f)||(b.pr-a.pr))
+  let h=pageHead('ติดตามงานก่อสร้าง (9 งวด)','ความคืบหน้างวดงานก่อสร้าง 9 งวดทั่วประเทศ','ระบบติดตามผลการตรวจงวด 1–9 รายสาขา, การอนุมัติเบิกงวด และบันทึก Defect หน้างานแบบ Real-time ตามมาตรฐาน CJ Mart')
+  h+=`<div class="flex flex-wrap items-center justify-end gap-2 -mt-2 mb-4"><span class="mr-auto px-2.5 py-1 rounded bg-surface-elevated text-primary-fixed-dim font-label-caps text-label-caps uppercase">Phase 1–9 Matrix</span><button id="cMatrixCsv" class="h-9 px-3 rounded bg-surface-elevated hover:bg-surface-container-high text-ink-primary font-body-sm text-body-sm flex items-center gap-1.5"><span class="material-symbols-outlined text-role-setup text-[18px]">table_view</span>ดาวน์โหลด Matrix (.xlsx)</button><button id="cWeekPdf" class="h-9 px-4 rounded bg-primary-container text-ink-on-yellow font-title-sm text-title-sm font-bold flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>สรุปงวดรายสัปดาห์ (PDF)</button></div>`
+  h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+    ${kpi('#FF9F1C','#353436','engineering','สาขาในสายงานก่อสร้าง',buildingN,'สาขา','กำลังก่อสร้าง (จาก '+rows.length+' ในสายงาน)')}
+    ${kpi('#FF5C5C','#241416','error','งวดที่มี Defect ค้าง',defectStores,'สาขา',totFail+' จุด Defect รวม')}
+    ${kpi('#F5C518','#1C1608','bolt','ใกล้เปิด ≤ 7 วัน',near,'สาขา','เร่งด่วน')}
+    ${kpi('#7EE6B0','#12271B','verified','เสร็จครบ 9 งวด',doneStores,'สาขา','อนุมัติงวดแล้ว '+apprG+'/'+totG+' งวด')}
+  </div>`
+  // phase legend
+  h+=`<div class="bg-surface-card rounded-xl p-4 mb-4 shadow-sm"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-primary-container text-[18px]">menu_book</span><span class="font-title-sm text-title-sm">คู่มืองวดงานก่อสร้าง 9 ลำดับ</span><span class="ml-auto flex items-center gap-3 font-label-micro text-label-micro"><span class="flex items-center gap-1"><span class="celldot" style="width:12px;height:12px;background:#37D98B"></span>ผ่าน</span><span class="flex items-center gap-1"><span class="celldot" style="width:12px;height:12px;background:#FF9F1C"></span>กำลังตรวจ</span><span class="flex items-center gap-1"><span class="celldot" style="width:12px;height:12px;background:#FF5C5C"></span>Defect</span></span></div>
+    <div class="grid grid-cols-3 md:grid-cols-9 gap-2">${PHASES.map(([p,nm])=>`<div class="bg-surface-control rounded p-2 text-center"><div class="font-data-mono text-[11px] text-primary-container font-bold">P${p}</div><div class="font-label-micro text-label-micro text-ink-muted leading-tight mt-1">${esc(nm)}</div></div>`).join('')}</div></div>`
+  // matrix table
+  const defCount=rows.filter(s=>PHASES.some(([p])=>phaseStat(s.code,p).key==='fail')).length
+  const p9Count=rows.filter(s=>PHASES.filter(([p])=>phaseStat(s.code,p).key==='pass').length>=8).length
+  const curPhOf=s=>{ const f=PHASES.find(([p])=>phaseStat(s.code,p).key!=='pass'); return f?f[0]:null }
+  let list=rows.filter(passGlobal)
+  if(_cf==='defect') list=list.filter(s=>PHASES.some(([p])=>phaseStat(s.code,p).key==='fail'))
+  else if(_cf==='p9') list=list.filter(s=>PHASES.filter(([p])=>phaseStat(s.code,p).key==='pass').length>=8)
+  if(_cph==='done') list=list.filter(s=>curPhOf(s)===null)
+  else if(_cph!=='all') list=list.filter(s=>curPhOf(s)===+_cph)
+  list=sortStores(list)
+  const cfChips=[['all','ทั้งหมด ('+rows.length+')'],['defect','มี Defect ('+defCount+')'],['p9','งวดสุดท้าย P9 ('+p9Count+')']].map(x=>fchip('cf',x[0],_cf,x[1])).join('')
+  const phSel=fsel('fltCph',_cph,[['all','งวดปัจจุบัน: ทุกงวด'],['done','เสร็จครบ 9 งวด']].concat(PHASES.map(([p,nm])=>[String(p),'ค้างงวด '+p+': '+nm])))
+  h+=filterBar({count:list.length,total:rows.length,chips:cfChips+phSel,chipLabel:'สถานะงวด'})
+  h+=`<div class="grid grid-cols-1 lg:grid-cols-12 gap-5"><div class="lg:col-span-8"><div class="bg-surface-card rounded-xl shadow-md overflow-hidden">
+    <div class="p-4 flex items-start gap-2"><span class="w-9 h-9 rounded bg-surface-control flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-primary-container text-[20px]">grid_on</span></span><div><h3 class="font-title-md text-title-md">ตารางติดตามความคืบหน้างวดงานก่อสร้าง <span class="font-data-mono text-title-sm text-ink-muted font-normal">(Construction Matrix)</span></h3><p class="font-body-sm text-body-sm text-ink-muted">อัปเดตสถานะและรูปถ่ายยืนยันงวดล่าสุดจาก CM วิศวกรควบคุมงาน</p></div></div>
+    <div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">สาขา &amp; โลเคชั่น</th><th class="py-3 px-3">ผู้รับเหมา &amp; CM ควบคุม</th><th class="py-3 px-2 text-center">กำหนดเปิด</th>${PHASES.map(([p])=>`<th class="py-3 px-1 text-center">P${p}</th>`).join('')}<th class="py-3 px-4 text-right">ความคืบหน้ารวม</th><th class="py-3 px-3 text-center">รายงาน</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
+  list.forEach(s=>{ const done=PHASES.filter(([p])=>phaseStat(s.code,p).key==='pass').length, pct=Math.round(done/9*100)
+    const la=lastActivity(s.code), cm=la?nameOf(la.by):'—'
+    const dtxt = s.cs.days==null?'—': s.cs.key==='opened'?'เปิดแล้ว':(s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days)
+    const dcol = s.cs.days!=null&&s.cs.days<=7&&s.cs.key!=='opened'?'#FF5C5C':'#D9B84A'
+    const curPh = PHASES.find(([p])=>phaseStat(s.code,p).key!=='pass')
+    h+=`<tr class="hover:bg-surface-elevated/30">
+      <td class="py-2.5 px-4"><div data-store="${esc(s.code)}" class="font-title-sm text-[13px] text-ink-primary font-bold truncate cursor-pointer hover:text-primary-container" style="max-width:180px" title="ดูรายละเอียดการตรวจทุกข้อ + รูป/วิดีโอ">${esc(s.name||s.code)}</div><div class="font-data-mono text-[10px] text-ink-faint">${esc(s.code)}${s.province?' · '+esc(s.province):''}</div></td>
+      <td class="py-2.5 px-3"><div class="font-body-sm text-[12px] text-ink-primary truncate" style="max-width:150px">${s.contractor?esc(s.contractor):'<span style="color:#67675F">ยังไม่ระบุ ผรม.</span>'}</div><div class="font-label-micro text-label-micro text-ink-faint truncate" style="max-width:150px">CM: ${esc(cm)}</div></td>
+      <td class="py-2.5 px-2 text-center"><span class="font-data-mono text-[12px] font-bold" style="color:${s.cs.key==='opened'?'#7EE6B0':dcol}">${dtxt}</span></td>`
+    PHASES.forEach(([p])=>{ const st=phaseStat(s.code,p); let cell
+      if(st.key==='pass') cell=`<span class="celldot" style="background:#12271B" title="ผ่าน ${st.done}/${st.total}"><span class="material-symbols-outlined text-[16px]" style="color:#7EE6B0">check</span></span>`
+      else if(st.key==='fail') cell=`<span class="celldot" style="background:#241416" title="Defect ${st.fail}"><span class="material-symbols-outlined text-[15px]" style="color:#FF5C5C">priority_high</span></span>`
+      else if(st.key==='fixed') cell=`<span class="celldot" style="background:#1C1608" title="รอตรวจซ้ำ"><span class="material-symbols-outlined text-[15px]" style="color:#D9B84A">build</span></span>`
+      else if(st.key==='progress') cell=`<span class="font-data-mono text-[11px] font-bold" style="color:#FF9F1C" title="ตรวจ ${st.done}/${st.total}">${Math.round(st.done/st.total*100)}%</span>`
+      else cell=`<span class="text-ink-faint">–</span>`
+      h+=`<td class="py-2.5 px-1 text-center">${cell}</td>` })
+    h+=`<td class="py-2.5 px-4 text-right"><div class="font-data-mono text-[13px] font-bold ${pct===100?'text-ink-pass':'text-ink-primary'}">${pct}%</div><div class="h-1 w-full rounded-full bg-surface-control overflow-hidden mt-1"><div class="h-full rounded-full" style="width:${pct}%;background:${pct===100?'#37D98B':'#FF9F1C'}"></div></div>${curPh&&pct<100?`<div class="font-label-micro text-label-micro text-ink-faint mt-1 truncate" style="max-width:130px">งวด ${curPh[0]}: ${esc(curPh[1])}</div>`:(pct===100?'<div class="font-label-micro text-label-micro text-ink-pass mt-1">เสร็จครบ 9 งวด</div>':'')}</td><td class="py-2.5 px-3 text-center"><button data-rep="con" data-code="${esc(s.code)}" title="เปิดใบรับรองงานก่อสร้าง (PDF)" class="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-control hover:bg-surface-elevated text-ink-muted hover:text-primary-container"><span class="material-symbols-outlined text-[16px] text-role-head-const">picture_as_pdf</span><span class="font-label-micro text-label-micro">ดูใบ</span></button></td></tr>` })
+  if(!list.length) h+=`<tr><td colspan="14" class="py-8 text-center text-ink-muted">ไม่มีสาขาในสายงานก่อสร้าง</td></tr>`
+  h+=`</tbody></table></div></div></div>`
+  // right column: critical defects + bottleneck
+  h+=`<div class="lg:col-span-4 flex flex-col gap-4">`
+  // critical defects queue
+  const defs=[]
+  rows.forEach(s=>{ PHASES.forEach(([p,nm])=>{ const cps=cpByPhase[p]||[]; const m=cur[s.code]||{}; cps.forEach(c=>{ const e=m[String(c.id)]; if(e&&e.status==='fail') defs.push({s,p,nm,e}) }) }) })
+  h+=`<div class="bg-surface-card rounded-xl p-4 shadow-md"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-status-fail text-[20px]">flag</span><h3 class="font-title-sm text-title-sm">จุดวิกฤตที่ต้องเร่งแก้ไข</h3><span class="ml-auto font-label-micro text-label-micro px-2 py-0.5 rounded-full" style="background:#241416;color:#FF5C5C">${defs.length} รายการ</span></div>`
+  if(defs.length){ h+=defs.slice(0,8).map(({s,p,nm,e})=>{ const thumb=(_mediaThumb[s.code]||{})[String(e.checkpoint)]
+    return `<div class="bg-surface-control rounded-lg p-3 mb-2 flex gap-3"><div class="shrink-0 relative"><div class="w-14 h-14 rounded overflow-hidden bg-surface-elevated flex items-center justify-center">${thumb?`<img src="${thumb}" class="w-full h-full object-cover">`:`<span class="material-symbols-outlined text-ink-faint text-[20px]">image</span>`}</div><span class="absolute -bottom-1 -left-1 px-1 rounded font-data-mono text-[9px] font-bold" style="background:#241416;color:#FF5C5C">P${p}</span></div>
+      <div class="min-w-0 flex-1"><div class="font-body-sm text-body-sm font-bold text-ink-primary leading-snug">${e.note?esc(e.note):('งวด '+p+' · '+esc(nm))}</div><div class="font-label-micro text-label-micro text-primary-container mt-1 truncate">${esc(s.name||s.code)} (${esc(s.code)})</div><div class="flex items-center justify-between gap-2 mt-1"><span class="font-label-micro text-label-micro text-ink-faint truncate">ผู้ตรวจ ${esc(nameOf(e.by))}${s.contractor?' · ผรม. '+esc(s.contractor):''}</span><button data-rep="con" data-code="${esc(s.code)}" class="font-label-micro text-label-micro text-role-head-cm shrink-0">ดูใบ ›</button></div></div></div>` }).join('') }
+  else h+=`<div class="text-ink-muted font-body-sm text-body-sm py-4 text-center">✓ ไม่มีจุด Defect ค้าง</div>`
+  h+=`</div>`
+  // bottleneck
+  h+=`<div class="bg-surface-card rounded-xl p-4 shadow-md"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-primary-container text-[20px]">bar_chart</span><h3 class="font-title-sm text-title-sm">สถิติความล่าช้าตามงวดงาน</h3></div>`
+  h+=phAgg.slice(0,5).map(a=>{ const tot=a.f+a.pr; const col=a.f?'#FF5C5C':'#FF9F1C'; return `<div class="mb-3"><div class="flex items-center justify-between font-body-sm text-body-sm"><span class="text-ink-primary">งวด ${a.p}: ${esc(a.nm)}</span><span class="font-data-mono font-bold" style="color:${col}">${a.f} Defect · ${a.pr} ตรวจ</span></div><div class="h-1.5 w-full rounded-full bg-surface-control overflow-hidden mt-1"><div class="h-full rounded-full" style="width:${Math.min(tot*12,100)}%;background:${col}"></div></div></div>` }).join('')
+  h+=`</div></div></div>`
+  return h
+}
 
-async function boot(){ const {data:{session}}=await sb.auth.getSession(); if(session) enter(); else show('login') }
-function show(w){ $('login').style.display=w==='login'?'flex':'none'; $('dash').style.display=w==='dash'?'block':'none' }
-$('lform').onsubmit=async e=>{ e.preventDefault(); const m=$('lmsg'); m.className='msg'; m.textContent='กำลังเข้าสู่ระบบ…'
-  const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('pw').value})
-  if(error){ m.className='msg err'; m.textContent='เข้าไม่สำเร็จ: '+error.message; return } enter() }
-$('outBtn').onclick=async()=>{ await sb.auth.signOut(); if(_auto)clearInterval(_auto); location.reload() }
-$('refBtn').onclick=()=>load()
-$('autoBtn').onclick=()=>{ if(_auto){ clearInterval(_auto); _auto=null; $('autoBtn').classList.remove('on'); $('autoBtn').textContent='⟳ อัปเดตอัตโนมัติ: ปิด' }
-  else { _auto=setInterval(load,60000); $('autoBtn').classList.add('on'); $('autoBtn').textContent='⟳ อัปเดตอัตโนมัติ: เปิด (60วิ)'; load() } }
-async function enter(){ show('dash'); await load() }
-// ช่องค้นหา (อยู่เหนือตารางสาขา) — พิมพ์แล้วรีเฟรชเฉพาะตาราง ไม่กระพริบทั้งหน้า
-function searchBarHtml(){
-  return `<div class="searchbar"><span>⌕</span><input id="q" placeholder="ค้นหาสาขา / รหัส / จังหวัด${_mode==='con'?' / ผรม.':''}" value="${esc(_q)}"><span class="qx" id="qx" style="display:${_q?'flex':'none'}">✕</span></div>`
+// ============ VIEW 3 : SET-UP (NSA Audit Matrix) ============
+function renderSetup(){
+  const rows=setupStores().map(s=>({s,sc:computeSetupScore(s.code)})).filter(x=>x.sc.doneItems>0||x.s.cs.key==='building')
+  const graded=rows.filter(x=>x.sc.doneItems>0)
+  const inProg=graded.filter(x=>!(x.sc.allDone&&!x.sc.failItems)).length
+  const passN=graded.filter(x=>x.sc.allDone&&!x.sc.failItems).length
+  const failN=graded.filter(x=>x.sc.failItems>0).length
+  const avg=graded.length?(graded.reduce((n,x)=>n+x.sc.total,0)/graded.length):0
+  const punch=graded.reduce((n,x)=>n+x.sc.failItems,0)
+  const mainAvg=graded.length?(graded.reduce((n,x)=>n+x.sc.main.pct,0)/graded.length):0
+  const subAvg=graded.length?(graded.reduce((n,x)=>n+x.sc.sub.pct,0)/graded.length):0
+  let h=pageHead('ตรวจรับร้าน Set-Up (NSA AUDIT MATRIX)','ผลตรวจรับสาขา Set-Up (NSA Audit Matrix 8 หมวด 100 คะแนน)','ระบบควบคุมและตรวจสอบมาตรฐานส่งมอบร้านก่อนเปิดบริการ (Pre-Opening Audit) เกรดคุณภาพสาขา (A/B/C/D) และติดตามงานตีกลับ (รายการงานต้องแก้ไข)')
+  h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+    ${kpi('#FF9F1C','#353436','pending_actions','กำลังตรวจรับ',inProg,'สาขา','อยู่ระหว่างตรวจ')}
+    ${kpi('#FF5C5C','#241416','error','มีจุดไม่ผ่าน',failN,'สาขา',punch+' จุดตีกลับ (ต้องแก้ไข)')}
+    ${kpi('#7EE6B0','#12271B','verified','ผ่านครบ',passN,'สาขา','พร้อมเปิดขาย')}
+    ${kpi('#F5C518','#1C1608','grade',avg.toFixed(1),'/100','คะแนนเฉลี่ยระดับประเทศ')}
+  </div>`
+  // grade legend
+  h+=`<div class="bg-surface-card rounded-xl p-4 mb-4 shadow-sm"><div class="flex items-center gap-2 mb-3 flex-wrap"><span class="material-symbols-outlined text-primary-container text-[18px]">workspace_premium</span><span class="font-title-sm text-title-sm">โครงสร้างการให้คะแนนมาตรฐาน NSA 8 หมวด (รวม 100)</span><span class="ml-auto flex gap-2 font-label-micro text-label-micro"><span class="px-2 py-0.5 rounded" style="background:#12271B;color:#7EE6B0">เกรด A (&gt;95)</span><span class="px-2 py-0.5 rounded" style="background:#1C1608;color:#D9B84A">B (≥90)</span><span class="px-2 py-0.5 rounded" style="background:#1C1608;color:#FF9F1C">C (≥80)</span><span class="px-2 py-0.5 rounded" style="background:#241416;color:#FF5C5C">D (&lt;80)</span></span></div>
+    <div class="grid grid-cols-4 md:grid-cols-8 gap-2">${SETUP_SECTIONS.map(([p,nm,w],i)=>`<div class="bg-surface-control rounded p-2 text-center"><div class="font-label-micro text-label-micro text-ink-muted">หมวด ${i+1}</div><div class="font-body-sm text-body-sm text-ink-primary font-bold leading-tight mt-0.5" style="font-size:12px">${esc(nm)}</div><div class="font-data-mono text-[10px] text-primary-container mt-1">${w} คะแนน</div></div>`).join('')}</div></div>`
+  const codeByIns={}; insps.forEach(i=>codeByIns[i.id]=i.store_code); const roundBy={}
+  events.forEach(e=>{ const c=codeByIns[e.inspection_id]; if(!c) return; const r=+e.round||1; if(r>(roundBy[c]||0)) roundBy[c]=r })
+  let base=rows.filter(x=>passGlobal(x.s))
+  if(_sf==='punch') base=base.filter(x=>x.sc.failItems>0)
+  else if(_sf==='pass') base=base.filter(x=>x.sc.allDone&&!x.sc.failItems)
+  else if(_sf==='multi') base=base.filter(x=>(roundBy[x.s.code]||1)>1)
+  else if(['A','B','C','D'].includes(_sf)) base=base.filter(x=>x.sc.doneItems&&x.sc.curGrade===_sf)
+  const setupCmp={open:(a,b)=>_openSort(a.s,b.s),grade:(a,b)=>((a.sc.doneItems?a.sc.curPct:999)-(b.sc.doneItems?b.sc.curPct:999))||_openSort(a.s,b.s),defect:(a,b)=>(b.sc.failItems-a.sc.failItems)||_openSort(a.s,b.s),recent:(a,b)=>{const t=s=>{const l=lastActivity(s.code);return l?l.at:''};return t(b.s).localeCompare(t(a.s))||_openSort(a.s,b.s)}}
+  const list=base.slice().sort(setupCmp[_sort]||setupCmp.open)
+  const sfChips=[['all','ทั้งหมด'],['A','เกรด A'],['B','เกรด B'],['C','เกรด C'],['D','เกรด D'],['punch','มีงานตีกลับ'],['pass','ผ่านครบ'],['multi','ตรวจซ้ำ >1 รอบ']].map(x=>fchip('sf',x[0],_sf,x[1])).join('')
+  h+=filterBar({count:list.length,total:rows.length,chips:sfChips,chipLabel:'เกรด/สถานะ',sortOpts:[['open','เรียง: ใกล้เปิดสุด'],['grade','คะแนนต่ำสุด'],['defect','ตีกลับมากสุด'],['recent','อัปเดตล่าสุด']]})
+  h+=`<div class="grid grid-cols-1 lg:grid-cols-12 gap-5"><div class="lg:col-span-8"><div class="bg-surface-card rounded-xl shadow-md overflow-hidden">
+    <div class="p-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-container text-[20px]">rule</span><h3 class="font-title-sm text-title-sm">NSA Audit Matrix · ${list.length} สาขา</h3></div>
+    <div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">สาขา</th><th class="py-3 px-2 text-center">เกรด</th>${SETUP_SECTIONS.map((x,i)=>`<th class="py-3 px-1 text-center">M${i+1}<div class="font-normal text-[9px]">(${x[2]})</div></th>`).join('')}<th class="py-3 px-4 text-right">ซัพ</th><th class="py-3 px-3 text-center">รายงาน</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
+  list.forEach(({s,sc})=>{ const g=sc.doneItems?sc.curGrade:'—', gc=gradeCol(g)
+    h+=`<tr class="hover:bg-surface-elevated/30"><td class="py-2.5 px-4"><div class="font-title-sm text-[13px] font-bold truncate" style="max-width:180px">${esc(s.name||s.code)}</div><div class="font-data-mono text-[10px] text-ink-faint">${esc(s.code)}${sc.failItems?' · <span style="color:#FF5C5C">'+sc.failItems+' ตีกลับ</span>':''}</div></td>
+      <td class="py-2.5 px-2 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded" style="background:${gc.bg}"><span class="font-data-mono text-[13px] font-bold" style="color:${gc.fg}">${sc.doneItems?sc.curPct.toFixed(0):'—'}</span><span class="font-data-mono text-[10px] font-extrabold px-1 rounded" style="color:${gc.fg}">${g}</span></span></td>`
+    sc.sections.forEach(sec=>{ const st= sec.fail?'fail':sec.total===0?'none':sec.done===0?'none':sec.done<sec.total?'progress':sec.fixed?'fixed':'pass'; const c=STC[st]
+      h+=`<td class="py-2.5 px-1 text-center"><span class="font-data-mono text-[11px] font-bold" style="color:${c[1]}" title="${sec.done}/${sec.total}">${sec.done?sec.earned.toFixed(0):'·'}</span></td>` })
+    h+=`<td class="py-2.5 px-4 text-right font-data-mono text-[11px]"><div style="color:#8FB4FF">หลัก ${sc.main.pct.toFixed(0)}%</div><div class="text-ink-muted">ย่อย ${sc.sub.pct.toFixed(0)}%</div></td><td class="py-2.5 px-3 text-center"><div class="inline-flex items-center gap-1"><button data-rep="setup" data-code="${esc(s.code)}" title="เปิดใบส่งมอบร้าน (PDF)" class="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-control hover:bg-surface-elevated text-ink-muted hover:text-primary-container"><span class="material-symbols-outlined text-[16px] text-role-head-const">picture_as_pdf</span><span class="font-label-micro text-label-micro">ใบส่งมอบ</span></button>${sc.failItems?`<button data-rep="punch" data-code="${esc(s.code)}" title="เปิดใบรายการงานต้องแก้ไข (PDF)" class="inline-flex items-center px-1.5 py-1 rounded bg-surface-control hover:bg-surface-elevated text-status-fail"><span class="material-symbols-outlined text-[16px]">build</span></button>`:''}</div></td></tr>` })
+  if(!list.length) h+=`<tr><td colspan="12" class="py-8 text-center text-ink-muted">ยังไม่มีสาขาที่ตรวจรับ Set-Up</td></tr>`
+  h+=`</tbody></table></div></div></div>`
+  // right: punch queue + defect by category + supplier
+  h+=`<div class="lg:col-span-4 flex flex-col gap-4">`
+  const punchList=[]
+  rows.forEach(({s})=>{ SETUP_SECTIONS.forEach(([p,nm])=>{ const m=cur[s.code]||{}; (cpByPhase[p]||[]).forEach(c=>{ const e=m[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')) punchList.push({s,nm,e,status:e.status}) }) }) })
+  const failOnly=punchList.filter(x=>x.status==='fail')
+  h+=`<div class="bg-surface-card rounded-xl p-4 shadow-md"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-status-fail text-[20px]">assignment_late</span><h3 class="font-title-sm text-title-sm">คิวงานตีกลับค้างแก้ไข</h3><span class="ml-auto font-label-micro text-label-micro px-2 py-0.5 rounded-full" style="background:#241416;color:#FF5C5C">${failOnly.length} จุด</span></div>`
+  h+= failOnly.length? failOnly.slice(0,6).map(({s,nm,e})=>`<div class="bg-surface-control rounded-lg p-3 mb-2"><div class="flex items-center justify-between gap-2"><span class="font-body-sm text-body-sm font-bold text-status-fail">${esc(nm)}</span><span class="font-label-micro text-label-micro text-ink-faint">${e.created_at?fmtDate(e.created_at):''}</span></div>${e.note?`<div class="font-body-sm text-body-sm text-ink-muted mt-1">${esc(e.note)}</div>`:''}<div class="font-label-micro text-label-micro text-primary-container mt-1">${esc(s.name||s.code)} · NSA ${esc(nameOf(e.by))}</div></div>`).join('') : `<div class="text-ink-muted font-body-sm text-body-sm py-4 text-center">✓ ไม่มีจุดตีกลับ</div>`
+  h+=`</div>`
+  // supplier split
+  h+=`<div class="bg-surface-card rounded-xl p-4 shadow-md"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-role-setup text-[20px]">compare_arrows</span><h3 class="font-title-sm text-title-sm">ซัพพลายเออร์หลัก vs ย่อย</h3></div>
+    <div class="grid grid-cols-2 gap-3"><div class="bg-surface-control rounded-lg p-3"><div class="font-label-micro text-label-micro text-ink-muted">ผู้รับเหมาหลัก (Main)</div><div class="font-kpi-metric text-[28px] font-bold" style="color:#8FB4FF">${mainAvg.toFixed(1)}%</div><div class="font-label-micro text-label-micro text-ink-faint">โครงสร้าง, พื้น, ผนัง</div></div><div class="bg-surface-control rounded-lg p-3"><div class="font-label-micro text-label-micro text-ink-muted">ซัพย่อย (Vendors)</div><div class="font-kpi-metric text-[28px] font-bold" style="color:#F5C518">${subAvg.toFixed(1)}%</div><div class="font-label-micro text-label-micro text-ink-faint">ระบบไฟ, ป้าย, ตู้แช่</div></div></div></div>`
+  h+=`</div></div>`
+  return h
 }
-function wireSearch(){
-  const q=$('q'); if(q){ q.oninput=e=>{ _q=e.target.value; const x=$('qx'); if(x) x.style.display=_q?'flex':'none'; refreshList() } }
-  const x=$('qx'); if(x){ x.onclick=()=>{ _q=''; const qq=$('q'); if(qq){ qq.value=''; qq.focus() } x.style.display='none'; refreshList() } }
-}
-function wireList(){
-  document.querySelectorAll('#listWrap tr.clk').forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.code))
-  const clr=$('clr'); if(clr) clr.onclick=()=>{ _filter='all'; render() }
-  const eb=$('expBtn'); if(eb) eb.onclick=()=>exportCSV(_mode==='setup')
-}
-function refreshList(){ const lw=$('listWrap'); if(!lw) return
-  lw.innerHTML = _view==='topic' ? topicListHtml(_mode==='setup'?'setup':'con') : (_mode==='setup'?setupListHtml():conListHtml())
-  wireList(); wireTopic() }
-// ── มุมมอง "รายข้อ/รายหมวด" : เลือกงวด/หมวด แล้วดูสถานะข้อนั้นของทุกสาขา ──
-function viewSeg(){ return `<div class="modebar viewseg" style="margin:-2px 0 12px"><b class="${_view!=='topic'?'on':''}" data-vw="store">🏬 รายสาขา</b><b class="${_view==='topic'?'on':''}" data-vw="topic">📋 รายข้อ</b></div>` }
-function wireView(){ document.querySelectorAll('[data-vw]').forEach(b=>b.onclick=()=>{ _view=b.dataset.vw; render() }) }
-function wireTopic(){ const ts=$('topicSel'); if(ts) ts.onchange=e=>{ _topicPhase=+e.target.value; refreshList() } }
-function conPhaseListD(){ const seen={},out=[]; _cps.filter(c=>c.phase<200).forEach(c=>{ if(!seen[c.phase]){ seen[c.phase]=1; out.push([c.phase,(c.phase_name||('งวด '+c.phase))]) } }); return out.sort((a,b)=>a[0]-b[0]) }
-function phaseInfoD(code,phase){ const ids=_cps.filter(c=>c.phase===phase).map(c=>String(c.id)), total=ids.length
-  const cur=curOfStore(code), evs=ids.map(id=>cur[id]).filter(Boolean), done=evs.length
-  const fail=evs.filter(e=>e.status==='fail').length, fixed=evs.filter(e=>e.status==='fixed').length
-  let key='none'; if(done) key=fail?'fail':(done<total?'progress':(fixed?'fixed':'pass')); return {total,done,fail,fixed,key} }
-function topicListHtml(mode){
-  const phs = mode==='setup' ? SETUP_SEC.map(([n,l])=>[n,l]) : conPhaseListD()
-  if(!phs.length) return `<div class="tablewrap"><div class="empty" style="padding:24px">ยังไม่มี checklist</div></div>`
-  if(_topicPhase==null || !phs.some(p=>p[0]===_topicPhase)) _topicPhase=phs[0][0]
-  const src = mode==='setup'?_suRows:_rows, q=_q.trim().toLowerCase()
-  const base=src.filter(r=>!q||[r.name,r.code,r.prov].some(v=>(v||'').toLowerCase().includes(q)))
-  const rows=base.map(r=>({r,info:phaseInfoD(r.code,_topicPhase)}))
-  const ord={fail:0,fixed:1,progress:2,none:3,pass:4}
-  rows.sort((a,b)=>(ord[a.info.key]-ord[b.info.key])||((a.r.days==null?9999:a.r.days)-(b.r.days==null?9999:b.r.days)))
-  const cnt={fail:0,fixed:0,progress:0,pass:0,none:0}; rows.forEach(x=>cnt[x.info.key]++)
-  const lab={fail:'ไม่ผ่าน',fixed:'แก้แล้ว · รอตรวจซ้ำ',progress:'กำลังตรวจ',pass:'ผ่านครบ ✓',none:'ยังไม่เริ่ม'}
-  const opts=phs.map(([n,l])=>`<option value="${n}"${n===_topicPhase?' selected':''}>${esc((''+l).replace(/^ตรวจรับ · /,''))}</option>`).join('')
-  const chips=[['fail','ไม่ผ่าน'],['fixed','แก้แล้ว'],['progress','กำลังตรวจ'],['pass','ผ่าน'],['none','ยังไม่เริ่ม']].filter(([k])=>cnt[k]).map(([k,l])=>`<span style="color:${DCOL2[k]}">●</span> ${l} ${cnt[k]}`).join(' &nbsp;&nbsp; ')
-  const body=rows.length?rows.map(({r,info})=>{ const c=DCOL2[info.key], pct=info.total?Math.round(info.done/info.total*100):0
-    return `<tr class="clk" data-code="${esc(r.code)}">
-      <td><span class="dot" style="background:${c}"></span><span class="stname">${esc(r.name)}</span><div class="stmeta"><span class="cd">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}</div></td>
-      <td><span style="color:${c};font-weight:700">${lab[info.key]}</span></td>
-      <td class="num">${info.done}/${info.total}</td>
-      <td class="num">${info.fail?`<span class="fail">${info.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
-      <td><span class="days" style="color:${r.days!=null&&r.days<=7?'var(--fail)':'var(--build)'}">${r.days!=null?r.days:'–'}</span> <span style="color:var(--faint);font-size:11px">วัน</span></td>
-      <td><span class="bar"><i style="width:${pct}%;background:${c}"></i></span><span class="pct" style="color:${c}">${pct}%</span></td>
-    </tr>`}).join(''):`<tr><td colspan="6" class="empty">${q?'ไม่พบสาขา':'ยังไม่มีสาขา'}</td></tr>`
-  const title = mode==='setup'?'ดูรายหมวด (ตรวจรับ) — สถานะหมวดที่เลือกของทุกสาขา':'ดูรายข้อ (ก่อสร้าง) — สถานะงวดที่เลือกของทุกสาขา'
-  return `<div class="tablewrap"><div class="thead"><div class="tt">${title}</div><select id="topicSel" class="tbtn" style="padding:7px 12px;font-size:12.5px;font-weight:700;max-width:62%">${opts}</select></div>
-    <div style="padding:9px 13px;font-size:12.5px;color:var(--mut);border-bottom:1px solid #eee">${chips||'ยังไม่มีข้อมูล'}</div>
-    <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th>สถานะข้อนี้</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th>เปิดใน</th><th>คืบหน้า</th></tr></thead><tbody>${body}</tbody></table></div></div>`
+function gradeCol(g){ return g==='A'?{bg:'#12271B',fg:'#7EE6B0'}:g==='B'?{bg:'#1C1608',fg:'#D9B84A'}:g==='C'?{bg:'#1C1608',fg:'#FF9F1C'}:g==='D'?{bg:'#241416',fg:'#FF5C5C'}:{bg:'#201f20',fg:'#67675F'} }
+
+// ============ VIEW 4 : CONTRACTOR QA ============
+function renderContractor(){
+  const byC={}
+  stores.forEach(s=>{ const c=s.contractor; if(!c) return; const g=byC[c]||(byC[c]={name:c,stores:[],fail:0,pass:0,doneG:0,setupSum:0,setupN:0})
+    g.stores.push(s)
+    PHASES.forEach(([p])=>{ const st=phaseStat(s.code,p); if(st.total){ g.fail+=st.fail; if(st.key==='pass')g.pass++; g.doneG++ } })
+    const sc=computeSetupScore(s.code); if(sc.doneItems){ g.setupSum+=sc.total; g.setupN++ } })
+  let list=Object.values(byC).map(g=>{ const defDensity=g.stores.length?g.fail/g.stores.length:0
+    const setupAvg=g.setupN?g.setupSum/g.setupN:null
+    const passRate=g.doneG?g.pass/g.doneG*100:0
+    // score: 60% pass-rate + 40% setup (เท่าที่มีข้อมูลจริง)
+    const score= setupAvg!=null? passRate*0.6+setupAvg*0.4 : passRate
+    return {...g,defDensity,setupAvg,passRate,score,grade: score>95?'A':score>=90?'B':score>=80?'C':'D'} }).sort((a,b)=>b.score-a.score)
+  const watch=list.filter(g=>g.score<80||g.defDensity>=3)
+  const avgDef=list.length?(list.reduce((n,g)=>n+g.defDensity,0)/list.length):0
+  let h=pageHead('วิเคราะห์ผู้รับเหมา (CONTRACTOR QA)','การประเมินและวิเคราะห์ประสิทธิภาพผู้รับเหมา','จัดอันดับผู้รับเหมาก่อสร้างจากคะแนนตรวจงวด (Pass Rate), อัตราข้อบกพร่อง (Defect Density) และคะแนนตรวจรับ Set-Up NSA — คำนวณจากข้อมูลจริงในระบบ')
+  h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+    ${kpi('#F5F5F2','#353436','apartment','ผู้รับเหมาที่มีงานในระบบ',list.length,'ราย','คำนวณจากงานจริง')}
+    ${kpi('#7EE6B0','#12271B','verified','อัตราผ่านงวดเฉลี่ย',(list.length?(list.reduce((n,g)=>n+g.passRate,0)/list.length):0).toFixed(1),'%','เฉลี่ยทุกผู้รับเหมา')}
+    ${kpi('#F5C518','#1C1608','speed','อัตราข้อบกพร่องเฉลี่ย',avgDef.toFixed(1),'จุด/สาขา','ยิ่งต่ำยิ่งดี (&lt;2 ดีเยี่ยม)')}
+    ${kpi('#FF5C5C','#241416','priority_high','เฝ้าระวัง (คะแนน&lt;80 / Defect≥3)',watch.length,'ราย','ต้องติดตามใกล้ชิด')}
+  </div>`
+  let disp=list.filter(g=>!_q||g.name.toLowerCase().includes(_q))
+  if(_ctf==='watch') disp=disp.filter(g=>g.score<80||g.defDensity>=3)
+  else if(['A','B','C','D'].includes(_ctf)) disp=disp.filter(g=>g.grade===_ctf)
+  if(_ctSort==='defect') disp=disp.slice().sort((a,b)=>b.defDensity-a.defDensity)
+  else if(_ctSort==='stores') disp=disp.slice().sort((a,b)=>b.stores.length-a.stores.length)
+  else if(_ctSort==='worst') disp=disp.slice().sort((a,b)=>a.score-b.score)
+  else disp=disp.slice().sort((a,b)=>b.score-a.score)
+  const ctfChips=[['all','ทั้งหมด'],['A','เกรด A'],['B','เกรด B'],['C','เกรด C'],['D','เกรด D'],['watch','เฝ้าระวัง (คะแนน<80)']].map(x=>fchip('ctf',x[0],_ctf,x[1])).join('')
+  h+=filterBar({store:false,count:disp.length,total:list.length,unit:'ราย',chips:ctfChips,chipLabel:'เกรด',sortId:'fltCtSort',sortCur:_ctSort,sortOpts:[['score','เรียง: คะแนนสูงสุด'],['worst','คะแนนต่ำสุด'],['defect','Defect มากสุด'],['stores','สาขามากสุด']]})
+  h+=`<div class="grid grid-cols-1 lg:grid-cols-12 gap-5"><div class="lg:col-span-8"><div class="bg-surface-card rounded-xl shadow-md overflow-hidden">
+    <div class="p-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-container text-[20px]">leaderboard</span><h3 class="font-title-sm text-title-sm">ตารางประเมินผู้รับเหมา · ${disp.length} ราย</h3></div>
+    <div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">อันดับ &amp; ผู้รับเหมา</th><th class="py-3 px-2 text-center">สาขา</th><th class="py-3 px-2 text-center">คะแนนรวม</th><th class="py-3 px-2 text-center">ผ่านงวด</th><th class="py-3 px-2 text-center">Defect/สาขา</th><th class="py-3 px-2 text-center">Set-Up</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
+  disp.forEach((g,i)=>{ const gc=gradeCol(g.grade), crit=g.score<80
+    h+=`<tr class="hover:bg-surface-elevated/30 ${crit?'':''}" ${crit?'style="background:rgba(36,20,22,.4)"':''}><td class="py-2.5 px-4"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded flex items-center justify-center font-data-mono font-bold text-[13px] shrink-0" style="background:${i===0?'#f5c518':'#141416'};color:${i===0?'#1A1500':'#9A9A93'}">${i+1}</div><div class="min-w-0"><div class="font-title-sm text-[13px] font-bold truncate ${crit?'text-status-fail':'text-ink-primary'}" style="max-width:220px">${esc(g.name)}</div><div class="font-label-micro text-label-micro text-ink-faint">${g.stores.length} สาขาในความดูแล</div></div></div></td>
+      <td class="py-2.5 px-2 text-center font-data-mono font-bold">${g.stores.length}</td>
+      <td class="py-2.5 px-2 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded" style="background:${gc.bg}"><span class="font-data-mono text-[13px] font-bold" style="color:${gc.fg}">${g.score.toFixed(1)}</span><span class="font-data-mono text-[10px] font-extrabold" style="color:${gc.fg}">${g.grade}</span></span></td>
+      <td class="py-2.5 px-2 text-center font-data-mono" style="color:${g.passRate>=90?'#7EE6B0':g.passRate>=80?'#D9B84A':'#FF5C5C'}">${g.passRate.toFixed(0)}%</td>
+      <td class="py-2.5 px-2 text-center font-data-mono" style="color:${g.defDensity<2?'#7EE6B0':g.defDensity<3?'#D9B84A':'#FF5C5C'}">${g.defDensity.toFixed(1)}</td>
+      <td class="py-2.5 px-2 text-center font-data-mono text-ink-muted">${g.setupAvg!=null?g.setupAvg.toFixed(0):'—'}</td></tr>` })
+  if(!disp.length) h+=`<tr><td colspan="6" class="py-8 text-center text-ink-muted">ยังไม่มีผู้รับเหมาในระบบ (สาขายังไม่ระบุ ผรม.)</td></tr>`
+  h+=`</tbody></table></div></div></div>`
+  // right: criteria + watchlist
+  h+=`<div class="lg:col-span-4 flex flex-col gap-4">
+    <div class="bg-surface-card rounded-xl p-4 shadow-md"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-primary-container text-[20px]">tune</span><h3 class="font-title-sm text-title-sm">เกณฑ์การให้คะแนน (จากข้อมูลจริง)</h3></div>
+      <div class="flex flex-col gap-2 mt-2">
+        <div><div class="flex justify-between font-label-micro text-label-micro"><span class="text-ink-primary font-bold">อัตราผ่านงวดก่อสร้าง</span><span class="font-data-mono text-role-setup font-bold">60%</span></div><div class="h-2 rounded-full bg-surface-control overflow-hidden mt-1"><div class="h-full rounded-full bg-role-setup" style="width:60%"></div></div></div>
+        <div><div class="flex justify-between font-label-micro text-label-micro"><span class="text-ink-primary font-bold">คะแนนตรวจรับ Set-Up NSA</span><span class="font-data-mono text-role-cm font-bold">40%</span></div><div class="h-2 rounded-full bg-surface-control overflow-hidden mt-1"><div class="h-full rounded-full bg-role-cm" style="width:40%"></div></div></div>
+      </div>
+      <div class="mt-3 p-3 bg-surface-control rounded font-label-micro text-label-micro text-ink-faint leading-relaxed">💡 คะแนนคำนวณจากข้อมูลตรวจจริงในระบบ · <b class="text-ink-muted">On-Time Delivery / Tax ID</b> ยังไม่มีในฐานข้อมูล จึงไม่นำมาคิด (กันข้อมูลมั่ว)</div>
+    </div>`
+  if(watch.length){ h+=`<div class="rounded-xl p-4 shadow-md" style="background:#241416"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-status-fail text-[22px]">crisis_alert</span><h3 class="font-title-sm text-title-sm text-ink-fail font-bold">เฝ้าระวังผู้รับเหมาวิกฤต</h3></div>`
+    h+=watch.slice(0,4).map(g=>`<div class="rounded p-3 mb-2" style="background:rgba(20,20,22,.6)"><div class="flex items-center justify-between"><span class="font-title-sm text-[13px] font-bold">${esc(g.name)}</span><span class="font-data-mono text-[11px] font-bold text-status-fail">${g.score.toFixed(0)} คะแนน</span></div><div class="font-body-sm text-body-sm text-ink-fail mt-1">${g.fail} จุด Defect · ${g.defDensity.toFixed(1)} จุด/สาขา · ${g.stores.length} สาขา</div></div>`).join('')
+    h+=`</div>` }
+  h+=`</div></div>`
+  return h
 }
 
-// ดึงทุกแถวแบบแบ่งหน้า — เลี่ยงลิมิต 1000 แถวของ Supabase (สำคัญตอนรวมข้อมูลข้ามหลายสาขา)
-async function fetchAllRows(table, cols, orderCol, filter){
-  const PAGE=1000; let from=0, out=[]
-  for(;;){ let q=sb.from(table).select(cols).order(orderCol,{ascending:true}).range(from,from+PAGE-1)
-    if(filter) q=filter(q)
-    const {data,error}=await q; if(error||!data||!data.length) break
-    out=out.concat(data); if(data.length<PAGE) break; from+=PAGE }
-  return out }
-async function load(){
-  const [{data:cps},{data:profs}] = await Promise.all([
-    sb.from('checkpoints').select('id,phase,no,label,phase_name,points,supplier,sort'),
-    sb.from('profiles').select('id,name,email')
-  ])
-  const [stores,insps,evs,sgs] = await Promise.all([
-    fetchAllRows('stores','code,name,province,opening_date,contractor','code'),
-    fetchAllRows('inspections','id,store_code,phase','id'),
-    fetchAllRows('check_events','inspection_id,checkpoint,round,status,by,created_at','created_at'),
-    fetchAllRows('signoffs','store_code,kind','created_at')
-  ])
-  ;(profs||[]).forEach(p=>_names[p.id]=p.name||p.email||'—')
-  // เก็บไว้ทำหน้ารายละเอียดรายสาขา
-  _cps=cps||[]; _cpMap={}; _cps.forEach(c=>_cpMap[String(c.id)]=c)
-  _storeMap={}; (stores||[]).forEach(s=>_storeMap[s.code]={...s,cs:cs(s.opening_date)})
-  _inspByStore={}; (insps||[]).forEach(i=>{ (_inspByStore[i.store_code]||(_inspByStore[i.store_code]=[])).push(i.id) })
-  const conIds=new Set((cps||[]).filter(c=>c.phase<200).map(c=>String(c.id)))   // ก่อสร้าง+Pre-Con (ไม่รวม Set-Up)
-  const totalCP=conIds.size||1
-  const cpPhase={}; (cps||[]).forEach(c=>cpPhase[String(c.id)]=c.phase)
-  const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
-  _evsByStore={}; (evs||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return; (_evsByStore[ins.store_code]||(_evsByStore[ins.store_code]=[])).push(e) })
-  const agg={}
-  ;(evs||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins||!conIds.has(e.checkpoint)) return
-    const a=agg[ins.store_code]||(agg[ins.store_code]={cur:{},last:null})
-    const k=e.checkpoint,p=a.cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) a.cur[k]=e
-    if(!a.last||(e.created_at&&e.created_at>a.last.at)) a.last={at:e.created_at,by:e.by} })
-  const handover=new Set((sgs||[]).filter(x=>x.kind==='handover').map(x=>x.store_code))
-  const scoped=(stores||[]).map(s=>({...s,cs:cs(s.opening_date)})).filter(s=>s.cs.key==='building'||agg[s.code])
-  _rows=scoped.map(s=>{ const a=agg[s.code]||{cur:{},last:null}, vals=Object.values(a.cur)
-    let phase=0; Object.keys(a.cur).forEach(k=>{ const p=cpPhase[k]; if(p&&p<200&&p>phase&&p<100) phase=p })
-    return {code:s.code,name:s.name||s.code,prov:s.province||'',contractor:s.contractor||'',
-      days:s.cs.days, done:vals.length, pass:vals.filter(e=>e.status==='pass').length, fail:vals.filter(e=>e.status==='fail').length,
-      phase, total:totalCP, pct:Math.round(vals.length/totalCP*100), last:a.last, closed:handover.has(s.code)} })
-  // ---- ฝั่งตรวจรับ Set-Up (phase 201-208) ----
-  _setupCps=(cps||[]).filter(c=>c.phase>=201&&c.phase<=208)
-  const suIds=new Set(_setupCps.map(c=>String(c.id)))
-  const sagg={}
-  ;(evs||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins||!suIds.has(e.checkpoint)) return
-    const a=sagg[ins.store_code]||(sagg[ins.store_code]={cur:{},last:null})
-    const k=e.checkpoint,p=a.cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) a.cur[k]=e
-    if(!a.last||(e.created_at&&e.created_at>a.last.at)) a.last={at:e.created_at,by:e.by} })
-  const sgBy={}; (sgs||[]).forEach(x=>{ (sgBy[x.store_code]||(sgBy[x.store_code]={}))[x.kind]=true })
-  const suSigned=new Set(Object.keys(sgBy).filter(c=>sgBy[c].setup_nsa&&sgBy[c].setup_cm))   // ต้องเซ็นครบ 2 ฝ่าย (Set-Up + CM)
-  const suScoped=(stores||[]).map(s=>({...s,cs:cs(s.opening_date)})).filter(s=>s.cs.key==='building'||sagg[s.code])
-  _suRows=suScoped.map(s=>{ const a=sagg[s.code]||{cur:{},last:null}; const sc=computeSetupScore(a.cur)
-    return {code:s.code,name:s.name||s.code,prov:s.province||'',days:s.cs.days,
-      score:sc.total,grade:sc.grade,curPct:sc.curPct,curGrade:sc.curGrade,done:sc.doneItems,total:sc.totalItems,fail:sc.failItems,fixed:sc.fixedItems,allDone:sc.allDone,
-      mainPct:sc.mainPct,subPct:sc.subPct,signed:suSigned.has(s.code),last:a.last} })
-  render()
-  const d=new Date(),p=n=>String(n).padStart(2,'0')
-  $('meta').textContent=`อัปเดตล่าสุด ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} · ${_rows.length} สาขา`
+function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}` }
+function qMatch(s){ if(!_q) return true; return [s.name,s.code,s.province,s.contractor].some(v=>(v||'').toLowerCase().includes(_q)) }
+// ===== แถบ Filter มาตรฐาน (ใช้ทุกหน้า) — ค่าใน dropdown เติมจากข้อมูลจริงเท่านั้น =====
+function provOpts(){ return [...new Set(stores.map(s=>s.province).filter(Boolean))].sort() }
+function ctrOpts(){ return [...new Set(stores.map(s=>s.contractor).filter(Boolean))].sort() }
+function defTotal(code){ let n=0; PHASES.forEach(([p])=>n+=phaseStat(code,p).fail); n+=computeSetupScore(code).failItems; return n }
+function passGlobal(s){ if(!qMatch(s)) return false
+  if(_fpv!=='all'&&s.province!==_fpv) return false
+  if(_fct!=='all'&&s.contractor!==_fct) return false
+  const d=s.cs.days, op=s.cs.key==='opened'
+  if(_ft==='opened'&&!op) return false
+  if(_ft==='overdue'&&!(d!=null&&d<0&&!op)) return false
+  if(_ft==='d7'&&!(d!=null&&d<=7&&!op)) return false
+  if(_ft==='d30'&&!(d!=null&&d<=30&&!op)) return false
+  return true }
+function cmpStore(x,y){ if(_sort==='defect') return defTotal(y.code)-defTotal(x.code)||_openSort(x,y)
+  if(_sort==='recent'){ const t=s=>{const l=lastActivity(s.code);return l?l.at:''}; return t(y).localeCompare(t(x))||_openSort(x,y) }
+  return _openSort(x,y) }
+function sortStores(arr){ return arr.slice().sort(cmpStore) }
+function anyFilterActive(){ return !!(_q||_ft!=='all'||_fpv!=='all'||_fct!=='all'||_ovStage!=='all'||_cf!=='all'||_cph!=='all'||_sf!=='all'||_ctf!=='all') }
+function fsel(id,cur,opts){ return `<label class="shrink-0"><select id="${id}" class="h-9 px-2 rounded bg-surface-control text-ink-primary font-body-sm text-body-sm cursor-pointer" style="border:1px solid #2A2A2E;max-width:170px">${opts.map(o=>`<option value="${esc(o[0])}"${String(o[0])===String(cur)?' selected':''}>${esc(o[1])}</option>`).join('')}</select></label>` }
+function fchip(attr,k,cur,lbl){ return `<button data-${attr}="${k}" class="px-2.5 py-1 rounded-full font-label-micro text-label-micro ${String(cur)===String(k)?'bg-primary-container text-ink-on-yellow font-bold':'bg-surface-control text-ink-muted hover:text-ink-primary'}">${lbl}</button>` }
+function filterBar(o){ o=o||{}; const store=o.store!==false
+  const time=[['all','กำหนดเปิด: ทั้งหมด'],['overdue','เกินกำหนด'],['d7','ใกล้เปิด ≤ 7 วัน'],['d30','≤ 30 วัน'],['opened','เปิดแล้ว']]
+  const prov=[['all','ทุกจังหวัด']].concat(provOpts().map(p=>[p,p]))
+  const ctr=[['all','ทุกผู้รับเหมา']].concat(ctrOpts().map(c=>[c,c]))
+  const sortOpts=o.sortOpts||[['open','เรียง: ใกล้เปิดสุด'],['defect','Defect มากสุด'],['recent','อัปเดตล่าสุด']]
+  const sortId=o.sortId||'fltSort', sortCur=o.sortCur!=null?o.sortCur:_sort
+  return `<div class="bg-surface-card rounded-xl px-3 py-2.5 mb-4 shadow-sm flex flex-wrap items-center gap-2">
+    <span class="material-symbols-outlined text-primary-container text-[18px] shrink-0" title="ตัวกรอง">filter_alt</span>
+    ${store?fsel('fltTime',_ft,time):''}${store?fsel('fltProv',_fpv,prov):''}${store?fsel('fltCtr',_fct,ctr):''}${fsel(sortId,sortCur,sortOpts)}
+    ${anyFilterActive()?`<button id="fltClear" class="h-9 px-2.5 rounded bg-surface-elevated hover:bg-surface-container-high text-ink-muted font-label-micro text-label-micro flex items-center gap-1 shrink-0"><span class="material-symbols-outlined text-[15px]">restart_alt</span>ล้างตัวกรอง</button>`:''}
+    <span class="ml-auto font-label-micro text-label-micro text-ink-muted shrink-0">แสดง <b class="text-ink-primary">${o.count}</b>${o.total!=null?` จาก ${o.total}`:''} ${o.unit||'สาขา'}</span>
+    ${o.chips?`<div class="w-full flex items-center gap-1.5 flex-wrap" style="border-top:1px solid #201f20;margin-top:4px;padding-top:8px">${o.chipLabel?`<span class="font-label-micro text-label-micro text-ink-faint uppercase mr-1 shrink-0">${o.chipLabel}</span>`:''}${o.chips}</div>`:''}
+  </div>` }
+
+// ============ REPORTS (พอร์ตดีไซน์ p10 มาเปิดใน HQ) ============
+const REPORT_CSS=`*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#111827;margin:0;font-size:13px;line-height:1.5;background:#F4F5F7}
+.paper{max-width:840px;margin:20px auto;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.08);border-radius:4px;padding:40px}
+.dh{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:24px;border-bottom:1px solid #E5E7EB;margin-bottom:24px}
+.dh-l{display:flex;gap:16px;align-items:flex-start;min-width:0}
+.emblem{width:56px;height:56px;background:#141b2b;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;flex:none}.emblem b{color:#ffb77d}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#555f6f}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}.pill.g{background:#D1FAE5;color:#005137}.pill.y{background:#fff6e8;color:#a5701a}
+.dh h2{font-size:24px;font-weight:700;margin:6px 0 2px}.en{font-size:12px;color:#555f6f}
+.metacard{background:#f1f3ff;border-radius:8px;padding:12px;min-width:230px;display:flex;flex-direction:column;gap:5px;flex:none}
+.mrow{display:flex;justify-content:space-between;font-size:11px;color:#555f6f;gap:12px}.mrow b{font-weight:600;color:#111827}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;background:#F3F4F6;border-radius:8px;padding:16px;margin-bottom:24px}
+.strip .lb{font-size:11px;color:#555f6f}.strip .vl{font-size:14px;font-weight:600;margin-top:1px}.strip .sub{font-size:12px;color:#555f6f}
+.scard{background:#f1f3ff;border-radius:8px;padding:24px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.gstamp{width:80px;height:80px;border-radius:50%;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;box-shadow:0 4px 10px -4px rgba(0,0,0,.3);position:relative}
+.gstamp .gl{font-size:11px;letter-spacing:.1em;opacity:.9}.gstamp .gv{font-size:32px;font-weight:700;line-height:1}
+.snum{font-size:32px;font-weight:700}.sden{font-size:20px;color:#555f6f}.spass{font-size:14px;font-weight:600;color:#006948;margin-top:2px}.spass.f{color:#DC2626}.scrit{font-size:12px;color:#555f6f;margin-top:2px}
+.donutbox{display:flex;align-items:center;gap:12px;background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.supbars{min-width:180px}.slb{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;color:#555f6f}.slb b{font-weight:600;color:#111827}
+.track{width:100%;height:6px;background:#E5E7EB;border-radius:99px;overflow:hidden;margin-bottom:9px}.track i{display:block;height:100%;background:#006948;border-radius:99px}
+.sect{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.sect .st{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600}.sbar{width:8px;height:20px;border-radius:2px;background:#8d4b00;flex:none}.sbar.g{background:#006948}.sbar.b{background:#555f6f}.cap{font-size:11px;color:#555f6f}
+.catgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}.catcol{display:flex;flex-direction:column;gap:8px}
+.catitem{background:#f1f3ff;border-radius:6px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.catno{width:24px;height:24px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#555f6f;flex:none}
+.catnm{font-size:12px;font-weight:600}.catdesc{font-size:12px;color:#555f6f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:250px}
+.catsc{font-size:12px;font-weight:700;white-space:nowrap}.catsc span{color:#555f6f;font-weight:400}
+.cb{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap}.cb.p{background:#D1FAE5;color:#005137}.cb.fx{background:#ffdcc3;color:#6e3900}.cb.f{background:#ffdad6;color:#991B1B}
+.deflog{background:#f1f3ff;border-radius:6px;padding:16px;margin-bottom:28px;display:flex;flex-direction:column;gap:12px}
+.defc{background:#fff;border-radius:6px;padding:12px;display:flex;justify-content:space-between;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.defid{background:#d6e0f3;color:#3d4756;font-size:11px;font-weight:700;padding:4px 8px;border-radius:4px;flex:none}.deft{font-size:12px;font-weight:600}.defd{font-size:12px;color:#555f6f;margin-top:2px}.defm{display:flex;align-items:center;gap:12px;font-size:11px;color:#555f6f;flex:none}.defok{background:#D1FAE5;color:#005137;font-weight:600;padding:2px 8px;border-radius:4px}
+.phgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}.phc{background:#f1f3ff;border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}.phc img{width:100%;height:130px;object-fit:cover;display:block}.phcap{padding:8px}.phcap .t{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.phcap .s{font-size:11px;color:#555f6f}
+.signsec{padding-top:16px;border-top:1px solid #E5E7EB}.signgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:16px}
+.sgc{background:#f1f3ff;border:1px solid #E5E7EB;border-radius:6px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;min-height:160px}.sgrole{font-size:11px;font-weight:600;color:#8d4b00}.sgsig{text-align:center;margin:auto 0}.sgsig img{max-height:52px;max-width:90%;object-fit:contain;display:block;margin:0 auto}.sgkey{font-size:10px;color:#006948;display:block;margin-top:2px}.sgf{text-align:center;padding-top:8px;border-top:1px solid #E5E7EB}.sgf .nm{font-size:12px;font-weight:600}.sgf .rl{font-size:11px;color:#555f6f}
+.legal{background:#F3F4F6;border-radius:6px;padding:12px;display:flex;gap:8px;font-size:12px;color:#555f6f;line-height:1.6}
+.verdict{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:14px;padding:8px 14px;border-radius:8px}.verdict.p{background:#D1FAE5;color:#005137}.verdict.f{background:#ffdad6;color:#991B1B}
+h2.ph{font-size:15px;font-weight:600;margin:24px 0 10px;display:flex;align-items:center;gap:8px}h2.ph::before{content:"";width:8px;height:18px;border-radius:2px;background:#8d4b00}
+table{width:100%;border-collapse:collapse;margin-bottom:8px}th{background:#F3F4F6;text-align:left;font-size:11px;color:#555f6f;padding:8px;border:1px solid #E5E7EB}td{padding:8px;border:1px solid #eef0f7;font-size:12px;vertical-align:top}td.no{font-family:monospace;color:#9CA3AF;width:40px}td.st{font-weight:700;width:70px}td.mt{color:#555f6f;font-size:11px;width:120px}td.im img{width:120px;height:120px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #E5E7EB}
+.grp{background:#f1f3ff;font-weight:700;color:#3d4756;font-size:11.5px}.nt{color:#8d4b00;font-size:11px;margin-top:3px}
+.failbox{border:1px solid #ffdad6;background:#fff5f5;border-radius:8px;padding:16px;margin-bottom:28px}.failh{font-weight:700;font-size:14px;color:#DC2626;margin-bottom:10px}.fitem{padding:9px 0;border-top:1px solid #ffe0dd}.fitem:first-of-type{border-top:0}.fno{color:#DC2626;font-weight:700;margin-right:4px}.fph{color:#9CA3AF;font-size:11px}.fnt{color:#8d4b00;font-size:11.5px;margin:3px 0}.fimgs img{width:120px;height:120px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #ffdad6}
+.printbar{position:sticky;top:0;background:#fff;border-bottom:1px solid #E5E7EB;padding:10px 16px;text-align:right;z-index:5}.printbtn{background:#8d4b00;color:#fff;border:0;border-radius:99px;padding:10px 20px;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit}
+@media print{.printbar{display:none}body{background:#fff}.paper{box-shadow:none;margin:0;max-width:100%;padding:24px}}`
+function repImg(m){ const u=m&&(m.turl||m.url)||''; if(!u) return ''; if(m.kind==='video') return `<video controls preload="metadata" src="${m.url||''}" style="width:190px;height:140px;object-fit:cover;border-radius:6px;background:#000;margin:2px"></video>`; return `<img class="zim" src="${u}" data-full="${esc(m.url||u)}">` }
+function baTilesArr(arr){ return arr.length?arr.map(m=>m.kind==='video'?`<video controls preload="metadata" src="${m.url||''}" style="width:190px;height:140px;object-fit:cover;border-radius:6px;background:#000"></video>`:`<img class="zim" src="${m.turl||m.url||''}" data-full="${esc(m.url||m.turl||'')}" style="width:130px;height:130px;object-fit:cover;border-radius:6px;border:1px solid #E5E7EB">`).join(''):'<span style="color:#9CA3AF;font-size:11px">— ไม่มี —</span>' }
+function baBlock(cp, mediaByCp, cmUid){ const ims=mediaByCp[String(cp)]||[]; const after=ims.filter(m=>m.by&&m.by===cmUid), before=ims.filter(m=>!m.by||m.by!==cmUid)
+  return `<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px"><div style="flex:1;min-width:160px"><div style="font-size:11px;font-weight:700;color:#DC2626;margin-bottom:4px">ก่อนแก้ (Defect)</div><div style="display:flex;flex-wrap:wrap;gap:4px">${baTilesArr(before)}</div></div><div style="flex:1;min-width:160px"><div style="font-size:11px;font-weight:700;color:#006948;margin-bottom:4px">หลังแก้ (CM แนบ)</div><div style="display:flex;flex-wrap:wrap;gap:4px">${baTilesArr(after)}</div></div></div>` }
+function gradeStampBg(g){ return (g==='A'||g==='B')?'#006948':g==='C'?'#b15f00':g==='D'?'#DC2626':'#9aa7b2' }
+function _dNo(pfx,code){ return `CJX-${pfx}-${new Date().getFullYear()+543}-${esc(code)}` }
+function _today(){ const d=new Date(),p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543}` }
+function pickSig(sg,kind,scope){ const a=sg.filter(x=>x.kind===kind&&(scope==null||String(x.scope)===String(scope))); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
+const REP_LB_JS=`document.addEventListener('click',function(e){var im=e.target.closest&&e.target.closest('img.zim');if(!im)return;var f=im.getAttribute('data-full')||im.src;var d=document.createElement('div');d.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;cursor:zoom-out';d.innerHTML='<img src="'+f+'" style="max-width:95%;max-height:95%;object-fit:contain;border-radius:8px;box-shadow:0 10px 60px rgba(0,0,0,.6)">';d.onclick=function(){d.remove()};document.addEventListener('keydown',function h(ev){if(ev.key==='Escape'){d.remove();document.removeEventListener('keydown',h)}});document.body.appendChild(d)});`
+function wrapReport(inner){ return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${REPORT_CSS}
+img.zim{cursor:zoom-in;transition:transform .08s}img.zim:hover{transform:scale(1.03);box-shadow:0 3px 12px rgba(0,0,0,.25)}
+td.im img{width:150px !important;height:150px !important}
+.fimgs img,.fitem img{width:150px !important;height:150px !important}
+@media print{img.zim:hover{transform:none;box-shadow:none}}</style></head><body><div class="printbar"><button class="printbtn" onclick="print()">🖨️ พิมพ์ / บันทึก PDF</button><span style="float:left;color:#9CA3AF;font-size:12px;padding-top:11px">💡 คลิกที่รูปเพื่อดูขนาดเต็ม</span></div>${inner}<script>${REP_LB_JS}<\/script></body></html>` }
+
+function buildSetupReport(s,mediaByCp,sg,sEvents){ const code=s.code, sc=computeSetupScore(code); sEvents=sEvents||[]
+  const approved=sc.allDone&&!sc.failItems&&!sc.fixedItems, g=sc.doneItems?sc.curGrade:'—', pct=sc.totalItems?Math.round(sc.doneItems/sc.totalItems*100):0
+  const nsaSig=pickSig(sg,'setup_nsa','setup'), cmSig=pickSig(sg,'setup_cm','setup')
+  const nsaLead=nsaSig?nameOf(nsaSig.by):'—'
+  // ---- ประวัติหลายรอบ (Set-Up ตรวจ → CM แก้ → ตรวจซ้ำ) ----
+  const maxRound = sEvents.length?Math.max(1,...sEvents.map(e=>+e.round||1)):1
+  let roundHist=''
+  if(maxRound>1){ const items=[]; for(let r=1;r<=maxRound;r++){ const rs=computeSetupScoreEv(sEvents,r)
+      items.push(`<li>รอบ ${r}${r===maxRound?' (ล่าสุด)':''}: เกรด <b>${rs.doneItems?rs.curGrade:'—'}</b> · ${rs.curPct.toFixed(0)}/100${rs.failItems?` · <span style="color:#DC2626">${rs.failItems} ไม่ผ่าน</span>`:(rs.fixedItems?` · <span style="color:#b15f00">${rs.fixedItems} รอตรวจซ้ำ</span>`:' · ผ่านครบ')}</li>`) }
+    roundHist=`<div style="background:#f1f3ff;border-radius:8px;padding:14px 16px;margin-bottom:20px"><div style="font-weight:700;font-size:13px;margin-bottom:6px">🔁 Set-Up ตรวจทั้งหมด ${maxRound} รอบ (แก้ไป ${maxRound-1} รอบ)</div><ul style="margin:0;padding-left:18px;font-size:12px;color:#555f6f;line-height:1.7">${items.join('')}</ul></div>` }
+  // ---- ข้อที่ CM แก้แล้ว (ก่อน→หลัง) ----
+  const fixedBy={}; sEvents.forEach(e=>{ if(e.status==='fixed'){ const k=String(e.checkpoint), p=fixedBy[k]; if(!p||(e.created_at||'')>=(p.created_at||'')) fixedBy[k]=e } })
+  const fixList=[]; SETUP_SECTIONS.forEach(([pn,name])=>{ (cpByPhase[pn]||[]).forEach(c=>{ const fe=fixedBy[String(c.id)]; if(fe) fixList.push({c,fe,name}) }) })
+  // ---- ข้อที่ยังไม่ผ่าน (ตอนนี้) ----
+  const failList=[]; SETUP_SECTIONS.forEach(([pn,name])=>{ (cpByPhase[pn]||[]).forEach(c=>{ const e=(cur[code]||{})[String(c.id)]; if(e&&e.status==='fail') failList.push({c,e,name}) }) })
+  // ---- รายละเอียดการตรวจรับรายข้อ ครบทั้ง 8 หมวด (ไม่ย่อ) ----
+  const fullDetail = SETUP_SECTIONS.map(([pn,name])=>{ const cps=(cpByPhase[pn]||[]).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); const m=cur[code]||{}; if(!cps.length) return ''
+    let rows=''; cps.forEach(c=>{ const e=m[String(c.id)]; const ims=mediaByCp[String(c.id)]||[]; const stc=e?(e.status==='pass'?'#006948':e.status==='fail'?'#DC2626':e.status==='fixed'?'#b15f00':'#9CA3AF'):'#9CA3AF'
+      rows+=`<tr><td class="no">${esc(c.no||'')}</td><td><div style="font-weight:600;color:#111827">${esc(c.label||c.name||'')}</div>${c.hint?`<div style="color:#555f6f;font-size:11px;margin-top:2px">${esc(c.hint)}</div>`:''}${c.supplier?`<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;margin-top:3px;display:inline-block;${c.supplier==='ซัพย่อย'?'color:#a5701a;background:#fff6e8':'color:#2d5bb8;background:#eef4ff'}">${esc(c.supplier)}</span>`:''}${e&&e.note?`<div class="nt" style="${e.status==='fail'?'color:#DC2626;font-weight:600':''}">📝 ${e.status==='fail'?'เหตุที่ไม่ผ่าน: ':''}${esc(e.note)}</div>`:''}</td><td class="st" style="color:${stc}">${e?({pass:'ผ่าน',fail:'ไม่ผ่าน',fixed:'รอตรวจซ้ำ',na:'ไม่มีงาน'}[e.status]||e.status):'ยังไม่ตรวจ'}${e&&e.round>1?`<br><span style="font-size:10px;color:#9CA3AF">รอบ ${e.round}</span>`:''}</td><td class="mt">${e?esc(nameOf(e.by))+'<br>'+fmtDate(e.created_at):'—'}</td><td class="im">${ims.map(repImg).join('')||'—'}</td></tr>` })
+    return `<h2 class="ph">${esc(name)}</h2><table><thead><tr><th>ข้อ</th><th>รายการตรวจ</th><th>ผล</th><th>ผู้ตรวจ/เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>` }).join('')
+  const cats=SETUP_SECTIONS.map(([pn,name,w],i)=>{ const sec=sc.sections.find(x=>x.phase===pn)||{earned:0,fail:0,fixed:0}
+    const desc=(cpByPhase[pn]||[]).map(c=>c.name).filter(Boolean).slice(0,3).join(', ')
+    const bd=sec.fail>0?['f','ไม่ผ่าน']:sec.fixed>0?['fx','แก้ไขแล้ว']:['p','ผ่าน']
+    return `<div class="catitem"><div style="display:flex;align-items:center;gap:12px;min-width:0"><span class="catno">${i+1}</span><div style="min-width:0"><div class="catnm">${esc(name)}</div>${desc?`<div class="catdesc">${esc(desc)}</div>`:''}</div></div><div style="display:flex;align-items:center;gap:10px;flex:none"><div class="catsc">${sec.earned.toFixed(1)} <span>/ ${w}</span></div><span class="cb ${bd[0]}">${bd[1]}</span></div></div>` })
+  // defects (fixed)
+  const defs=[]; SETUP_SECTIONS.forEach(([pn,name])=>{ (cpByPhase[pn]||[]).forEach(c=>{ const e=(cur[code]||{})[String(c.id)]; if(e&&e.status==='fixed') defs.push({c,e,name}) }) })
+  const photos=[]; SETUP_SECTIONS.forEach(([pn,name])=>{ for(const c of (cpByPhase[pn]||[])){ const e=(cur[code]||{})[String(c.id)]; if(e&&e.status==='pass'){ const im=(mediaByCp[String(c.id)]||[]).find(m=>m.kind!=='video'); if(im){photos.push({im,name});break} } } })
+  const sgCard=(sig,role,sub,fb)=>{ const nm=sig?nameOf(sig.by):(fb||''); return `<div class="sgc"><div style="display:flex;justify-content:space-between"><span class="sgrole">${role}</span>${sig?'<span style="color:#006948;font-weight:700">✓</span>':''}</div><div class="sgsig">${sig&&sig.image?`<img src="${sig.image}"><span class="sgkey">ลงนามในระบบแล้ว</span>`:'<div style="height:52px"></div>'}</div><div class="sgf"><span class="nm">${nm?esc(nm):'..............'}</span><br><span class="rl">${esc(sub)}</span><br><span class="rl">${sig?fmtDate(sig.created_at):'—'}</span></div></div>` }
+  return wrapReport(`<div class="paper">
+    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • QA &amp; Handover Protocol</span>${approved?'<span class="pill g"><span style="width:6px;height:6px;border-radius:50%;background:#006948;display:inline-block"></span>รับมอบแล้ว (Approved)</span>':'<span class="pill y">อยู่ระหว่างตรวจรับ</span>'}</div><h2>ใบส่งมอบร้านและตรวจรับอาคาร</h2><div class="en">Store Handover &amp; Facility Acceptance Certificate</div></div></div>
+      <div class="metacard"><div class="mrow"><span>เลขที่เอกสาร:</span><b>${_dNo('HO',code)}</b></div><div class="mrow"><span>วันที่ตรวจรับ:</span><b>${nsaSig?fmtDate(nsaSig.created_at):_today()}</b></div><div class="mrow"><span>ผู้ตรวจรับ:</span><b>${esc(nsaLead)}</b></div></div></div>
+    <div class="strip"><div><div class="lb">รหัสและชื่อสาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ประเภทอาคาร</div><div class="vl">${esc(s.building_type||'—')}</div><div class="sub">Set-Up · NSA</div></div><div><div class="lb">ผู้รับเหมา (ผรม.)</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">&nbsp;</div></div><div><div class="lb">ผู้ควบคุมตรวจรับ</div><div class="vl">${esc(nsaLead)}</div><div class="sub">ฝ่าย Set-Up &amp; NSA</div></div></div>
+    <div class="scard"><div style="display:flex;align-items:center;gap:16px"><div class="gstamp" style="background:${gradeStampBg(g)}"><span class="gl">GRADE</span><span class="gv">${g}</span>${approved?'<span style="position:absolute;bottom:-2px;right:-2px;background:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:#006948;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.25)">✓</span>':''}</div><div><div style="display:flex;align-items:baseline;gap:8px"><span class="snum">${sc.doneItems?sc.total.toFixed(1):'—'}</span><span class="sden">/ 100 คะแนน</span></div><div class="spass ${approved?'':'f'}">${approved?'✓ ผ่านเกณฑ์มาตรฐานระดับดีเยี่ยม (พร้อมเปิดสาขา)':(sc.failItems?('✕ มี '+sc.failItems+' จุดไม่ผ่าน'):'อยู่ระหว่างตรวจรับ')}</div><div class="scrit">เกณฑ์ส่งมอบ: ≥90 คะแนน และไม่มีข้อบกพร่องวิกฤต</div></div></div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap"><div class="donutbox"><svg style="width:48px;height:48px;transform:rotate(-90deg)" viewBox="0 0 36 36"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#E5E7EB" stroke-width="3.5"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#006948" stroke-dasharray="${pct}, 100" stroke-linecap="round" stroke-width="3.5"/></svg><div><div style="font-size:11px;color:#555f6f">รายการตรวจสอบ</div><div style="font-size:16px;font-weight:600">${sc.doneItems} / ${sc.totalItems} ข้อ</div><div style="font-size:11px;color:#006948">ตรวจครบ ${pct}%</div></div></div><div class="supbars"><div class="slb"><span>ซัพหลัก</span><b>${sc.main.pct.toFixed(1)}%</b></div><div class="track"><i style="width:${sc.main.pct}%"></i></div><div class="slb"><span>งานระบบ &amp; อุปกรณ์</span><b>${sc.sub.pct.toFixed(1)}%</b></div><div class="track"><i style="width:${sc.sub.pct}%"></i></div></div></div></div>
+    <div class="sect"><div class="st"><span class="sbar"></span>สรุปผลการประเมิน 8 หมวด</div><span class="cap">คะแนนเต็ม 100.00 คะแนน</span></div>
+    <div class="catgrid"><div class="catcol">${cats.slice(0,4).join('')}</div><div class="catcol">${cats.slice(4).join('')}</div></div>
+    ${roundHist}
+    ${fixList.length?`<div class="sect"><div class="st"><span class="sbar g"></span>บันทึกการแก้ไขข้อบกพร่อง (ก่อน → หลัง)</div><span class="cap" style="color:#006948;font-weight:600">${failList.length?(fixList.length+' จุดแก้แล้ว'):'✓ แก้ไขครบถ้วน 100%'}</span></div><div class="deflog">${fixList.map((f,i)=>`<div style="background:#fff;border-radius:6px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="display:flex;gap:10px;align-items:flex-start"><span class="defid">DF-${String(i+1).padStart(2,'0')}</span><div style="min-width:0;flex:1"><div class="deft">[${esc(f.name)}] ${esc(f.c.label)}</div>${f.fe.note?`<div class="defd">📝 ${esc(f.fe.note)}</div>`:''}<div style="font-size:11px;color:#555f6f;margin-top:2px">แก้โดย ${esc(nameOf(f.fe.by))} · ${fmtDate(f.fe.created_at)}</div>${baBlock(f.c.id,mediaByCp,f.fe.by)}</div></div></div>`).join('')}</div>`:''}
+    ${failList.length?`<div class="failbox"><div class="failh">⚠ จุดที่ยังไม่ผ่าน ${failList.length} รายการ — ต้องแก้ไข</div>${failList.map(f=>`<div class="fitem"><div style="font-weight:600;font-size:12.5px"><span class="fno">•</span>${esc(f.c.label)} <span class="fph">${esc(f.name)}</span></div>${f.e.note?`<div class="fnt">📝 เหตุที่ไม่ผ่าน: ${esc(f.e.note)}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">${(mediaByCp[String(f.c.id)]||[]).map(repImg).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`).join('')}</div>`:''}
+    ${photos.length?`<div class="sect"><div class="st"><span class="sbar b"></span>ภาพถ่ายหลักฐานการตรวจรับ</div></div><div class="phgrid">${photos.slice(0,8).map((p,i)=>`<div class="phc">${repImg(p.im)}<div class="phcap"><div class="t">${i+1}. ${esc(p.name)}</div><div class="s">สถานะ: ผ่าน</div></div></div>`).join('')}</div>`:''}
+    <div class="sect" style="margin-top:8px"><div class="st"><span class="sbar b"></span>รายละเอียดการตรวจรับรายข้อ (ครบทั้ง ${SETUP_SECTIONS.length} หมวด)</div><span class="cap">ผล + หมายเหตุ + หลักฐานทุกข้อ</span></div>
+    ${fullDetail}
+    <div class="signsec"><div style="margin-bottom:12px"><div class="eyebrow">Official Certification &amp; Signatures</div><div style="font-size:16px;font-weight:600">การลงนามรับรองการส่งมอบ-รับมอบ</div></div><div class="signgrid">${sgCard(nsaSig,'ฝ่ายที่ 1: ผู้ตรวจรับ (Set-Up / NSA)','ฝ่าย Set-Up & NSA','')}${sgCard(cmSig,'ฝ่ายที่ 2: ทีมก่อสร้าง (CM)','ผู้ควบคุมงานก่อสร้าง','')}</div>
+      <div class="legal"><span style="flex:none">ℹ️</span><p style="margin:0"><b>คำรับรองทางนิติกรรม:</b> ผู้แทนทุกฝ่ายได้ตรวจสอบอาคารและอุปกรณ์ตามมาตรฐาน CJ Mart ครบถ้วนแล้ว ใช้เป็นหลักฐานเบิกจ่ายงวดสุดท้ายและส่งมอบร้านให้เปิดบริการ</p></div></div>
+  </div>`) }
+
+function buildConReport(s,mediaByCp,sg){ const code=s.code
+  let totIn=0,totPass=0,totFail=0, body=''
+  const allP=PRECON.concat(PHASES)
+  allP.forEach(([pn,nm])=>{ const cps=(cpByPhase[pn]||[]).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); const m=cur[code]||{}
+    const inspected=cps.filter(c=>m[String(c.id)]).length; if(!inspected) return
+    let rows=''; cps.forEach(c=>{ const e=m[String(c.id)]; if(e){totIn++; if(e.status==='pass')totPass++; else if(e.status==='fail')totFail++}
+      const ims=mediaByCp[String(c.id)]||[]; const stc=e?(e.status==='pass'?'#006948':e.status==='fail'?'#DC2626':e.status==='fixed'?'#b15f00':'#9CA3AF'):'#9CA3AF'
+      rows+=`<tr><td class="no">${esc(c.no||'')}</td><td><div style="font-weight:600;color:#111827">${esc(c.label||'')}</div>${c.hint?`<div style="color:#555f6f;font-size:11px;margin-top:2px">${esc(c.hint)}</div>`:''}${c.supplier?`<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;margin-top:3px;display:inline-block;${c.supplier==='ซัพย่อย'?'color:#a5701a;background:#fff6e8':'color:#2d5bb8;background:#eef4ff'}">${esc(c.supplier)}</span>`:''}${e&&e.note?`<div class="nt" style="${e.status==='fail'?'color:#DC2626;font-weight:600':''}">📝 ${e.status==='fail'?'เหตุที่ไม่ผ่าน: ':''}${esc(e.note)}</div>`:''}</td><td class="st" style="color:${stc}">${e?({pass:'ผ่าน',fail:'ไม่ผ่าน',fixed:'รอตรวจซ้ำ',na:'ไม่มีงาน'}[e.status]||e.status):'—'}${e&&e.round>1?`<br><span style="font-size:10px;color:#9CA3AF">รอบ ${e.round}</span>`:''}</td><td class="mt">${e?esc(nameOf(e.by))+'<br>'+fmtDate(e.created_at):'—'}</td><td class="im">${ims.map(repImg).join('')||'—'}</td></tr>` })
+    body+=`<h2 class="ph">${esc((cps[0]&&cps[0].phase_name)||nm)}</h2><table><thead><tr><th>ข้อ</th><th>รายการตรวจ</th><th>ผล</th><th>ผู้ตรวจ/เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>` })
+  const passAll=totIn>0&&totFail===0, pct=totIn?Math.round(totPass/totIn*100):0
+  const cmSig=pickSig(sg,'sign_cm'), conSig=pickSig(sg,'sign_contractor'), apprSig=pickSig(sg,'handover','store')||pickSig(sg,'approve')
+  const sgCard=(sig,role,sub,fb)=>{ const nm=sig?nameOf(sig.by):(fb||''); return `<div class="sgc"><div style="display:flex;justify-content:space-between"><span class="sgrole">${role}</span>${sig?'<span style="color:#006948;font-weight:700">✓</span>':''}</div><div class="sgsig">${sig&&sig.image?`<img src="${sig.image}"><span class="sgkey">ลงนามแล้ว</span>`:'<div style="height:52px"></div>'}</div><div class="sgf"><span class="nm">${nm?esc(nm):'..............'}</span><br><span class="rl">${esc(sub)}</span><br><span class="rl">${sig?fmtDate(sig.created_at):'—'}</span></div></div>` }
+  return wrapReport(`<div class="paper">
+    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • Construction QA Report</span>${passAll?'<span class="pill g">ตรวจผ่าน</span>':'<span class="pill y">อยู่ระหว่างตรวจ</span>'}</div><h2>ใบรับรองการตรวจรับงานก่อสร้าง</h2><div class="en">Construction Work Inspection &amp; Acceptance Report</div></div></div>
+      <div class="metacard"><div class="mrow"><span>เลขที่เอกสาร:</span><b>${_dNo('QA',code)}</b></div><div class="mrow"><span>วันที่ออกเอกสาร:</span><b>${_today()}</b></div><div class="mrow"><span>ขอบเขต:</span><b>Pre-Con + 9 งวด</b></div></div></div>
+    <div class="strip"><div><div class="lb">รหัสและชื่อสาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ผู้รับเหมา (ผรม.)</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">&nbsp;</div></div><div><div class="lb">ตรวจแล้ว</div><div class="vl">${totIn} รายการ</div><div class="sub">ผ่าน ${totPass} · ไม่ผ่าน ${totFail}</div></div><div><div class="lb">ความคืบหน้า</div><div class="vl" style="color:${passAll?'#006948':'#8d4b00'}">${pct}%</div><div class="sub">ของที่ตรวจแล้ว</div></div></div>
+    <div class="scard"><div style="display:flex;align-items:center;gap:16px"><div class="gstamp" style="background:${passAll?'#006948':'#b15f00'}"><span class="gl">${passAll?'PASS':'ตรวจ'}</span><span class="gv" style="font-size:22px">${pct}%</span></div><div><div class="verdict ${passAll?'p':'f'}">${passAll?`✓ ตรวจผ่าน 100% (${totPass}/${totIn})`:`ผ่าน ${totPass} · ไม่ผ่าน ${totFail} · ตรวจแล้ว ${totIn}`}</div><div class="scrit" style="margin-top:6px">ออกเอกสาร ${_today()}</div></div></div></div>
+    ${body||'<p style="color:#9CA3AF">ยังไม่มีข้อมูลการตรวจ</p>'}
+    <div class="signsec"><div style="margin-bottom:12px"><div class="eyebrow">Official Certification &amp; Signatures</div><div style="font-size:16px;font-weight:600">การลงนามรับรองการตรวจรับงานก่อสร้าง</div></div><div class="signgrid">${sgCard(cmSig,'ฝ่ายที่ 1: ผู้ตรวจ (CM)','วิศวกรควบคุมงาน','')}${sgCard(conSig,'ฝ่ายที่ 2: ผู้รับเหมา (ผรม.)','ผู้รับเหมาหลัก',s.contractor||'')}${sgCard(apprSig,'ฝ่ายที่ 3: ผู้อนุมัติ (Head)','ผู้บริหารสายงาน','')}</div>
+      <div class="legal"><span style="flex:none">ℹ️</span><p style="margin:0"><b>คำรับรอง:</b> ตรวจสอบงานก่อสร้างตามมาตรฐาน CJ Mart ครบถ้วน ใช้เป็นหลักฐานเบิกจ่ายงวดงาน</p></div></div>
+  </div>`) }
+
+function buildPunchReport(s,mediaByCp,sg){ const code=s.code, m=cur[code]||{}
+  let failN=0,fixN=0,body=''
+  SETUP_SECTIONS.forEach(([pn,name])=>{ const items=[]; (cpByPhase[pn]||[]).forEach(c=>{ const e=m[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')){ if(e.status==='fail')failN++; else fixN++
+      const ims=mediaByCp[String(c.id)]||[]
+      items.push(`<div style="background:#fff;border-radius:6px;border-left:4px solid #E67E22;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:10px"><span style="font-weight:600;font-size:12.5px">${esc(c.label)}</span><span class="cb ${e.status==='fail'?'f':'fx'}">${e.status==='fail'?'ไม่ผ่าน':'รอตรวจซ้ำ'}</span></div>${e.note?`<div style="color:#8d4b00;font-size:12px;margin:5px 0">${esc(e.note)}</div>`:''}<div>${ims.map(repImg).join('')}</div><div style="color:#9CA3AF;font-size:11px;margin-top:4px">${esc(nameOf(e.by))} · ${fmtDate(e.created_at)}</div></div>`) } })
+    if(items.length) body+=`<h2 class="ph">${esc(name)} <span class="cb f" style="margin-left:6px">${items.length} จุด</span></h2>${items.join('')}` })
+  return wrapReport(`<div class="paper">
+    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • รายการงานต้องแก้ไข (Set-Up)</span><span class="pill y">รอแก้ไข</span></div><h2>รายงานงานที่ต้องแก้ไข (Set-Up ตีกลับ)</h2><div class="en">Defect Rework List for Contractor</div></div></div>
+      <div class="metacard"><div class="mrow"><span>เลขที่เอกสาร:</span><b>${_dNo('PL',code)}</b></div><div class="mrow"><span>วันที่:</span><b>${_today()}</b></div></div></div>
+    <div class="strip"><div><div class="lb">สาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ผู้รับเหมา</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">ผู้ต้องแก้งาน</div></div><div><div class="lb">ต้องแก้</div><div class="vl" style="color:#DC2626">${failN} จุด</div><div class="sub">ไม่ผ่าน</div></div><div><div class="lb">รอตรวจซ้ำ</div><div class="vl" style="color:#b15f00">${fixN} จุด</div><div class="sub">CM แก้แล้ว</div></div></div>
+    ${(failN+fixN)?body:'<p style="color:#005137;font-weight:600">✓ ไม่มีจุดที่ต้องแก้</p>'}
+    <div class="legal"><span style="flex:none">🔧</span><p style="margin:0"><b>ขั้นตอนแก้:</b> เปิดแอป → สาขานี้ → แตะหมวดที่ "ไม่ผ่าน" → แนบรูปที่แก้แล้ว → "ส่งให้ Set-Up ตรวจซ้ำ"</p></div>
+  </div>`) }
+
+async function openReport(code, kind){
+  const s=stores.find(x=>x.code===code)||{code}
+  const w=window.open('','_blank'); if(w){ w.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">กำลังสร้างรายงาน…</p>') }
+  const sInsIds=insps.filter(i=>i.store_code===code).map(i=>i.id); let media=[]
+  if(sInsIds.length){ const {data:md}=await sb.from('media').select('inspection_id,checkpoint,path,thumb_path,kind,by').in('inspection_id',sInsIds); media=md||[]
+    if(media.length){ const paths=[...new Set(media.flatMap(x=>[x.path,x.thumb_path].filter(Boolean)))]; const urlByPath={}
+      for(let i=0;i<paths.length;i+=100){ const ch=paths.slice(i,i+100); const {data:us}=await sb.storage.from('media').createSignedUrls(ch,3600); (us||[]).forEach((u,j)=>{if(u&&u.signedUrl)urlByPath[ch[j]]=u.signedUrl}) }
+      media.forEach(m=>{ m.url=urlByPath[m.path]||''; m.turl=urlByPath[m.thumb_path]||m.url }) } }
+  const mediaByCp={}; media.forEach(m=>{ (mediaByCp[String(m.checkpoint)]||(mediaByCp[String(m.checkpoint)]=[])).push(m) })
+  const {data:sgFull}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code); const sg=sgFull||[]
+  const sInspSet=new Set(sInsIds); const sEvents=events.filter(e=>sInspSet.has(e.inspection_id))
+  const html= kind==='setup'?buildSetupReport(s,mediaByCp,sg,sEvents): kind==='punch'?buildPunchReport(s,mediaByCp,sg): buildConReport(s,mediaByCp,sg)
+  if(w){ w.document.open(); w.document.write(html); w.document.close() } else { const b=new Blob([html],{type:'text/html'}); location.href=URL.createObjectURL(b) }
+}
+window._openReport=openReport
+
+// ============ DRILL-DOWN: รายสาขา + รายข้อตรวจ + เล่นสื่อ ============
+function showOverlay(html,wide){ let ov=$('hqOverlay'); if(!ov){ ov=document.createElement('div'); ov.id='hqOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);display:flex;justify-content:center;overflow:auto;padding:20px'; document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove() }) }
+  ov.innerHTML=`<div class="bg-surface-card rounded-xl" style="width:100%;max-width:${wide?'1080px':'860px'};margin:auto 0;box-shadow:0 24px 70px -20px #000">${html}</div>` }
+function closeOverlay(){ const ov=$('hqOverlay'); if(ov) ov.remove() }
+window._closeOv=closeOverlay
+function ovHead(title,sub){ return `<div class="flex items-center justify-between gap-3 p-4 rounded-t-xl" style="border-bottom:1px solid #2A2A2E"><div class="min-w-0"><div class="font-title-md text-title-md">${title}</div>${sub?`<div class="font-label-micro text-label-micro text-ink-muted mt-0.5">${sub}</div>`:''}</div><button onclick="window._closeOv()" class="w-9 h-9 rounded-full bg-surface-control hover:bg-surface-elevated flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">close</span></button></div>` }
+function lightbox(url){ const d=document.createElement('div'); d.style.cssText='position:fixed;inset:0;z-index:320;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;cursor:zoom-out'; d.innerHTML=`<img src="${url}" style="max-width:94%;max-height:94%;object-fit:contain;border-radius:8px">`; d.onclick=()=>d.remove(); document.body.appendChild(d) }
+window._lightbox=lightbox
+function mediaTiles(list){ if(!list||!list.length) return ''
+  return `<div class="flex flex-wrap gap-2">`+list.map(m=>{ if(m.kind==='video') return `<video controls preload="metadata" src="${m.url||''}" style="width:170px;height:120px;object-fit:cover;border-radius:8px;background:#000"></video>`
+    return `<img src="${m.turl||m.url||''}" onclick="window._lightbox('${(m.url||'').replace(/'/g,'')}')" style="width:76px;height:76px;object-fit:cover;border-radius:8px;cursor:zoom-in;border:1px solid #2A2A2E">` }).join('')+`</div>` }
+async function fetchStoreMedia(code){ const ids=insps.filter(i=>i.store_code===code).map(i=>i.id); const byCp={}
+  if(ids.length){ const {data:md}=await sb.from('media').select('inspection_id,checkpoint,path,thumb_path,kind,by').in('inspection_id',ids); const media=md||[]
+    if(media.length){ const paths=[...new Set(media.flatMap(x=>[x.path,x.thumb_path].filter(Boolean)))]; const url={}
+      for(let i=0;i<paths.length;i+=100){ const ch=paths.slice(i,i+100); const {data:us}=await sb.storage.from('media').createSignedUrls(ch,3600); (us||[]).forEach((u,j)=>{if(u&&u.signedUrl)url[ch[j]]=u.signedUrl}) }
+      media.forEach(m=>{ m.url=url[m.path]||''; m.turl=url[m.thumb_path]||m.url; (byCp[String(m.checkpoint)]||(byCp[String(m.checkpoint)]=[])).push(m) }) } }
+  return byCp }
+const STB={pass:['#12271B','#7EE6B0','ผ่าน'],fail:['#241416','#FF5C5C','ไม่ผ่าน'],fixed:['#1C1608','#D9B84A','รอตรวจซ้ำ'],na:['#232327','#9A9A93','ไม่มีงาน']}
+async function openStoreDetail(code){ const s=stores.find(x=>x.code===code)||{code}
+  showOverlay(ovHead('กำลังโหลด…','')+'<div style="padding:40px;text-align:center;color:#9A9A93">กำลังโหลดข้อมูลตรวจ + รูป/วิดีโอ…</div>',true)
+  const byCp=await fetchStoreMedia(code); const m=cur[code]||{}
+  const secBlock=(list,label)=>{ let inner='',any=false
+    list.forEach(([pn,nm])=>{ const cps=cpByPhase[pn]||[]; if(!cps.length) return; const done=cps.filter(c=>m[String(c.id)]).length; if(!done) return; any=true
+      inner+=`<div class="mt-3 mb-1 font-title-sm text-title-sm text-primary-container">${esc((cps[0]&&cps[0].phase_name)||nm)}</div>`
+      cps.forEach(c=>{ const e=m[String(c.id)]; const media=byCp[String(c.id)]||[]; const b=e?(STB[e.status]||['#232327','#9A9A93',e.status]):['#201f20','#67675F','ยังไม่ตรวจ']
+        inner+=`<div class="rounded-lg bg-surface-control p-3 mb-2"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><span class="font-data-mono text-[11px] text-ink-faint">${esc(c.no||'')}</span> <span class="font-body-sm text-body-sm text-ink-primary">${esc(c.label)}</span>${c.media==='video'?' <span title="บังคับวิดีโอ">🎥</span>':''}${e&&e.note?`<div class="font-label-micro text-label-micro text-ink-muted mt-1">📝 ${esc(e.note)}</div>`:''}${e?`<div class="font-label-micro text-label-micro text-ink-faint mt-1">ผู้ตรวจ ${esc(nameOf(e.by))} · ${e.created_at?fmtDate(e.created_at):''}</div>`:''}</div><span class="shrink-0 font-label-micro text-label-micro font-bold px-2 py-0.5 rounded" style="background:${b[0]};color:${b[1]}">${b[2]}</span></div>${media.length?`<div class="mt-2">${mediaTiles(media)}</div>`:''}</div>` }) })
+    return any?`<div class="font-label-caps text-label-caps text-ink-faint uppercase mt-4 mb-1">${label}</div>`+inner:'' }
+  const body=secBlock(PRECON,'Pre-Con')+secBlock(PHASES,'งานก่อสร้าง 9 งวด')+secBlock(SETUP_SECTIONS.map(x=>[x[0],x[1]]),'ตรวจรับ Set-Up')
+  showOverlay(ovHead(esc(s.name||code)+' <span style="font-family:monospace;font-size:12px;color:#9A9A93">('+esc(code)+')</span>',(esc(s.province||''))+(s.contractor?' · ผรม. '+esc(s.contractor):''))+`<div style="padding:16px;max-height:calc(100vh - 130px);overflow:auto">${body||'<div style="text-align:center;color:#9A9A93;padding:30px">ยังไม่มีข้อมูลการตรวจ</div>'}</div>`,true) }
+window._openStore=openStoreDetail
+async function openCheckpointSearch(){
+  showOverlay(ovHead('ค้นหารายข้อตรวจ (Checkpoints)','พิมพ์คำ เช่น "เทสน้ำ", "หลังคา", "วิดีโอ" แล้วเลือกข้อ → ดูว่าสาขาไหนทำ/ไม่ทำ + เล่นวิดีโอได้')+`<div style="padding:16px"><input id="cpSearchInp" placeholder="ค้นหาชื่อข้อตรวจ…" class="w-full h-11 px-3 rounded bg-surface-control text-ink-primary focus:outline-none" style="border:1px solid #2A2A2E"><div id="cpSearchRes" class="mt-3" style="max-height:calc(100vh - 220px);overflow:auto"></div></div>`,true)
+  const inp=$('cpSearchInp'), res=$('cpSearchRes')
+  const draw=()=>{ const q=(inp.value||'').trim().toLowerCase(); if(q.length<2){ res.innerHTML='<div class="text-ink-faint font-body-sm text-body-sm">พิมพ์อย่างน้อย 2 ตัวอักษร…</div>'; return }
+    const found=checkpoints.filter(c=>(c.label||'').toLowerCase().includes(q)||String(c.no||'').toLowerCase().includes(q)).slice(0,50)
+    res.innerHTML= found.length? found.map(c=>{ const ph=[...PRECON,...PHASES,...SETUP_SECTIONS].find(x=>x[0]===c.phase)
+      return `<button data-cp="${c.id}" class="w-full text-left rounded-lg bg-surface-control hover:bg-surface-elevated p-3 mb-2 flex items-center justify-between gap-2"><div class="min-w-0"><div class="font-body-sm text-body-sm text-ink-primary truncate">${esc(c.no||'')} ${esc(c.label)}${c.media==='video'?' <span style="color:#F5C518">🎥</span>':''}</div><div class="font-label-micro text-label-micro text-ink-faint">${ph?esc(ph[1]):('เฟส '+c.phase)}</div></div><span class="material-symbols-outlined text-ink-faint text-[18px]">chevron_right</span></button>` }).join('') : '<div class="text-ink-faint font-body-sm text-body-sm">ไม่พบข้อตรวจที่ค้นหา</div>'
+    res.querySelectorAll('[data-cp]').forEach(b=> b.onclick=()=>openCheckpointDetail(b.dataset.cp)) }
+  inp.oninput=draw; inp.focus() }
+window._cpSearch=openCheckpointSearch
+async function openCheckpointDetail(cpId){ const c=checkpoints.find(x=>String(x.id)===String(cpId))||{}
+  showOverlay(ovHead('กำลังโหลด…','')+'<div style="padding:40px;text-align:center;color:#9A9A93">กำลังโหลดสถานะ + สื่อทุกสาขา…</div>',true)
+  const {data:md}=await sb.from('media').select('inspection_id,checkpoint,path,thumb_path,kind,by').eq('checkpoint',cpId)
+  const media=md||[]; const inspById={}; insps.forEach(i=>inspById[i.id]=i); const byStore={}
+  if(media.length){ const paths=[...new Set(media.flatMap(x=>[x.path,x.thumb_path].filter(Boolean)))]; const url={}
+    for(let i=0;i<paths.length;i+=100){ const ch=paths.slice(i,i+100); const {data:us}=await sb.storage.from('media').createSignedUrls(ch,3600); (us||[]).forEach((u,j)=>{if(u&&u.signedUrl)url[ch[j]]=u.signedUrl}) }
+    media.forEach(m=>{ m.url=url[m.path]||''; m.turl=url[m.thumb_path]||m.url; const ins=inspById[m.inspection_id]; if(ins) (byStore[ins.store_code]||(byStore[ins.store_code]=[])).push(m) }) }
+  const relevant=stores.filter(s=>{ const e=(cur[s.code]||{})[String(cpId)]; return e||byStore[s.code]||s.cs.key==='building' })
+  const withStat=relevant.map(s=>({s,e:(cur[s.code]||{})[String(cpId)],media:byStore[s.code]||[]}))
+  const doneN=withStat.filter(x=>x.e).length, vidN=withStat.filter(x=>x.media.some(m=>m.kind==='video')).length
+  const rows=withStat.sort((a,b)=>(b.media.length-a.media.length)||((a.e?0:1)-(b.e?0:1))).map(({s,e,media})=>{ const b=e?(STB[e.status]||['#232327','#9A9A93',e.status]):['#201f20','#67675F','ยังไม่ตรวจ']
+    return `<div class="rounded-lg bg-surface-control p-3 mb-2"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><button onclick="window._openStore('${esc(s.code)}')" class="font-body-sm text-body-sm text-ink-primary font-bold truncate text-left hover:text-primary-container">${esc(s.name||s.code)} <span style="font-family:monospace;font-size:11px;color:#67675F">${esc(s.code)}</span></button>${e?`<div class="font-label-micro text-label-micro text-ink-faint">ผู้ตรวจ ${esc(nameOf(e.by))} · ${e.created_at?fmtDate(e.created_at):''}${e.note?' · '+esc(e.note):''}</div>`:'<div class="font-label-micro text-label-micro text-ink-faint">ยังไม่ได้ตรวจข้อนี้</div>'}</div><span class="shrink-0 font-label-micro text-label-micro font-bold px-2 py-0.5 rounded" style="background:${b[0]};color:${b[1]}">${b[2]}</span></div>${media.length?`<div class="mt-2">${mediaTiles(media)}</div>`:(c.media==='video'&&e?'<div class="mt-1 font-label-micro text-label-micro" style="color:#FF9F1C">⚠ ข้อนี้บังคับวิดีโอ แต่ยังไม่มีคลิป</div>':'')}</div>` }).join('')
+  showOverlay(ovHead(esc(c.no||'')+' '+esc(c.label||'ข้อตรวจ'),(c.media==='video'?'🎥 บังคับแนบวิดีโอ · ':'')+'ทำแล้ว '+doneN+'/'+relevant.length+' สาขา'+(vidN?' · มีวิดีโอ '+vidN+' สาขา':''))+`<div style="padding:16px;max-height:calc(100vh - 130px);overflow:auto">${rows||'<div style="text-align:center;color:#9A9A93;padding:30px">ไม่มีสาขาในขอบเขตข้อนี้</div>'}</div>`,true) }
+window._openCp=openCheckpointDetail
+
+// ============ VIEW 5 : REPORTS ============
+function _openSort(a,b){ const va=a.cs.days==null?99999:(a.cs.key==='opened'?90000+a.cs.days:a.cs.days); const vb=b.cs.days==null?99999:(b.cs.key==='opened'?90000+b.cs.days:b.cs.days); return va-vb }
+function renderReports(){
+  let all=stores.filter(passGlobal).map(s=>{ const sc=computeSetupScore(s.code); const conDone=[...PRECON,...PHASES].some(([p])=>phaseStat(s.code,p).done>0); return {s,sc,conDone,hasSetup:sc.doneItems>0} })
+  const anyN=all.filter(x=>x.conDone||x.hasSetup).length
+  let list=all.slice()
+  if(_rf==='inspected') list=list.filter(x=>x.conDone||x.hasSetup)
+  else if(_rf==='con') list=list.filter(x=>x.conDone)
+  else if(_rf==='setup') list=list.filter(x=>x.hasSetup)
+  else if(_rf==='fail') list=list.filter(x=>x.sc.failItems>0)
+  list.sort((a,b)=>cmpStore(a.s,b.s))
+  let h=pageHead('รายงาน (Reports)','ศูนย์รายงานทุกสาขา','เปิด/พิมพ์/บันทึก PDF ใบรับรองงานก่อสร้าง · ใบส่งมอบ Set-Up · ใบรายการงานต้องแก้ไข — เปิดในหน้าใหม่ พิมพ์ได้เลย')
+  const rfChips=[['inspected','มีข้อมูลตรวจ ('+anyN+')'],['con','ก่อสร้าง'],['setup','ตรวจรับ Set-Up'],['fail','มีงานต้องแก้'],['all','ทั้งหมด ('+stores.length+')']].map(x=>fchip('rf',x[0],_rf,x[1])).join('')
+  h+=filterBar({count:list.length,total:stores.length,chips:rfChips,chipLabel:'ประเภทใบ'})
+  h+=`<div class="bg-surface-card rounded-xl shadow-md overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">สาขา</th><th class="py-3 px-3">ผู้รับเหมา</th><th class="py-3 px-2 text-center">กำหนดเปิด</th><th class="py-3 px-3 text-center">ก่อสร้าง</th><th class="py-3 px-3 text-center">Set-Up</th><th class="py-3 px-3 text-center">งานที่ต้องแก้</th><th class="py-3 px-2 text-center">รายละเอียด</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
+  list.forEach(({s,sc,conDone,hasSetup})=>{ const dtxt=s.cs.days==null?'—':s.cs.key==='opened'?'เปิดแล้ว':(s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days); const dcol=s.cs.days!=null&&s.cs.days<=7&&s.cs.key!=='opened'?'#FF5C5C':s.cs.key==='opened'?'#7EE6B0':'#D9B84A'
+    const btn=(kind,label,color,on)=> on?`<button data-rep="${kind}" data-code="${esc(s.code)}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-control hover:bg-surface-elevated font-label-micro text-label-micro" style="color:${color}"><span class="material-symbols-outlined text-[15px]">picture_as_pdf</span>${label}</button>`:`<span class="font-label-micro text-label-micro text-ink-faint">—</span>`
+    h+=`<tr class="hover:bg-surface-elevated/30"><td class="py-2.5 px-4"><div data-store="${esc(s.code)}" class="font-title-sm text-[13px] font-bold truncate cursor-pointer hover:text-primary-container" style="max-width:200px" title="ดูรายละเอียดการตรวจทุกข้อ + รูป/วิดีโอ">${esc(s.name||s.code)}</div><div class="font-data-mono text-[10px] text-ink-faint">${esc(s.code)}${s.province?' · '+esc(s.province):''}</div></td>
+      <td class="py-2.5 px-3 font-body-sm text-[12px] text-ink-muted truncate" style="max-width:150px">${s.contractor?esc(s.contractor):'—'}</td>
+      <td class="py-2.5 px-2 text-center font-data-mono text-[12px] font-bold" style="color:${dcol}">${dtxt}</td>
+      <td class="py-2.5 px-3 text-center">${btn('con','ใบก่อสร้าง','#F5C518',conDone)}</td>
+      <td class="py-2.5 px-3 text-center">${btn('setup','ใบส่งมอบ','#7EE6B0',hasSetup)}</td>
+      <td class="py-2.5 px-3 text-center">${btn('punch','รายการแก้ไข','#FF5C5C',hasSetup&&sc.failItems>0)}</td>
+      <td class="py-2.5 px-2 text-center"><button data-store="${esc(s.code)}" class="inline-flex items-center justify-center w-8 h-8 rounded bg-surface-control hover:bg-surface-elevated text-ink-muted hover:text-primary-container" title="ดูรายข้อ + รูป/วิดีโอ"><span class="material-symbols-outlined text-[18px]">visibility</span></button></td></tr>` })
+  if(!list.length) h+=`<tr><td colspan="7" class="py-8 text-center text-ink-muted">ไม่พบสาขาในกลุ่มนี้ — ลองเปลี่ยนตัวกรอง</td></tr>`
+  h+=`</tbody></table></div></div>`
+  return h
 }
 
 function render(){
-  const toggle=`<div class="modebar"><b class="${_mode==='con'?'on':''}" data-m="con">🏗️ ก่อสร้าง</b><b class="${_mode==='setup'?'on':''}" data-m="setup">🏪 ตรวจรับ (Set-Up)</b><b class="${_mode==='report'?'on':''}" data-m="report">📄 รายงาน</b></div>`
-  if(_mode==='report') return renderReports(toggle)
-  if(_mode==='setup') return renderSetup(toggle)
-  const rows=_rows
-  const near=rows.filter(r=>r.days!=null&&r.days<=7&&!r.closed).length
-  const failStores=rows.filter(r=>r.fail>0).length, fails=rows.reduce((n,r)=>n+r.fail,0)
-  const build=rows.filter(r=>r.cs?true:true).length // building/active scoped
-  const done100=rows.filter(r=>r.done>=r.total&&r.fail===0).length
-  const cnt={idle:0,progress:0,fail:0,done:0}; rows.forEach(r=>cnt[dstt(r)]++)
-  const tot=rows.length||1
-  const on=f=>_filter===f?' on':''
-  const kpis=`<div class="kpis">
-    <div class="kpi${on('all')}" data-f="all"><div class="v" style="color:var(--build)">${rows.length}</div><div class="k">สาขากำลังก่อสร้าง</div></div>
-    <div class="kpi${on('fail')}" data-f="fail"><div class="v" style="color:var(--fail)">${failStores}</div><div class="k">สาขาต้องแก้${fails?' · '+fails+' จุด':''}</div></div>
-    <div class="kpi${on('near')}" data-f="near"><div class="v" style="color:var(--build)">${near}</div><div class="k">ใกล้เปิด ≤7 วัน</div></div>
-    <div class="kpi${on('done')}" data-f="done"><div class="v" style="color:var(--pass)">${done100}</div><div class="k">เสร็จ 100%</div></div>
+  $('hqNav').querySelectorAll('.navlink').forEach(a=>a.classList.toggle('on', a.dataset.view===_view))
+  let html=''
+  // search bar
+  html+=`<div class="mb-4"><div class="relative max-w-md"><span class="material-symbols-outlined absolute left-3 top-2.5 text-ink-muted text-[18px]">search</span><input id="hqSearch" value="${esc(_q)}" placeholder="ค้นหาสาขา / รหัส / จังหวัด / ผรม." class="w-full h-10 pl-9 pr-3 bg-surface-control rounded font-body-sm text-body-sm text-ink-primary placeholder:text-ink-faint focus:outline-none"></div></div>`
+  if(_view==='1') html+=renderOverview()
+  else if(_view==='2') html+=renderConstruction()
+  else if(_view==='3') html+=renderSetup()
+  else if(_view==='4') html+=renderContractor()
+  else if(_view==='5') html+=renderReports()
+  $('hqBody').innerHTML=html
+  const si=$('hqSearch'); if(si){ si.oninput=e=>{ _q=e.target.value.toLowerCase(); const p=si.selectionStart; render(); const n=$('hqSearch'); if(n){n.focus(); try{n.setSelectionRange(p,p)}catch(e){}} } }
+  const mc=$('cMatrixCsv'); if(mc) mc.onclick=exportMatrixCsv
+  const wp=$('cWeekPdf'); if(wp) wp.onclick=()=>window.print()
+  $('hqBody').querySelectorAll('[data-cf]').forEach(b=> b.onclick=()=>{ _cf=b.dataset.cf; render() })
+  $('hqBody').querySelectorAll('[data-rf]').forEach(b=> b.onclick=()=>{ _rf=b.dataset.rf; render() })
+  $('hqBody').querySelectorAll('[data-ov]').forEach(b=> b.onclick=()=>{ _ovStage=b.dataset.ov; render() })
+  $('hqBody').querySelectorAll('[data-sf]').forEach(b=> b.onclick=()=>{ _sf=b.dataset.sf; render() })
+  $('hqBody').querySelectorAll('[data-ctf]').forEach(b=> b.onclick=()=>{ _ctf=b.dataset.ctf; render() })
+  const bindSel=(id,fn)=>{ const e=$(id); if(e) e.onchange=()=>{ fn(e.value); render() } }
+  bindSel('fltTime',v=>_ft=v); bindSel('fltProv',v=>_fpv=v); bindSel('fltCtr',v=>_fct=v); bindSel('fltSort',v=>_sort=v); bindSel('fltCph',v=>_cph=v); bindSel('fltCtSort',v=>_ctSort=v)
+  const fclr=$('fltClear'); if(fclr) fclr.onclick=()=>{ _q='';_ft='all';_fpv='all';_fct='all';_sort='open';_ovStage='all';_cf='all';_cph='all';_sf='all';_ctf='all';_ctSort='score';_rf='inspected'; render() }
+  $('hqBody').querySelectorAll('[data-rep]').forEach(b=> b.onclick=()=>openReport(b.dataset.code, b.dataset.rep))
+  $('hqBody').querySelectorAll('[data-store]').forEach(b=> b.onclick=()=>openStoreDetail(b.dataset.store))
+}
+function exportMatrixCsv(){ const rows=conStores()
+  const head=['รหัส','สาขา','จังหวัด','ผู้รับเหมา'].concat(PHASES.map(([p])=>'P'+p)).concat(['คืบหน้า%'])
+  const lines=[head]
+  rows.forEach(s=>{ const line=[s.code,s.name||'',s.province||'',s.contractor||'']
+    PHASES.forEach(([p])=>{ const st=phaseStat(s.code,p); line.push(st.key==='pass'?'ผ่าน':st.key==='fail'?'ไม่ผ่าน':st.key==='progress'?(st.done+'/'+st.total):st.key==='fixed'?'รอตรวจซ้ำ':'-') })
+    const done=PHASES.filter(([p])=>phaseStat(s.code,p).key==='pass').length; line.push(Math.round(done/9*100))
+    lines.push(line) })
+  const csv='﻿'+lines.map(r=>r.map(c=>/[",\n]/.test(String(c))?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\r\n')
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='cjx_construction_matrix.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000) }
+$('hqNav').querySelectorAll('.navlink').forEach(a=> a.onclick=()=>{ _view=a.dataset.view; _q=''; window.scrollTo(0,0); render() })
+$('btnRefresh').onclick=async()=>{ $('teleState').textContent='SYNC…'; await loadAll(); $('teleState').textContent='LIVE'; render() }
+$('btnCpSearch').onclick=()=>openCheckpointSearch()
+
+function showLogin(msg){
+  $('hqBody').innerHTML=`<div style="max-width:380px;margin:6vh auto 0" class="bg-surface-card rounded-xl p-6 shadow-md">
+    <div class="flex items-center gap-2 mb-1"><div class="w-9 h-9 rounded bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-ink-on-yellow text-[22px]">lock</span></div><div><div class="font-title-md text-title-md">เข้าสู่ระบบ HQ</div><div class="font-label-micro text-label-micro text-ink-muted">ใช้บัญชีเดียวกับแอปตรวจงาน</div></div></div>
+    ${msg?`<div class="mt-3 p-2 rounded font-body-sm text-body-sm" style="background:#241416;color:#FF9B9B">${esc(msg)}</div>`:''}
+    <button id="hqGoogleBtn" type="button" class="flex items-center justify-center gap-3 w-full mt-4" style="height:48px;background:#fff;color:#0f172a;border-radius:10px;font-weight:700;font-size:14px;border:0;cursor:pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24Z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/></svg>
+      เข้าสู่ระบบด้วย Google (บัญชี CJ)
+    </button>
+    <div class="flex items-center gap-3 my-3"><span class="flex-1 h-px" style="background:#2A2A2E"></span><span class="font-label-micro text-label-micro text-ink-faint">หรือใช้อีเมล</span><span class="flex-1 h-px" style="background:#2A2A2E"></span></div>
+    <input id="hqEmail" type="email" placeholder="you@cjmart.co.th" autocomplete="username" class="w-full h-11 px-3 rounded bg-surface-control text-ink-primary focus:outline-none" style="border:1px solid #2A2A2E">
+    <input id="hqPass" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" class="w-full h-11 mt-2 px-3 rounded bg-surface-control text-ink-primary focus:outline-none" style="border:1px solid #2A2A2E">
+    <button id="hqLoginBtn" class="w-full h-11 mt-3 rounded bg-primary-container text-ink-on-yellow font-title-sm font-bold">เข้าสู่ระบบ</button>
+    <div class="mt-3 font-label-micro text-label-micro text-ink-faint">ถ้าล็อกอินในแอปตรวจงานบนเบราว์เซอร์นี้แล้ว จะเข้า HQ อัตโนมัติ</div>
   </div>`
-  const bar=['done','progress','fail','idle'].map(k=>cnt[k]?`<i style="width:${cnt[k]/tot*100}%;background:${DCOL[k]}"></i>`:'').join('')
-  const lg=[['done','เสร็จ'],['progress','กำลังตรวจ'],['fail','มีปัญหา'],['idle','ยังไม่เริ่ม']].map(([k,l])=>`<span><i style="background:${DCOL[k]}"></i>${l} ${cnt[k]}</span>`).join('')
-  $('body').innerHTML = toggle + kpis + `<div class="statusbar">${bar}</div><div class="lg">${lg}</div>`
-    + insightsHtml(false) + searchBarHtml() + viewSeg() + `<div id="listWrap">${_view==='topic'?topicListHtml('con'):conListHtml()}</div>`
-  $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
-  wireView(); wireSearch(); wireList(); wireMode(); wireInsights(); wireTopic()
+  const go=async()=>{ const em=$('hqEmail').value.trim(), pw=$('hqPass').value; if(!em||!pw) return
+    $('hqLoginBtn').textContent='กำลังเข้า…'; const {error}=await sb.auth.signInWithPassword({email:em,password:pw})
+    if(error){ showLogin('เข้าสู่ระบบไม่สำเร็จ: '+error.message); return } boot() }
+  $('hqLoginBtn').onclick=go
+  $('hqPass').onkeydown=e=>{ if(e.key==='Enter') go() }
+  $('hqGoogleBtn').onclick=async()=>{ $('hqGoogleBtn').style.opacity='.6'
+    const { error }=await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.href.split('#')[0], queryParams:{ hd:'cjmart.co.th', prompt:'select_account' } } })
+    if(error){ $('hqGoogleBtn').style.opacity='1'; showLogin('เข้าสู่ระบบ Google ไม่สำเร็จ: '+error.message) } }
 }
-function renderReports(toggle){
-  const byCode={}
-  _rows.forEach(r=>{ const b=byCode[r.code]||(byCode[r.code]={code:r.code,name:r.name,prov:r.prov,con:false,su:false}); b.con=true })
-  _suRows.forEach(r=>{ const b=byCode[r.code]||(byCode[r.code]={code:r.code,name:r.name,prov:r.prov,con:false,su:false}); b.su=true })
-  const all=Object.values(byCode)
-  function rowsHtml(){ const q=_q.trim().toLowerCase()
-    let list=all.filter(x=>!q||[x.name,x.code,x.prov].some(v=>(v||'').toLowerCase().includes(q)))
-    list.sort((a,b)=>(''+a.code).localeCompare(''+b.code))
-    return list.length?list.map(x=>`<tr><td><span class="stname">${esc(x.name)}</span><div class="stmeta"><span class="cd">${esc(x.code)}</span>${x.prov?' · '+esc(x.prov):''}</div></td>
-      <td class="c">${x.con?`<button class="tbtn rpt" data-code="${esc(x.code)}" data-rm="con">🏗️ ก่อสร้าง</button>`:'<span style="color:var(--faint)">—</span>'}</td>
-      <td class="c">${x.su?`<button class="tbtn rpt" data-code="${esc(x.code)}" data-rm="setup">🏪 ตรวจรับ</button>`:'<span style="color:var(--faint)">—</span>'}</td></tr>`).join('')
-      :`<tr><td colspan="3" class="empty">${_q?'ไม่พบสาขา':'ยังไม่มีสาขาที่มีข้อมูลตรวจ'}</td></tr>` }
-  function wireRpt(){ document.querySelectorAll('#repRows .rpt').forEach(b=>b.onclick=()=>genReport(b.dataset.code,b.dataset.rm)) }
-  const hub=`
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:16px">
-      <div class="inscard"><div style="font-weight:800;font-size:14px">🏢 รายงานประเมินผู้รับเหมา (ผรม.)</div><div style="font-size:12px;color:var(--mut);margin:5px 0 12px">สรุปผลงานก่อสร้างรายบริษัท · จำนวนสาขา · จุดไม่ผ่าน · คะแนนตรวจรับเฉลี่ย</div><button class="tbtn" id="repDoContractor" style="width:100%;padding:11px;font-weight:800">เปิดรายงาน →</button></div>
-      <div class="inscard"><div style="font-weight:800;font-size:14px">🔧 รายงานปัญหางานตรวจรับ (Set-Up)</div><div style="font-size:12px;color:var(--mut);margin:5px 0 12px">จุดที่ “ไม่ผ่าน” บ่อยสุด · ใช้เตรียมก่อนไปตรวจงาน</div><button class="tbtn" id="repDoProblem" style="width:100%;padding:11px;font-weight:800">เปิดรายงาน →</button></div>
-    </div>
-    <div class="tablewrap"><div class="thead"><div class="tt">🧾 ใบตรวจรับ / ใบรับรอง รายสาขา</div></div>
-      ${searchBarHtml()}
-      <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th class="c">งานก่อสร้าง</th><th class="c">ตรวจรับ Set-Up</th></tr></thead><tbody id="repRows">${rowsHtml()}</tbody></table></div></div>`
-  $('body').innerHTML = toggle + hub
-  wireMode()
-  $('repDoContractor').onclick=genContractorReport
-  $('repDoProblem').onclick=genSetupProblemReport
-  const q=$('q'); if(q) q.oninput=e=>{ _q=e.target.value; const x=$('qx'); if(x)x.style.display=_q?'flex':'none'; const rr=$('repRows'); if(rr){ rr.innerHTML=rowsHtml(); wireRpt() } }
-  const qx=$('qx'); if(qx) qx.onclick=()=>{ _q=''; const qq=$('q'); if(qq){qq.value='';qq.focus()} qx.style.display='none'; const rr=$('repRows'); if(rr){ rr.innerHTML=rowsHtml(); wireRpt() } }
-  wireRpt()
+async function boot(){
+  let user=null; try{ const r=await sb.auth.getUser(); user=r.data&&r.data.user }catch(e){}
+  if(!user){ showLogin(''); return }
+  $('hqBody').innerHTML='<div class="text-ink-muted" style="padding:40px 0;text-align:center">กำลังโหลดข้อมูล HQ…</div>'
+  try{ await loadAll() }catch(e){ $('hqBody').innerHTML=`<div class="text-status-fail p-8">โหลดข้อมูลไม่สำเร็จ: ${esc(e.message||e)}</div>`; return }
+  if(!stores.length){ showLogin('บัญชีนี้ไม่มีสิทธิ์อ่านข้อมูล หรือยังไม่มีสาขา — ลองบัญชีหัวหน้า/แอดมิน'); return }
+  $('hdrName').textContent = (user.email||'HQ')
+  $('hdrEmail').textContent = (user.email||'')
+  $('hdrOnline').textContent='ONLINE · '+stores.length+' สาขา · '+profiles.length+' ผู้ใช้'
+  const um=$('hdrMenu'); $('hdrUser').onclick=e=>{ e.stopPropagation(); um.hidden=!um.hidden }
+  document.addEventListener('click',e=>{ if(um&&!um.hidden&&!e.target.closest('#hdrUser')&&!e.target.closest('#hdrMenu')) um.hidden=true })
+  $('hqLogout').onclick=async()=>{ $('hqLogout').textContent='กำลังออก…'; try{ await sb.auth.signOut() }catch(e){} location.reload() }
+  render()
 }
-function conListHtml(){
-  let list=[..._rows]
-  if(_q){ const q=_q.trim().toLowerCase(); list=list.filter(r=>[r.name,r.code,r.prov,r.contractor].some(v=>(v||'').toLowerCase().includes(q))) }
-  if(_filter==='fail') list=list.filter(r=>r.fail>0)
-  else if(_filter==='near') list=list.filter(r=>r.days!=null&&r.days<=7&&!r.closed)
-  else if(_filter==='done') list=list.filter(r=>r.done>=r.total&&r.fail===0)
-  list.sort((a,b)=>(b.fail-a.fail)||((a.days==null?9999:a.days)-(b.days==null?9999:b.days)))
-  const rowsHtml = list.length ? list.map(r=>{ const st=dstt(r); const c=DCOL[st]
-    return `<tr class="clk" data-code="${esc(r.code)}">
-      <td><span class="dot" style="background:${c}"></span><span class="stname">${esc(r.name)}</span><div class="stmeta"><span class="cd">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}</div></td>
-      <td class="hidecol">${r.contractor?esc(r.contractor):'<span style="color:var(--faint)">—</span>'}</td>
-      <td><span class="days" style="color:${r.days!=null&&r.days<=7?'var(--fail)':'var(--build)'}">${r.days!=null?r.days:'–'}</span> <span style="color:var(--faint);font-size:11px">วัน</span></td>
-      <td class="hidecol">งวด ${r.phase||'-'}</td>
-      <td><span class="bar"><i style="width:${r.pct}%;background:${c}"></i></span><span class="pct" style="color:${c}">${r.pct}%</span></td>
-      <td class="num">${r.done}/${r.total}</td>
-      <td class="num">${r.fail?`<span class="fail">${r.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
-      <td class="hidecol" style="color:var(--mut);font-size:11.5px">${r.last?esc(_names[r.last.by]||'—')+'<br>'+fmtDate(r.last.at):'—'}</td>
-    </tr>`}).join('') : `<tr><td colspan="8" class="empty">${(_q||_filter!=='all')?'ไม่พบสาขาที่ตรงเงื่อนไข':'ยังไม่มีสาขา'}</td></tr>`
-  const flab=_filter!=='all'?' · กรอง':''
-  return `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา${flab}</div><div style="display:flex;gap:10px;align-items:center">${_filter!=='all'?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
-     <div style="overflow-x:auto"><table><thead><tr><th>สาขา</th><th class="hidecol">ผรม.</th><th>เปิดใน</th><th class="hidecol">งวดล่าสุด</th><th>ความคืบหน้า</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol">อัปเดตล่าสุด</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
-}
-function wireMode(){ document.querySelectorAll('.modebar b[data-m]').forEach(b=>b.onclick=()=>{ _mode=b.dataset.m; _filter='all'; _q=''; render() }) }
-
-// ===== Insights (ข้อมูลเชิงลึก) =====
-function curOfStore(code){ const cur={}; (_evsByStore[code]||[]).forEach(e=>{ const p=cur[e.checkpoint]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[e.checkpoint]=e }); return cur }
-function topFails(setup){ const cnt={}, st={}
-  Object.keys(_evsByStore).forEach(code=>{ const cur=curOfStore(code)
-    Object.keys(cur).forEach(cid=>{ const cp=_cpMap[cid]; if(!cp) return; const isSu=cp.phase>=201&&cp.phase<=208; if(setup!==isSu) return
-      if(cur[cid].status==='fail'){ cnt[cid]=(cnt[cid]||0)+1; (st[cid]||(st[cid]=new Set())).add(code) } }) })
-  return Object.keys(cnt).map(cid=>({cp:_cpMap[cid],n:cnt[cid],stores:st[cid].size})).sort((a,b)=>b.n-a.n).slice(0,7)
-}
-function contractorSummary(){ const m={}
-  _rows.forEach(r=>{ const c=r.contractor||'— ไม่ระบุ —'; const a=m[c]||(m[c]={n:0,fail:0,pctSum:0}); a.n++; a.fail+=r.fail; a.pctSum+=r.pct })
-  return Object.keys(m).map(c=>({name:c,n:m[c].n,fail:m[c].fail,avgPct:Math.round(m[c].pctSum/m[c].n)})).sort((a,b)=>b.fail-a.fail||b.n-a.n).slice(0,7)
-}
-function insRows(items, render){ return items.length? items.map((x,i)=>render(x,i)).join('') : '<div class="insempty">— ยังไม่มีข้อมูล —</div>' }
-function insightsHtml(setup){
-  const tf=topFails(setup); const maxN=Math.max(1,...tf.map(x=>x.n))
-  const left=`<div class="inscard"><div class="inst"><span>🔧 จุดที่ไม่ผ่านบ่อยสุด</span>${setup?'<span class="insrep" id="repSetupProb">รายงานปัญหา →</span>':''}</div><div class="inssub">นับสาขาที่ข้อนี้กำลัง “ไม่ผ่าน” — ${setup?'งานตรวจรับ':'งานก่อสร้าง'}</div>`+
-    insRows(tf,(x,i)=>`<div class="insrow"><span class="rk">${i+1}</span><span class="lbl">${esc(x.cp.label)}${x.cp.phase_name?` <small>· ${esc((x.cp.phase_name||'').replace('ตรวจรับ · ',''))}</small>`:''}</span><span class="insbar"><i style="width:${x.n/maxN*100}%;background:var(--fail)"></i></span><span class="cnt" style="color:var(--fail)">${x.n}</span></div>`)+`</div>`
-  let right
-  if(setup){ const rows=[..._suRows].filter(r=>r.done>0).sort((a,b)=>a.curPct-b.curPct).slice(0,7); const gc=g=>gradeColor(g)
-    right=`<div class="inscard"><div class="inst">⚠ สาขาคะแนนตรวจรับต่ำสุด</div><div class="inssub">คิดจากข้อที่ตรวจแล้ว · ควรตามงานก่อน</div>`+
-      insRows(rows,(r)=>`<div class="insrow"><span class="lbl">${esc(r.name)} <small>· ${r.fail} ไม่ผ่าน</small></span><span class="insbar"><i style="width:${r.curPct}%;background:${gc(r.curGrade)}"></i></span><span class="cnt" style="color:${gc(r.curGrade)}">${r.curPct.toFixed(0)}</span></div>`)+`</div>`
-  } else { const cs=contractorSummary(); const maxF=Math.max(1,...cs.map(x=>x.fail))
-    right=`<div class="inscard"><div class="inst"><span>🏢 สรุปตามผู้รับเหมา (ผรม.)</span><span class="insrep" id="repContractor">รายงานประเมิน →</span></div><div class="inssub">จำนวนสาขา · จุดที่ต้องแก้ · ความคืบหน้าเฉลี่ย</div>`+
-      insRows(cs,(x)=>`<div class="insrow"><span class="lbl">${esc(x.name)} <small>· ${x.n} สาขา · เฉลี่ย ${x.avgPct}%</small></span><span class="insbar"><i style="width:${x.fail/maxF*100}%;background:var(--fail)"></i></span><span class="cnt" style="color:${x.fail?'var(--fail)':'var(--faint)'}">${x.fail}</span></div>`)+`</div>`
-  }
-  return `<div class="ins">${left}${right}</div>`
-}
-function exportCSV(setup){
-  const rows=setup?_suRows:_rows
-  const head=setup?['รหัส','สาขา','จังหวัด','เกรด','คะแนน','ตรวจ','เต็ม','ไม่ผ่าน','ซัพหลัก%','ซัพย่อย%','เปิดในกี่วัน','เซ็นรับ']
-    :['รหัส','สาขา','จังหวัด','ผรม.','งวดล่าสุด','คืบหน้า%','ตรวจ','เต็ม','ไม่ผ่าน','เปิดในกี่วัน']
-  const line=a=>a.map(v=>{ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s }).join(',')
-  const body=rows.map(r=>setup
-    ? line([r.code,r.name,r.prov,r.done?r.curGrade:'',r.done?r.curPct.toFixed(0):'',r.done,r.total,r.fail,r.mainPct.toFixed(0),r.subPct.toFixed(0),r.days==null?'':r.days,r.signed?'เซ็นแล้ว':''])
-    : line([r.code,r.name,r.prov,r.contractor,r.phase||'',r.pct,r.done,r.total,r.fail,r.days==null?'':r.days]))
-  const csv='﻿'+line(head)+'\n'+body.join('\n')
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob)
-  const a=document.createElement('a'); const d=new Date(),p=n=>String(n).padStart(2,'0')
-  a.href=url; a.download=`CJX_${setup?'ตรวจรับ':'ก่อสร้าง'}_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.csv`
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000)
-}
-async function openDetail(code){
-  const s=_storeMap[code]||{code}; const evsAll=_evsByStore[code]||[]
-  const cur={}; evsAll.forEach(e=>{ const p=cur[e.checkpoint]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[e.checkpoint]=e })
-  let ov=$('detOv'); if(!ov){ ov=document.createElement('div'); ov.id='detOv'; ov.className='detov'; document.body.appendChild(ov); ov.onclick=e=>{ if(e.target===ov) ov.remove() } }
-  ov.innerHTML=`<div class="detcard"><div class="deth"><div><div class="detn">${esc(s.name||code)}</div><div class="detm">${esc(code)}${s.province?' · '+esc(s.province):''}${s.contractor?' · '+esc(s.contractor):''}</div></div><div style="display:flex;gap:8px;align-items:center"><button class="repbtn" id="detReport">🧾 ใบตรวจรับ</button><div class="detx" id="detClose">✕</div></div></div><div class="detbody" id="detBody"><div class="spin">กำลังโหลด…</div></div></div>`
-  $('detClose').onclick=()=>ov.remove()
-  $('detReport').onclick=()=>genReport(code)
-  const ids=_inspByStore[code]||[]; const mByCp={}
-  if(ids.length){ const {data:m}=await sb.from('media').select('checkpoint,path,thumb_path').in('inspection_id',ids)
-    if(m&&m.length){
-      const {data:fu}=await sb.storage.from('media').createSignedUrls(m.map(x=>x.path),3600)
-      const {data:tu}=await sb.storage.from('media').createSignedUrls(m.map(x=>x.thumb_path||x.path),3600)
-      m.forEach((x,i)=>{ (mByCp[x.checkpoint]||(mByCp[x.checkpoint]=[])).push({full:(fu&&fu[i]&&fu[i].signedUrl)||'', thumb:(tu&&tu[i]&&tu[i].signedUrl)||''}) }) } }
-  const inMode = _mode==='setup' ? (p=>p>=201&&p<=208) : (p=>p<200)   // detail แยกตามโหมด (Set-Up เห็นแต่ตรวจรับ)
-  const phases=[...new Set(_cps.map(c=>c.phase))].filter(inMode).sort((a,b)=>a-b)
-  // แยกเป็น ต้องแก้(fail/fixed) กับ ผ่านแล้ว — สรุปเป็นข้อ ไม่โชว์รูปรก
-  let totPass=0, totFail=0, totFix=0
-  const failItems=[], passByPhase={}
-  phases.forEach(ph=>{
-    const items=_cps.filter(c=>c.phase===ph).sort((a,b)=>(a.sort||0)-(b.sort||0))
-    const pn=(items[0]&&items[0].phase_name)||('งวด '+ph)
-    items.forEach(c=>{ const e=cur[String(c.id)]; if(!e) return
-      if(e.status==='pass'){ totPass++; (passByPhase[pn]||(passByPhase[pn]=[])).push(c) }
-      else if(e.status==='fail'){ totFail++; failItems.push({c,e,pn}) }
-      else if(e.status==='fixed'){ totFix++; failItems.push({c,e,pn}) } })
-  })
-  _detImgs=[]
-  let html=`<div class="detsum"><b style="color:var(--pass)">✓ ผ่าน ${totPass}</b>${totFail?` · <b style="color:var(--fail)">✕ ไม่ผ่าน ${totFail}</b>`:''}${totFix?` · <b style="color:var(--build)">🔧 รอตรวจซ้ำ ${totFix}</b>`:''}</div>`
-  if(failItems.length){
-    html+=`<div class="detgrp gfail"><div class="detgh" style="color:var(--fail)">🔴 งานที่ต้องแก้ / ไม่ผ่าน (${failItems.length} ข้อ)</div>`
-    html+=failItems.map(({c,e,pn})=>{ const ps=mByCp[String(c.id)]||[]
-      const thumbs=ps.map(p=>{ _detImgs.push(p.full||p.thumb); return `<img class="dthumb" src="${p.thumb||p.full}" data-i="${_detImgs.length-1}">` }).join('')
-      const tag=e.status==='fixed'?'<span class="dtag fx">CM แก้แล้ว·รอตรวจซ้ำ</span>':'<span class="dtag fl">ไม่ผ่าน</span>'
-      return `<div class="ditem"><div class="ditl">${c.no?`<b>${esc(c.no)}</b> `:''}${esc(c.label)} ${tag}</div><div class="dph">${esc(pn)}</div>${e.note?`<div class="dnote">✕ ${esc(e.note)}</div>`:''}${thumbs?`<div class="dfph">${thumbs}</div>`:''}</div>`
-    }).join('')
-    html+=`</div>`
-  }
-  if(totPass){
-    html+=`<details class="detgrp gpass"${failItems.length?'':' open'}><summary class="detgh" style="color:var(--pass)">✅ ผ่านแล้ว (${totPass} ข้อ) — แตะดูรายการ</summary>`
-    html+=Object.keys(passByPhase).map(pn=>`<div class="dpass"><div class="dpassh">${esc(pn)} · ${passByPhase[pn].length} ข้อ</div>`
-      + passByPhase[pn].map(c=>{ const ps=mByCp[String(c.id)]||[]
-          const thumbs=ps.map(p=>{ _detImgs.push(p.full||p.thumb); return `<img class="dthumb" src="${p.thumb||p.full}" data-i="${_detImgs.length-1}">` }).join('')
-          return `<div class="dpi">✓ ${c.no?esc(c.no)+' ':''}${esc(c.label)}${thumbs?`<div class="dfph">${thumbs}</div>`:''}</div>` }).join('')+`</div>`).join('')
-    html+=`</details>`
-  }
-  $('detBody').innerHTML = (totPass||failItems.length) ? html : '<div class="spin">ยังไม่มีการตรวจในสาขานี้</div>'
-  $('detBody').querySelectorAll('.dthumb').forEach(im=> im.onclick=()=>openDetLb(+im.dataset.i))
-}
-function openDetLb(i){ _detLbI=i
-  let lb=$('detLb')
-  if(!lb){ lb=document.createElement('div'); lb.id='detLb'; lb.className='detlb'
-    lb.innerHTML=`<span class="dlbx">✕</span><span class="dlbnav prev">‹</span><img id="detLbImg"><span class="dlbnav next">›</span>`
-    document.body.appendChild(lb)
-    lb.onclick=e=>{ if(e.target===lb) lb.style.display='none' }
-    lb.querySelector('.dlbx').onclick=()=>{ lb.style.display='none' }
-    lb.querySelector('.prev').onclick=e=>{ e.stopPropagation(); _detLbI=(_detLbI-1+_detImgs.length)%_detImgs.length; $('detLbImg').src=_detImgs[_detLbI] }
-    lb.querySelector('.next').onclick=e=>{ e.stopPropagation(); _detLbI=(_detLbI+1)%_detImgs.length; $('detLbImg').src=_detImgs[_detLbI] }
-  }
-  lb.style.display='flex'; $('detLbImg').src=_detImgs[i]||''
-}
-function renderSetup(toggle){
-  const rows=_suRows
-  const graded=rows.filter(r=>r.done>0)
-  const inProg=rows.filter(r=>r.done>0&&!(r.allDone&&r.fail===0)).length
-  const failStores=rows.filter(r=>r.fail>0).length
-  const passStores=rows.filter(r=>r.allDone&&r.fail===0&&r.done>0).length
-  const avg=graded.length?Math.round(graded.reduce((n,r)=>n+r.curPct,0)/graded.length):0
-  const on=f=>_filter===f?' on':''
-  const kpis=`<div class="kpis">
-    <div class="kpi${on('progress')}" data-f="progress"><div class="v" style="color:var(--build)">${inProg}</div><div class="k">กำลังตรวจรับ</div></div>
-    <div class="kpi${on('fail')}" data-f="fail"><div class="v" style="color:var(--fail)">${failStores}</div><div class="k">มีจุดไม่ผ่าน</div></div>
-    <div class="kpi${on('done')}" data-f="done"><div class="v" style="color:var(--pass)">${passStores}</div><div class="k">ผ่านครบ</div></div>
-    <div class="kpi kpiflat"><div class="v" style="color:var(--y)">${avg}</div><div class="k">คะแนนเฉลี่ย /100</div></div>
-  </div>`
-  $('body').innerHTML = toggle + kpis + insightsHtml(true) + searchBarHtml() + viewSeg() + `<div id="listWrap">${_view==='topic'?topicListHtml('setup'):setupListHtml()}</div>`
-  $('body').querySelectorAll('.kpi[data-f]').forEach(k=>k.onclick=()=>{ const f=k.dataset.f; _filter=(_filter===f?'all':f); render() })
-  wireView(); wireSearch(); wireList(); wireMode(); wireInsights(); wireTopic()
-}
-function setupListHtml(){
-  let list=[..._suRows]
-  if(_q){ const q=_q.trim().toLowerCase(); list=list.filter(r=>[r.name,r.code,r.prov].some(v=>(v||'').toLowerCase().includes(q))) }
-  if(_filter==='progress') list=list.filter(r=>r.done>0&&!(r.allDone&&r.fail===0))
-  else if(_filter==='fail') list=list.filter(r=>r.fail>0)
-  else if(_filter==='done') list=list.filter(r=>r.allDone&&r.fail===0&&r.done>0)
-  list.sort((a,b)=>(b.fail-a.fail)||((a.days==null?9999:a.days)-(b.days==null?9999:b.days)))
-  const rowsHtml=list.length?list.map(r=>{ const gc=r.done?gradeColor(r.curGrade):'var(--faint)'
-    return `<tr class="clk" data-code="${esc(r.code)}">
-      <td><span class="gradeb" style="color:${gc};border-color:${gc}55">${r.done?r.curGrade:'—'}</span><span class="stname">${esc(r.name)}</span><div class="stmeta"><span class="cd">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}${r.done&&!r.allDone?' · <span style="color:var(--build)">ตรวจ '+Math.round(r.done/r.total*100)+'%</span>':''}</div></td>
-      <td><span class="days" style="color:${r.days!=null&&r.days<=7?'var(--fail)':'var(--build)'}">${r.days!=null?r.days:'–'}</span> <span style="color:var(--faint);font-size:11px">วัน</span></td>
-      <td><span class="pct" style="color:${gc}">${r.done?r.curPct.toFixed(0):'–'}</span><span style="color:var(--faint);font-size:11px">/100</span></td>
-      <td class="num">${r.done}/${r.total}</td>
-      <td class="num">${r.fail?`<span class="fail">${r.fail}</span>`:'<span style="color:var(--faint)">0</span>'}</td>
-      <td class="hidecol num" style="font-size:11.5px"><span style="color:var(--main)">หลัก ${r.mainPct.toFixed(0)}%</span> · <span style="color:var(--sub)">ย่อย ${r.subPct.toFixed(0)}%</span></td>
-      <td class="hidecol">${r.signed?'<span style="color:var(--pass);font-weight:700">เซ็นแล้ว ✓</span>':'<span style="color:var(--faint)">—</span>'}</td>
-    </tr>`}).join(''):`<tr><td colspan="7" class="empty">${(_q||_filter!=='all')?'ไม่พบสาขาที่ตรงเงื่อนไข':'ยังไม่มีสาขาตรวจรับ'}</td></tr>`
-  const flab={progress:'กำลังตรวจรับ',fail:'มีจุดไม่ผ่าน',done:'ผ่านครบ'}[_filter]||''
-  return `<div class="tablewrap"><div class="thead"><div class="tt">รายสาขา · ตรวจรับ${flab?' · '+flab:''}</div><div style="display:flex;gap:10px;align-items:center">${flab?'<div class="flab" id="clr">✕ ล้างตัวกรอง</div>':''}<button class="tbtn" id="expBtn" style="padding:6px 12px;font-size:12px">⬇ CSV</button></div></div>
-     <div style="overflow-x:auto"><table><thead><tr><th>สาขา · เกรด</th><th>เปิดใน</th><th>คะแนน</th><th class="num">ตรวจ</th><th class="num">ไม่ผ่าน</th><th class="hidecol num">แยกซัพ</th><th class="hidecol">รับร้าน</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`
-}
-// ====== ใบตรวจรับ / รายงาน (เปิดแท็บใหม่ → พิมพ์/เซฟ PDF) ======
-const nameOf=u=>u&&_names[u]?_names[u]:'—'
-const rStatusTxt=s=>s==='pass'?'ผ่าน':s==='fail'?'ไม่ผ่าน':s==='fixed'?'CM แก้แล้ว · รอตรวจซ้ำ':s==='na'?'ไม่มีงานนี้':'ยังไม่ตรวจ'
-const rStatusCol=s=>s==='pass'?'#137a43':s==='fail'?'#c0392b':s==='fixed'?'#b06a00':s==='na'?'#777':'#999'
-const SETUP_SEC=[[201,'หมวด 1 · ป้ายไฟ / Tower Sign',5],[202,'หมวด 2 · ภายนอกร้าน',10],[203,'หมวด 3 · พื้นที่ขาย',30],[204,'หมวด 4 · พื้นที่สต๊อก',30],[205,'หมวด 5 · ห้องผู้จัดการ',5],[206,'หมวด 6 · ห้องน้ำ',10],[207,'หมวด 7 · จุดซักล้าง',5],[208,'หมวด 8 · ประปา/สุขาภิบาล',5]]
-function rSetupCmName(sgs){ const ho=(sgs||[]).find(x=>x.scope==='store'&&x.kind==='handover'&&x.by); if(ho) return nameOf(ho.by)
-  const cm=(sgs||[]).filter(x=>x.kind==='sign_cm'&&x.by); if(cm.length) return nameOf(cm.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)).by); return null }
-function rSetupScore(cur){
-  let total=0,gotMain=0,maxMain=0,gotSub=0,maxSub=0,doneItems=0,failItems=0,fixedItems=0,totalItems=0,wDecided=0
-  const sections=SETUP_SEC.map(([ph,name,weight])=>{ const items=_setupCps.filter(c=>c.phase===ph)
-    const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1; let earned=0,done=0,fail=0,fixed=0
-    items.forEach(c=>{ const w=(+c.points||1)/raw*weight, isSub=c.supplier==='ซัพย่อย'
-      if(isSub)maxSub+=w; else maxMain+=w; totalItems++
-      const e=cur[String(c.id)]; if(e){ done++;doneItems++
-        if(e.status==='fail'){fail++;failItems++;wDecided+=w} else if(e.status==='fixed'){fixed++;fixedItems++;wDecided+=w}
-        else if(e.status==='pass'){earned+=w;wDecided+=w; if(isSub)gotSub+=w; else gotMain+=w} } })
-    total+=earned; return {ph,name,weight,earned,done,fail,fixed,total:items.length} })
-  const curPct=wDecided>0?total/wDecided*100:0
-  return {total,grade:setupGrade(total),curPct,curGrade:setupGrade(curPct),sections,doneItems,totalItems,failItems,fixedItems,
-    mainPct:maxMain?gotMain/maxMain*100:0, subPct:maxSub?gotSub/maxSub*100:0, allDone:doneItems===totalItems&&totalItems>0}
-}
-const R_CSS=`*{box-sizing:border-box}body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#222;margin:0 auto;padding:22px 26px;font-size:13px;line-height:1.5;background:#fff;max-width:920px}
-.rnav{position:sticky;top:0;z-index:5;display:flex;gap:8px;flex-wrap:wrap;background:#fff;padding:10px 0;margin-bottom:8px;border-bottom:1px solid #eee}
-.rnav a{font-size:12.5px;font-weight:700;color:#444;background:#f1f1f1;border:1px solid #e2e2e2;border-radius:99px;padding:7px 14px;text-decoration:none}
-.rnav a:hover{background:#F5C518;color:#1a1500;border-color:#F5C518}
-#r-sum,#r-fail,#r-detail,#r-sign{scroll-margin-top:64px}
-.cert{border:2px solid #F5C518;border-radius:14px;padding:22px 24px;margin-bottom:22px}.cert.su{border-color:#37A06B}
-.brand{font-weight:800;font-size:15px;letter-spacing:1px;color:#111}.brand b{color:#E0A800}
-h1{font-size:21px;margin:6px 0 12px}.site{font-size:18px;font-weight:800}.site span{color:#888;font-weight:600;font-size:14px}
-.scope{color:#555;margin:2px 0 14px}
-.verdict{display:inline-block;font-weight:800;font-size:15px;padding:9px 16px;border-radius:10px}
-.verdict.p{background:#e6f7ee;color:#137a43;border:1px solid #9ad9b8}.verdict.f{background:#fdeeee;color:#c0392b;border:1px solid #e6b0b0}
-.scorebox{display:flex;align-items:center;gap:20px;background:#f2fbf6;border:1px solid #bfe6d0;border-radius:12px;padding:16px 20px;margin:6px 0}
-.scorebox .g{font-size:46px;font-weight:800;color:#137a43;min-width:56px;text-align:center}.scorebox.f .g{color:#c0392b}
-.scorebox .num{font-size:20px;font-weight:800}.scorebox .sub{color:#555;font-size:12.5px}
-.split{display:flex;gap:10px;margin:10px 0}.split div{flex:1;border-radius:9px;padding:9px 12px;font-size:12.5px;font-weight:700}
-.split .m{background:#eef4ff;border:1px solid #cdddff;color:#2d5bb8}.split .y{background:#fff6e8;border:1px solid #f0dcae;color:#a5701a}
-.issued{color:#777;font-size:12px;margin-top:12px}
-.failbox{border:1.5px solid #e6b0b0;background:#fdf5f5;border-radius:12px;padding:14px 16px;margin-bottom:22px}
-.failh{font-weight:800;font-size:14px;color:#c0392b;margin-bottom:10px}
-.fitem{padding:9px 0;border-top:1px solid #f0d5d5}.fitem:first-of-type{border-top:0}
-.fhd{font-weight:700;font-size:12.5px;color:#333}.fno{color:#c0392b;font-weight:800;margin-right:4px}.fph{color:#999;font-weight:600;font-size:11px}
-.ftag{font-size:10px;font-weight:800;color:#c0392b;background:#fdeaea;border-radius:5px;padding:1px 7px;margin-left:4px}.ftag.fx{color:#a5701a;background:#fff6e8}
-.fnt{color:#b06a00;font-size:11.5px;margin:3px 0}.fimgs img{width:150px;height:150px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #e0b0b0}.fnoimg{color:#c0392b;font-size:11px}
-h2{font-size:15px;margin:24px 0 8px;padding-bottom:6px;border-bottom:2px solid #eee;page-break-after:avoid}
-.okpill{font-size:11px;font-weight:700;color:#137a43;background:#e6f7ee;border-radius:99px;padding:2px 9px;float:right}
-table{width:100%;border-collapse:collapse;margin-bottom:8px}th{background:#f4f4f4;text-align:left;font-size:11px;color:#555;padding:7px 8px;border:1px solid #e2e2e2}
-td{padding:7px 8px;border:1px solid #e8e8e8;vertical-align:top;font-size:12px}td.st{font-weight:800;white-space:nowrap;width:74px}td.mt{color:#666;font-size:11px;width:118px}
-td.im{width:320px}td.im img{width:150px;height:150px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #ddd}
-.grp{background:#fafafa;font-weight:800;color:#444;font-size:11.5px}.nt{color:#b06a00;font-size:11px;margin-top:3px}
-.sign{display:flex;gap:24px;margin-top:40px;page-break-inside:avoid}.sign>div{flex:1;text-align:center;font-size:12px;color:#555}
-.sign img{max-height:60px;max-width:92%;object-fit:contain;display:block;margin:0 auto 2px}.sign .sigsp{height:48px}
-.sign .slab{border-top:1px solid #999;padding-top:6px;margin:0 8px;font-weight:700;color:#333}.sign .sby{font-size:10px;color:#888;margin-top:4px}
-.noprint{margin-bottom:16px}.noprint button{background:#F5C518;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
-.iw{position:relative;display:inline-block;margin:2px;vertical-align:top;max-width:100%}.iw img{display:block;max-width:100%}
-.iw .dl{position:absolute;right:3px;bottom:3px;width:20px;height:20px;border-radius:5px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;line-height:1}
-.iw.vid{margin-right:8px}.iw .dlt{margin-left:6px;font-size:11px;color:#2d5bb8;text-decoration:none;font-weight:700;white-space:nowrap}
-.ba{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}.bacol{flex:1;min-width:150px}.balb{font-size:11px;font-weight:800;margin-bottom:4px}.balb.bef{color:#c0392b}.balb.aft{color:#137a43}.baimgs{display:flex;flex-wrap:wrap}.baimgs img{width:150px;height:150px;object-fit:cover;border-radius:6px;margin:2px;border:1px solid #cfe0d4}
-@media print{.noprint{display:none}body{padding:0;max-width:none}}`
-
-async function genReport(code, forceMode){
-  const s=_storeMap[code]||{code}; const setup = forceMode ? forceMode==='setup' : _mode==='setup'
-  const ids=_inspByStore[code]||[]
-  let events=[],media=[]
-  if(ids.length){
-    const {data:ev}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,note,by,created_at').in('inspection_id',ids); events=ev||[]
-    const {data:m}=await sb.from('media').select('checkpoint,path,kind,round,by').in('inspection_id',ids); media=m||[]
-    if(media.length){ const {data:u}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),60*60*24*365); media.forEach((x,i)=>x.url=(u&&u[i]&&u[i].signedUrl)||'') }
-  }
-  const {data:sg}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code); const sgs=sg||[]
-  const {data:{user}}=await sb.auth.getUser(); const meName=(user&&user.email)||''
-  const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
-  const mBy={}; media.forEach(m=>{ (mBy[m.checkpoint]||(mBy[m.checkpoint]=[])).push(m) })
-  const dd=new Date(),p2=n=>String(n).padStart(2,'0'),today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543}`
-  const dlU=m=>{ const u=m.url||''; if(!u) return ''; const f=((m.path||'file').split('/').pop())||'file'; return u+(u.includes('?')?'&':'?')+'download='+encodeURIComponent(f) }
-  const one=m=>{ const u=m.url||''; if(!u) return ''; return m.kind==='video'?`<span class="iw vid"><a href="${u}" target="_blank">🎥 วิดีโอ</a><a class="dlt" href="${dlU(m)}">⬇ โหลด</a></span>`:`<span class="iw"><a href="${u}" target="_blank"><img src="${u}"></a><a class="dl" href="${dlU(m)}" title="โหลดรูป">⬇</a></span>` }
-  const imgs=arr=>arr.map(one).join('')||'—'
-  const baImgs=(arr,cmUid)=>{ const af=arr.filter(m=>m.by&&m.by===cmUid),bf=arr.filter(m=>!m.by||m.by!==cmUid)
-    const col=a=>a.length?a.map(one).join(''):'<span class="fnoimg">— ไม่มีรูป —</span>'
-    return `<div class="ba"><div class="bacol"><div class="balb bef">📸 ก่อนแก้ (Set-Up ตีกลับ)</div><div class="baimgs">${col(bf)}</div></div><div class="bacol"><div class="balb aft">✅ หลังแก้ (CM)</div><div class="baimgs">${col(af)}</div></div></div>` }
-  const pick=(kind,scope)=>{ const a=sgs.filter(x=>x.kind===kind&&(scope==null||String(x.scope)===String(scope))); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
-  let body='', failList=[], head='', signHtml=''
-  if(setup){
-    const sc=rSetupScore(cur)
-    SETUP_SEC.forEach(([pn,name,weight])=>{ const items=_setupCps.filter(c=>c.phase===pn).sort((a,b)=>(a.sort||0)-(b.sort||0))
-      const ss=sc.sections.find(x=>x.ph===pn)||{earned:0,done:0,total:items.length}
-      let rows=''
-      items.forEach(c=>{ const e=cur[String(c.id)]; const ims=mBy[String(c.id)]||[]
-        if(e&&(e.status==='fail'||e.status==='fixed')) failList.push({c,e,name})
-        const sup=c.supplier==='ซัพย่อย'?'<span style="color:#a5701a">·ย่อย</span>':(c.supplier?'<span style="color:#2d5bb8">·หลัก</span>':'')
-        rows+=`<tr><td>${esc(c.label)} ${sup}${e&&e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td><td class="st" style="color:${rStatusCol(e&&e.status)}">${rStatusTxt(e&&e.status)}</td><td class="mt">${e?nameOf(e.by)+'<br><small>'+fmtDate(e.created_at)+'</small>':'—'}</td><td class="im">${imgs(ims)}</td></tr>` })
-      body+=`<h2>${esc(name)} <span class="okpill">${ss.earned.toFixed(1)}/${weight}</span></h2><table><thead><tr><th>รายการตรวจรับ</th><th>ผล</th><th>ผู้ตรวจ/เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>` })
-    const passAll=sc.allDone&&sc.failItems===0&&sc.fixedItems===0
-    const nsa=pick('setup_nsa'), cmSig=pick('setup_cm'), cmName=rSetupCmName(sgs), ho=sgs.find(x=>x.scope==='store'&&x.kind==='handover')
-    head=`<h1>ใบตรวจรับร้าน (Set-Up · NSA)</h1><div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
-      <div class="scope">ตรวจรับอาคารจากทีมก่อสร้าง · ให้คะแนน 8 หมวด (100)${s.province?' · '+esc(s.province):''}</div>
-      <div class="scorebox ${passAll?'':'f'}"><div class="g">${sc.doneItems?sc.curGrade:'—'}</div><div><div class="num">${sc.doneItems?sc.curPct.toFixed(0):'0'} / 100 คะแนน${sc.allDone?'':' <small style="font-size:11px;color:#a5701a">(ของที่ตรวจแล้ว)</small>'}</div><div class="sub">${passAll?'✓ ผ่าน 100% พร้อมรับร้าน':`ตรวจแล้ว ${sc.doneItems}/${sc.totalItems}${sc.failItems?' · '+sc.failItems+' ไม่ผ่าน':''}${sc.fixedItems?' · '+sc.fixedItems+' รอตรวจซ้ำ':''}`}</div></div></div>
-      <div class="split"><div class="m">ซัพหลัก ${sc.mainPct.toFixed(0)}%</div><div class="y">ซัพย่อย ${sc.subPct.toFixed(0)}%</div></div>
-      <div class="issued">ออกเอกสาร ${today} โดย ${esc(meName)}</div>`
-    signHtml=`<div class="sign"><div>${nsa&&nsa.image?`<img src="${nsa.image}">`:'<div class="sigsp"></div>'}<div class="slab">ผู้ตรวจรับ (Set-Up / NSA)</div>${nsa?`<div class="sby">${esc(nameOf(nsa.by))}<br>${fmtDate(nsa.created_at)}</div>`:''}</div>
-      <div>${cmSig&&cmSig.image?`<img src="${cmSig.image}">`:'<div class="sigsp"></div>'}<div class="slab">ทีมก่อสร้าง (CM)</div><div class="sby">${(cmSig?(nameOf(cmSig.by)||cmName):cmName)?esc(cmSig?(nameOf(cmSig.by)||cmName):cmName):'—'}${cmSig?'<br>'+fmtDate(cmSig.created_at):(ho?'<br>รับมอบงาน '+fmtDate(ho.created_at):'')}</div></div></div>`
-  } else {
-    const phs=[...new Set(_cps.filter(c=>c.phase<200).map(c=>c.phase))].sort((a,b)=>a-b)
-    let totIn=0,totPass=0,totFail=0
-    phs.forEach(pn=>{ const items=_cps.filter(c=>c.phase===pn).sort((a,b)=>(a.sort||0)-(b.sort||0))
-      const withEv=items.filter(c=>cur[String(c.id)]); if(!withEv.length) return
-      const pName=(items[0]&&items[0].phase_name)||('ครั้งที่ '+pn); let rows=''
-      withEv.forEach(c=>{ const e=cur[String(c.id)]; const ims=mBy[String(c.id)]||[]; totIn++
-        if(e.status==='pass')totPass++; else if(e.status==='fail'){totFail++; failList.push({c,e,name:pName})}
-        rows+=`<tr><td class="mt" style="width:40px;color:#888;font-family:monospace">${esc(c.no||'')}</td><td>${esc(c.label)}${e.note?`<div class="nt">หมายเหตุ: ${esc(e.note)}</div>`:''}</td><td class="st" style="color:${rStatusCol(e.status)}">${rStatusTxt(e.status)}</td><td class="mt">${nameOf(e.by)}<br><small>${fmtDate(e.created_at)}</small></td><td class="im">${imgs(ims)}</td></tr>` })
-      body+=`<h2>${esc(pName)}</h2><table><thead><tr><th>ข้อ</th><th>รายการตรวจ</th><th>ผล</th><th>ผู้ตรวจ/เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>` })
-    const passAll=totIn>0&&totFail===0
-    const cmS=pick('sign_cm',null), conS=pick('sign_contractor',null), ho=pick('handover','store')
-    head=`<h1>ใบรับรองการตรวจงานก่อสร้าง</h1><div class="site">${esc(s.name||code)} <span>(${esc(code)})</span></div>
-      <div class="scope">รายงานตรวจงานทั้งโครงการ${s.province?' · '+esc(s.province):''}${s.contractor?' · ผรม. '+esc(s.contractor):''}</div>
-      <div class="verdict ${passAll?'p':'f'}">${passAll?`✓ ผ่าน 100% (${totPass}/${totIn})`:`ผ่าน ${totPass} · ไม่ผ่าน ${totFail} · ตรวจแล้ว ${totIn}`}</div>
-      <div class="issued">ออกเอกสาร ${today} โดย ${esc(meName)}${ho?' · รับมอบงานแล้ว '+fmtDate(ho.created_at):''}</div>`
-    signHtml=`<div class="sign"><div>${cmS&&cmS.image?`<img src="${cmS.image}">`:'<div class="sigsp"></div>'}<div class="slab">ผู้ตรวจ (CM)</div>${cmS?`<div class="sby">${esc(nameOf(cmS.by))}</div>`:''}</div><div>${conS&&conS.image?`<img src="${conS.image}">`:'<div class="sigsp"></div>'}<div class="slab">ผู้รับเหมา (ผรม.)</div><div class="sby">${esc(s.contractor||'')}</div></div></div>`
-  }
-  const failHtml=failList.length?`<div class="failbox"><div class="failh">⚠ สรุปจุดที่ไม่ผ่าน ${failList.length} รายการ</div>`+failList.map(({c,e,name})=>{ const ims=mBy[String(c.id)]||[]
-      const tag=e.status==='fixed'?'<span class="ftag fx">CM แก้แล้ว · รอตรวจซ้ำ</span>':'<span class="ftag">ไม่ผ่าน</span>'
-      const imgBlock = e.status==='fixed' ? baImgs(ims, e.by) : `<div class="fimgs">${ims.length?imgs(ims):'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div>`
-      return `<div class="fitem"><div class="fhd"><span class="fno">•</span> ${esc(c.label)} <span class="fph">${esc(name)}</span> ${tag}</div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}${imgBlock}</div>` }).join('')+`</div>`:''
-  const rnav=`<div class="rnav noprint"><a href="#r-sum">📋 ภาพรวม</a>${failList.length?'<a href="#r-fail">⚠ จุดไม่ผ่าน ('+failList.length+')</a>':''}<a href="#r-detail">📑 รายหมวด</a><a href="#r-sign">✍ ลายเซ็น</a></div>`
-  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ใบตรวจรับ ${esc(s.name||code)}</title><style>${R_CSS}</style></head><body>
-    <div class="noprint"><button onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button></div>
-    ${rnav}
-    <div class="cert ${setup?'su':''}" id="r-sum"><div class="brand">CJ<b>X</b> INSPECT</div>${head}</div>
-    <div id="r-fail">${failHtml}</div><div id="r-detail">${body||'<p style="color:#999">ยังไม่มีข้อมูลการตรวจ</p>'}</div><div id="r-sign">${signHtml}</div></body></html>`
-  const w=window.open('','_blank'); if(!w){ alert('เปิดแท็บใหม่ไม่ได้ — โปรดอนุญาต popup ของเว็บนี้'); return }
-  w.document.write(html); w.document.close()
-}
-
-function wireInsights(){
-  const a=$('repContractor'); if(a) a.onclick=genContractorReport
-  const b=$('repSetupProb'); if(b) b.onclick=genSetupProblemReport
-}
-function openReport(title, inner){
-  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${R_CSS}
-    .rtbl{width:100%;border-collapse:collapse;margin-top:8px}.rtbl th{background:#f4f4f4;text-align:left;font-size:11px;color:#555;padding:8px;border:1px solid #e2e2e2;white-space:nowrap}
-    .rtbl td{padding:8px;border:1px solid #e8e8e8;font-size:12.5px;vertical-align:top}.rtbl td.c{text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .cgrp{border:1px solid #e5e5e5;border-radius:12px;padding:14px 16px;margin-bottom:12px;page-break-inside:avoid}
-    .cghd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
-    .cgname{font-weight:800;font-size:15px}.cgmeta{font-size:12px;color:#666}
-    .pill{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:2px 9px;margin-left:6px}
-    .stlist{font-size:12px;color:#444}.stlist .sr{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid #f0f0f0}
-    .rank{font-family:monospace;color:#c0392b;font-weight:800}
-    .grade{font-family:monospace;font-weight:800}
-  </style></head><body>
-    <div class="noprint"><button onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button></div>
-    <div class="cert"><div class="brand">CJ<b>X</b> INSPECT</div>${inner}</div>
-  </body></html>`
-  const w=window.open('','_blank'); if(!w){ alert('เปิดแท็บใหม่ไม่ได้ — โปรดอนุญาต popup'); return }
-  w.document.write(html); w.document.close()
-}
-// รายงานประเมิน ผรม.เหมาแต่ละเจ้า
-function genContractorReport(){
-  const suByCode={}; _suRows.forEach(r=>suByCode[r.code]=r)
-  const m={}
-  _rows.forEach(r=>{ const c=r.contractor||'— ไม่ระบุ ผรม. —'; const a=m[c]||(m[c]={st:[],fail:0,pctSum:0,done100:0,scSum:0,scN:0})
-    a.st.push(r); a.fail+=r.fail; a.pctSum+=r.pct; if(r.total&&r.done>=r.total&&r.fail===0)a.done100++
-    const su=suByCode[r.code]; if(su&&su.done){ a.scSum+=su.curPct; a.scN++ } })
-  const list=Object.keys(m).map(c=>{ const a=m[c]
-    return {name:c,n:a.st.length,fail:a.fail,avgPct:Math.round(a.pctSum/a.st.length),failAvg:(a.fail/a.st.length),done100:a.done100,avgScore:a.scN?Math.round(a.scSum/a.scN):null,st:a.st} })
-    .sort((x,y)=>y.fail-x.fail||y.n-x.n)
-  const dd=new Date(),p=n=>String(n).padStart(2,'0'),today=`${p(dd.getDate())}/${p(dd.getMonth()+1)}/${dd.getFullYear()+543}`
-  let body=`<h1>รายงานประเมินผู้รับเหมา (ผรม.)</h1><div class="scope">สรุปผลงานก่อสร้างรายบริษัท · ออกเอกสาร ${today}</div>`
-  body+=`<table class="rtbl"><thead><tr><th>ผู้รับเหมา (ผรม.)</th><th class="c">สาขา</th><th class="c">คืบหน้าเฉลี่ย</th><th class="c">จุดไม่ผ่านรวม</th><th class="c">เฉลี่ย/สาขา</th><th class="c">เสร็จ 100%</th><th class="c">คะแนนตรวจรับเฉลี่ย</th></tr></thead><tbody>`
-  body+=list.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="c">${x.n}</td><td class="c">${x.avgPct}%</td><td class="c" style="color:${x.fail?'#c0392b':'#137a43'};font-weight:800">${x.fail}</td><td class="c">${x.failAvg.toFixed(1)}</td><td class="c">${x.done100}/${x.n}</td><td class="c">${x.avgScore!=null?x.avgScore+' /100':'—'}</td></tr>`).join('')
-  body+=`</tbody></table>`
-  body+=`<h2 style="margin-top:26px">รายละเอียดรายสาขา</h2>`
-  body+=list.map(x=>`<div class="cgrp"><div class="cghd"><div class="cgname">${esc(x.name)}</div><div class="cgmeta">${x.n} สาขา · ไม่ผ่านรวม ${x.fail} จุด · คืบหน้าเฉลี่ย ${x.avgPct}%${x.avgScore!=null?' · ตรวจรับเฉลี่ย '+x.avgScore:''}</div></div>
-    <div class="stlist">${x.st.slice().sort((a,b)=>b.fail-a.fail).map(r=>{ const su=suByCode[r.code]
-      return `<div class="sr"><span>${esc(r.name)} <span style="color:#999">(${esc(r.code)})</span></span><span>คืบหน้า ${r.pct}% · <b style="color:${r.fail?'#c0392b':'#137a43'}">ไม่ผ่าน ${r.fail}</b>${su&&su.done?' · ตรวจรับ '+su.curPct.toFixed(0)+' ('+su.curGrade+')':''}</span></div>` }).join('')}</div></div>`).join('')
-  openReport('รายงานประเมิน ผรม.', body)
-}
-// รายงานปัญหางานตรวจรับ (Set-Up) — จุดที่มีปัญหาบ่อย
-function genSetupProblemReport(){
-  const agg={}
-  Object.keys(_evsByStore).forEach(code=>{ const cur=curOfStore(code); const nm=(_storeMap[code]&&_storeMap[code].name)||code
-    Object.keys(cur).forEach(cid=>{ const cp=_cpMap[cid]; if(!cp||cp.phase<201||cp.phase>208) return
-      const stt=cur[cid].status; if(stt!=='fail'&&stt!=='fixed') return
-      const a=agg[cid]||(agg[cid]={cp,fail:[],fixed:[]}); (stt==='fail'?a.fail:a.fixed).push(nm) }) })
-  const list=Object.values(agg).map(a=>({cp:a.cp,fail:a.fail,fixed:a.fixed,n:a.fail.length})).sort((x,y)=>y.n-x.n||(y.fixed.length-x.fixed.length))
-  const dd=new Date(),p=n=>String(n).padStart(2,'0'),today=`${p(dd.getDate())}/${p(dd.getMonth()+1)}/${dd.getFullYear()+543}`
-  const totFail=list.reduce((s,x)=>s+x.n,0)
-  let body=`<h1>รายงานปัญหางานตรวจรับ (Set-Up)</h1><div class="scope">จุดที่ “ไม่ผ่าน” บ่อย — ใช้เตรียมก่อนไปตรวจงาน · ออกเอกสาร ${today}</div>`
-  if(!list.length){ body+='<p style="color:#137a43;font-weight:700;margin-top:14px">✓ ยังไม่มีจุดที่มีปัญหา</p>'; return openReport('รายงานปัญหา Set-Up', body) }
-  body+=`<div class="scorebox f" style="margin:10px 0"><div class="g">${list.length}</div><div><div class="num">${list.length} รายการที่พบปัญหา</div><div class="sub">รวม ${totFail} ครั้งที่ “ไม่ผ่าน” ในทุกสาขา · เรียงจากบ่อยสุด</div></div></div>`
-  body+=`<table class="rtbl"><thead><tr><th class="c">อันดับ</th><th>รายการตรวจรับ</th><th>หมวด</th><th class="c">ไม่ผ่าน (สาขา)</th><th>สาขาที่เจอปัญหา</th></tr></thead><tbody>`
-  body+=list.map((x,i)=>`<tr><td class="c rank">${i+1}</td><td><b>${esc(x.cp.label)}</b></td><td style="color:#666;font-size:11.5px">${esc((x.cp.phase_name||'').replace('ตรวจรับ · ',''))}</td><td class="c" style="color:#c0392b;font-weight:800">${x.n}${x.fixed.length?`<div style="font-size:10px;color:#a5701a">+${x.fixed.length} รอตรวจซ้ำ</div>`:''}</td><td style="font-size:11.5px;color:#444">${x.fail.concat(x.fixed.map(s=>s+' (แก้แล้ว)')).map(esc).join(', ')||'—'}</td></tr>`).join('')
-  body+=`</tbody></table>`
-  openReport('รายงานปัญหา Set-Up', body)
-}
-
 boot()
 </script>
 </body></html>
