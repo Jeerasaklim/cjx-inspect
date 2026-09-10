@@ -296,7 +296,7 @@ function renderConstruction(){
       else if(st.key==='progress') cell=`<span class="font-data-mono text-[11px] font-bold" style="color:#FF9F1C" title="ตรวจ ${st.done}/${st.total}">${Math.round(st.done/st.total*100)}%</span>`
       else cell=`<span class="text-ink-faint">–</span>`
       h+=`<td class="py-2.5 px-1 text-center">${cell}</td>` })
-    h+=`<td class="py-2.5 px-4 text-right"><div class="font-data-mono text-[13px] font-bold ${pct===100?'text-ink-pass':'text-ink-primary'}">${pct}%</div><div class="h-1 w-full rounded-full bg-surface-control overflow-hidden mt-1"><div class="h-full rounded-full" style="width:${pct}%;background:${pct===100?'#37D98B':'#FF9F1C'}"></div></div>${curPh&&pct<100?`<div class="font-label-micro text-label-micro text-ink-faint mt-1 truncate" style="max-width:130px">งวด ${curPh[0]}: ${esc(curPh[1])}</div>`:(pct===100?'<div class="font-label-micro text-label-micro text-ink-pass mt-1">เสร็จครบ 9 งวด</div>':'')}</td><td class="py-2.5 px-3 text-center"><button data-rep="con" data-code="${esc(s.code)}" title="เปิดใบรับรองงานก่อสร้าง (PDF)" class="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-control hover:bg-surface-elevated text-ink-muted hover:text-primary-container"><span class="material-symbols-outlined text-[16px] text-role-head-const">picture_as_pdf</span><span class="font-label-micro text-label-micro">ดูใบ</span></button></td></tr>` })
+    h+=`<td class="py-2.5 px-4 text-right"><div class="font-data-mono text-[13px] font-bold ${pct===100?'text-ink-pass':'text-ink-primary'}">${pct}%</div><div class="h-1 w-full rounded-full bg-surface-control overflow-hidden mt-1"><div class="h-full rounded-full" style="width:${pct}%;background:${pct===100?'#37D98B':'#FF9F1C'}"></div></div>${curPh&&pct<100?`<div class="font-label-micro text-label-micro text-ink-faint mt-1 truncate" style="max-width:130px">งวด ${curPh[0]}: ${esc(curPh[1])}</div>`:(pct===100?'<div class="font-label-micro text-label-micro text-ink-pass mt-1">เสร็จครบ 9 งวด</div>':'')}</td><td class="py-2.5 px-3 text-center"><div class="inline-flex items-center gap-1"><button data-rep="con" data-code="${esc(s.code)}" title="เปิดใบรับรองงานก่อสร้าง (PDF)" class="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-control hover:bg-surface-elevated text-ink-muted hover:text-primary-container"><span class="material-symbols-outlined text-[16px] text-role-head-const">picture_as_pdf</span><span class="font-label-micro text-label-micro">ดูใบ</span></button>${[...PHASES,...PRECON].some(([p])=>phaseStat(s.code,p).fail>0)?`<button data-rep="conpunch" data-code="${esc(s.code)}" title="เปิดใบรายการงานต้องแก้ไข (ก่อสร้าง)" class="inline-flex items-center px-1.5 py-1 rounded bg-surface-control hover:bg-surface-elevated text-status-fail"><span class="material-symbols-outlined text-[16px]">build</span></button>`:''}</div></td></tr>` })
   if(!list.length) h+=`<tr><td colspan="14" class="py-8 text-center text-ink-muted">ไม่มีสาขาในสายงานก่อสร้าง</td></tr>`
   h+=`</tbody></table></div></div></div>`
   // right column: critical defects + bottleneck
@@ -610,6 +610,20 @@ function buildPunchReport(s,mediaByCp,sg){ const code=s.code, m=cur[code]||{}
     <div class="legal"><span style="flex:none">🔧</span><p style="margin:0"><b>ขั้นตอนแก้:</b> เปิดแอป → สาขานี้ → แตะหมวดที่ "ไม่ผ่าน" → แนบรูปที่แก้แล้ว → "ส่งให้ Set-Up ตรวจซ้ำ"</p></div>
   </div>`) }
 
+function buildConPunchReport(s,mediaByCp,sg){ const code=s.code, m=cur[code]||{}
+  let failN=0,fixN=0,body=''
+  PRECON.concat(PHASES).forEach(([pn,name])=>{ const items=[]; (cpByPhase[pn]||[]).forEach(c=>{ const e=m[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')){ if(e.status==='fail')failN++; else fixN++
+      const ims=mediaByCp[String(c.id)]||[]
+      items.push(`<div style="background:#fff;border-radius:6px;border-left:4px solid #E67E22;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:10px"><span style="font-weight:600;font-size:12.5px">${c.no?esc(c.no)+' · ':''}${esc(c.label||c.name||'')}</span><span class="cb ${e.status==='fail'?'f':'fx'}">${e.status==='fail'?'ไม่ผ่าน':'รอตรวจซ้ำ'}</span></div>${c.hint?`<div style="color:#555f6f;font-size:11px;margin-top:2px">${esc(c.hint)}</div>`:''}${e.note?`<div style="color:#8d4b00;font-size:12px;margin:5px 0">📝 ${esc(e.note)}</div>`:''}<div>${ims.map(repImg).join('')}</div><div style="color:#9CA3AF;font-size:11px;margin-top:4px">${esc(nameOf(e.by))} · ${fmtDate(e.created_at)}${e.round>1?' · รอบ '+e.round:''}</div></div>`) } })
+    if(items.length) body+=`<h2 class="ph">${esc((cpByPhase[pn]&&cpByPhase[pn][0]&&cpByPhase[pn][0].phase_name)||name)} <span class="cb f" style="margin-left:6px">${items.length} จุด</span></h2>${items.join('')}` })
+  return wrapReport(`<div class="paper">
+    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • รายการงานต้องแก้ไข (ก่อสร้าง)</span><span class="pill y">รอแก้ไข</span></div><h2>รายงานงานที่ต้องแก้ไข (งานก่อสร้าง)</h2><div class="en">Construction Defect Rework List for Contractor</div></div></div>
+      <div class="metacard"><div class="mrow"><span>เลขที่เอกสาร:</span><b>${_dNo('CPL',code)}</b></div><div class="mrow"><span>วันที่:</span><b>${_today()}</b></div></div></div>
+    <div class="strip"><div><div class="lb">สาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ผู้รับเหมา</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">ผู้ต้องแก้งาน</div></div><div><div class="lb">ต้องแก้</div><div class="vl" style="color:#DC2626">${failN} จุด</div><div class="sub">ไม่ผ่าน</div></div><div><div class="lb">รอตรวจซ้ำ</div><div class="vl" style="color:#b15f00">${fixN} จุด</div><div class="sub">แก้แล้ว</div></div></div>
+    ${(failN+fixN)?body:'<p style="color:#005137;font-weight:600">✓ ไม่มีจุดที่ต้องแก้ในงานก่อสร้าง</p>'}
+    <div class="legal"><span style="flex:none">🔧</span><p style="margin:0"><b>ขั้นตอนแก้:</b> ผรม. แก้งานหน้างาน → CM/วิศวกรควบคุมตรวจซ้ำ → กดผ่าน/ไม่ผ่านใหม่ในแอป (ระบบเก็บเป็นรอบใหม่ ไม่ทับของเดิม)</p></div>
+  </div>`) }
+
 async function openReport(code, kind){
   const s=stores.find(x=>x.code===code)||{code}
   const w=window.open('','_blank'); if(w){ w.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">กำลังสร้างรายงาน…</p>') }
@@ -621,7 +635,7 @@ async function openReport(code, kind){
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[String(m.checkpoint)]||(mediaByCp[String(m.checkpoint)]=[])).push(m) })
   const {data:sgFull}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code); const sg=sgFull||[]
   const sInspSet=new Set(sInsIds); const sEvents=events.filter(e=>sInspSet.has(e.inspection_id))
-  const html= kind==='setup'?buildSetupReport(s,mediaByCp,sg,sEvents): kind==='punch'?buildPunchReport(s,mediaByCp,sg): buildConReport(s,mediaByCp,sg)
+  const html= kind==='setup'?buildSetupReport(s,mediaByCp,sg,sEvents): kind==='punch'?buildPunchReport(s,mediaByCp,sg): kind==='conpunch'?buildConPunchReport(s,mediaByCp,sg): buildConReport(s,mediaByCp,sg)
   if(w){ w.document.open(); w.document.write(html); w.document.close() } else { const b=new Blob([html],{type:'text/html'}); location.href=URL.createObjectURL(b) }
 }
 window._openReport=openReport
@@ -701,7 +715,7 @@ function renderReports(){
     h+=`<tr class="hover:bg-surface-elevated/30"><td class="py-2.5 px-4"><div data-store="${esc(s.code)}" class="font-title-sm text-[13px] font-bold truncate cursor-pointer hover:text-primary-container" style="max-width:200px" title="ดูรายละเอียดการตรวจทุกข้อ + รูป/วิดีโอ">${esc(s.name||s.code)}</div><div class="font-data-mono text-[10px] text-ink-faint">${esc(s.code)}${s.province?' · '+esc(s.province):''}</div></td>
       <td class="py-2.5 px-3 font-body-sm text-[12px] text-ink-muted truncate" style="max-width:150px">${s.contractor?esc(s.contractor):'—'}</td>
       <td class="py-2.5 px-2 text-center font-data-mono text-[12px] font-bold" style="color:${dcol}">${dtxt}</td>
-      <td class="py-2.5 px-3 text-center">${btn('con','ใบก่อสร้าง','#F5C518',conDone)}</td>
+      <td class="py-2.5 px-3 text-center"><div class="inline-flex items-center gap-1 justify-center flex-wrap">${btn('con','ใบก่อสร้าง','#F5C518',conDone)}${[...PHASES,...PRECON].some(([p])=>phaseStat(s.code,p).fail>0)?btn('conpunch','งานต้องแก้','#FF5C5C',true):''}</div></td>
       <td class="py-2.5 px-3 text-center">${btn('setup','ใบส่งมอบ','#7EE6B0',hasSetup)}</td>
       <td class="py-2.5 px-3 text-center">${btn('punch','รายการแก้ไข','#FF5C5C',hasSetup&&sc.failItems>0)}</td>
       <td class="py-2.5 px-2 text-center"><button data-store="${esc(s.code)}" class="inline-flex items-center justify-center w-8 h-8 rounded bg-surface-control hover:bg-surface-elevated text-ink-muted hover:text-primary-container" title="ดูรายข้อ + รูป/วิดีโอ"><span class="material-symbols-outlined text-[18px]">visibility</span></button></td></tr>` })
