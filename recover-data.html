@@ -105,7 +105,7 @@ function render(){ const el=$('stores'); el.innerHTML=''
 }
 
 async function recoverStore(s, btn){ if(btn){btn.disabled=true;btn.textContent='กำลังกู้…'}
-  const iso=isoDate(s.date), by=uidOf(s.by)
+  const iso=isoDate(s.date), by=meUid, origBy=s.by   // check_events policy บังคับ by=ตัวเราเอง · ผู้ตรวจเดิมเก็บในหมายเหตุ
   // กันซ้ำ: มี inspection Set-Up ที่มี event แล้วไหม
   const {data:exist}=await sb.from('inspections').select('id,phase').eq('store_code',s.code).gte('phase',201).lte('phase',208)
   if(exist&&exist.length){ const ids=exist.map(x=>x.id); const {count}=await sb.from('check_events').select('id',{count:'exact',head:true}).in('inspection_id',ids)
@@ -121,17 +121,23 @@ async function recoverStore(s, btn){ if(btn){btn.disabled=true;btn.textContent='
       s.fails.filter(f=>f.phase===phase).forEach(f=>{ const cp=matchCp(phase,f.label); if(cp) events.push({checkpoint:String(cp.id),round:1,status:'fail',note:f.note,by,created_at:iso}); else unmatched.push(f.label) })
     }
     if(!events.length) continue
-    const {data:ins,error:ie}=await sb.from('inspections').insert({store_code:s.code,phase}).select('id').single()
-    if(ie){ log(`  ✗ สร้าง inspection หมวด ${phase-200} ไม่ได้: ${ie.message}`,'err'); continue }
-    events.forEach(e=>e.inspection_id=ins.id)
+    // หา inspection เดิม (store+phase) ก่อน — ถ้ามีใช้เลย (reuse ตัวที่ค้างจากรอบก่อน) ไม่งั้นสร้างใหม่
+    let insId
+    const {data:exI}=await sb.from('inspections').select('id').eq('store_code',s.code).eq('phase',phase).limit(1)
+    if(exI&&exI.length){ insId=exI[0].id }
+    else { const {data:ins,error:ie}=await sb.from('inspections').insert({store_code:s.code,phase}).select('id').single()
+      if(ie){ log(`  ✗ สร้าง inspection หมวด ${phase-200} ไม่ได้: ${ie.message}`,'err'); continue }
+      insId=ins.id }
+    events.forEach(e=>e.inspection_id=insId)
     const {error:ee}=await sb.from('check_events').insert(events)
     if(ee){ log(`  ✗ หมวด ${phase-200}: ${ee.message}`,'err'); continue }
     evTotal+=events.length
   }
   // signoffs (ใบเต็ม = เซ็นครบ)
-  if(s.kind==='full'){ try{ await sb.from('signoffs').insert([
-    {store_code:s.code,scope:'setup',kind:'setup_nsa',by,created_at:iso,note:'กู้จากใบตรวจ'},
-    {store_code:s.code,scope:'setup',kind:'setup_cm',by,created_at:iso,note:'กู้จากใบตรวจ'}]) }catch(e){} }
+  if(s.kind==='full'){ const {data:sg}=await sb.from('signoffs').select('kind').eq('store_code',s.code).eq('scope','setup').limit(1)
+    if(!(sg&&sg.length)){ try{ await sb.from('signoffs').insert([
+      {store_code:s.code,scope:'setup',kind:'setup_nsa',by,created_at:iso,note:'กู้จากใบตรวจ · ผู้ตรวจเดิม '+origBy},
+      {store_code:s.code,scope:'setup',kind:'setup_cm',by,created_at:iso,note:'กู้จากใบตรวจ · ผู้ตรวจเดิม '+origBy}]) }catch(e){} } }
   log(`  ✅ ${s.code}: สร้าง ${evTotal} check_events${s.kind==='full'?' + ลายเซ็น 2 ฝ่าย':''}${unmatched.length?` · ⚠ จับคู่ไม่ได้ ${unmatched.length} ข้อ`:''}`,'ok')
   if(unmatched.length) unmatched.forEach(u=>log(`     ไม่เจอข้อ: ${u}`,'warn'))
   if(btn){btn.textContent='กู้แล้ว ✓'}
