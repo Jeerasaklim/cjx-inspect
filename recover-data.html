@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CJX Inspect — กู้ข้อมูลตรวจ Set-Up</title>
+<style>
+body{margin:0;background:#0E0E0F;color:#F5F5F2;font-family:"Noto Sans Thai",system-ui,sans-serif;line-height:1.55}
+.wrap{max-width:820px;margin:0 auto;padding:20px}
+h1{font-size:21px;margin:0 0 4px}.sub{color:#9A9A93;font-size:13px;margin-bottom:16px}
+.card{background:#191A1D;border:1px solid #2A2A2E;border-radius:14px;padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 6px;font-size:16px}
+button{background:#F5C518;color:#1A1500;border:0;border-radius:10px;padding:11px 16px;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer}
+button.gho{background:#141416;color:#F5F5F2;border:1px solid #2A2A2E}
+button:disabled{opacity:.5;cursor:default}
+input{width:100%;height:44px;padding:0 12px;background:#141416;border:1px solid #2A2A2E;border-radius:10px;color:#F5F5F2;font-size:15px;font-family:inherit;margin-bottom:8px}
+.log{background:#0b0b0c;border:1px solid #2A2A2E;border-radius:10px;padding:12px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;max-height:300px;overflow:auto;color:#C9C9CF;margin-top:12px}
+.ok{color:#7EE6B0}.err{color:#FF8080}.warn{color:#E6B45A}
+.pill{display:inline-block;background:#141416;border:1px solid #2A2A2E;border-radius:99px;padding:2px 9px;font-size:12px;color:#9A9A93;margin-left:6px}
+.st{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+</style></head>
+<body><div class="wrap">
+<h1>🔧 กู้ข้อมูลตรวจรับ Set-Up จากใบตรวจ</h1>
+<div class="sub">สร้าง inspection + check_events + signoffs กลับเข้า Supabase · <b>INSERT เท่านั้น ไม่ลบอะไร</b> · เปิดบน github.io (ใช้ session แอป)</div>
+
+<div class="card"><div class="st"><span id="authState">กำลังตรวจ session…</span></div>
+  <div id="loginBox" style="display:none;margin-top:8px">
+    <input id="em" type="email" placeholder="you@cjmart.co.th"><input id="pw" type="password" placeholder="รหัสผ่าน">
+    <button id="btnGoogle" class="gho">เข้าด้วย Google</button>
+  </div>
+</div>
+
+<div id="stores"></div>
+<div class="card"><button id="btnAll" disabled>▶ กู้ทุกสาขาที่กู้ได้ (รวด)</button> <span class="pill">กันซ้ำ: ถ้าสาขามีข้อมูลตรวจแล้วจะข้าม</span></div>
+<div class="log" id="log">พร้อม…</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+const sb=createClient('https://kmidlzhcdolxzpetecjx.supabase.co','sb_publishable_4n3ZiIYvxYV335LLZe7Cnw_QHQeCJ3h')
+const $=id=>document.getElementById(id); const logEl=$('log')
+const log=(m,c)=>{logEl.innerHTML+=`\n<span class="${c||''}">${m}</span>`;logEl.scrollTop=logEl.scrollHeight}
+
+// ---- ข้อมูลกู้จากใบตรวจ (parse แล้ว) ----
+const REC=[
+ {code:'CJX00176',name:'สามง่ามท่าโบสถ์',kind:'full',grade:'A',by:'kanchana.ka',date:'07/09/2569',fails:[]},
+ {code:'CJX00175',name:'เคซี การ์เด้นโฮม',kind:'full',grade:'A',by:'chanitsara.ph',date:'21/08/2569',fails:[
+   {phase:202,label:'พื้นไม่แตกราว',note:'มีรอยบนพื้นผิวลานจอด'},
+   {phase:202,label:'สีช่องจราจร ชัดเจน / ไม่ร่อน',note:'สีร่อน'},
+   {phase:202,label:'ไม่มีสิ่งกีดขวาง เช่น เสาไฟ สายไฟ ถังขยะ',note:null},
+   {phase:202,label:'พื้นผิวเรียบ ขัดมัน ไม่เป็นฝุ่น',note:null},
+   {phase:202,label:'พื้นไม่แตกราว',note:null},
+   {phase:202,label:'ติดตั้งกรอบสำหรับใส่สื่อครบถ้วนถูกต้องตามแบบ',note:'สติกเกอร์ชื่อสาขาติดสลับฝั่ง'},
+   {phase:202,label:'สติ๊กเกอร์ CJx คาดเขียว ถูกต้องตามแบบ',note:'สติกเกอร์ชื่อสาขาติดสลับฝั่ง'},
+   {phase:202,label:'สติ๊กเกอร์รหัสและชื่อสาขา ถูกต้องและติดตามจุดที่กำหนด',note:null},
+   {phase:202,label:'พื้นที่โดยรวม สะอาด ไม่มีฝุ่น ไม่มีอุปกรณ์ก่อสร้าง',note:'ปิดไม่สนิท'},
+   {phase:203,label:'ตู้สภาพสมบูรณ์',note:'ปิดไม่สนิท'},
+   {phase:205,label:'พื้นผิวเรียบไม่เป็นฝุ่น',note:null}]},
+ {code:'CJX00156',name:'แก่งดินสอ นาดี',kind:'punch',grade:null,by:'kanchana.ka',date:'04/09/2569',fails:[
+   {phase:202,label:'ติดตั้งกรอบสำหรับใส่สื่อครบถ้วนถูกต้องตามแบบ',note:null},
+   {phase:203,label:'อุปกรณ์เคาน์เตอร์ครบถูกต้องตามแบบ',note:'ช่างยิงน็อตไม่สนิทและความสะอาด'},
+   {phase:203,label:'เคาร์เตอร์ซิงค์ไม่พบน้ำรั่วซึม ก๊อกน้ำใช้งานได้ แรงดันน้ำปกติ',note:null},
+   {phase:203,label:'Wall paper คาเฟ่ ติดตั้งถูกต้องตามแบบ',note:'เก็บความสะอาดความเรียบร้อย'},
+   {phase:203,label:'ชุดขาแขวนเสาติดทีวี มีปลั๊กไฟสำหรับเสียบปลั๊กทีวี',note:'สกรูยึดไม่เรียบร้อยและความสะอาดความเรียบร้อย'},
+   {phase:203,label:'ลิ้นชักใช้งานได้สะดวก',note:'ยกเลิกใช้'}]},
+ {code:'CJX00127',name:'เคหะร่มเกล้า',kind:'punch',grade:null,by:'supaporn.dap',date:'31/08/2569',fails:[
+   {phase:202,label:'พื้นผิวเรียบ ขัดมัน ไม่เป็นฝุ่น',note:'ยังไม่ได้ขัดเงา'},
+   {phase:202,label:'ทาสี ชัดเจน / ไม่ร่อน',note:'ยังไม่ได้ทาสี'},
+   {phase:202,label:'เซาะร่องกันลื่นถูกต้องตามแบบ',note:'ยังไม่ได้เซาะร่อง'},
+   {phase:202,label:'กระจกสะอาดไม่มีคราบ',note:'มีคราบสกปรก'},
+   {phase:202,label:'ติดตั้งกรอบสำหรับใส่สื่อครบถ้วนถูกต้องตามแบบ',note:'ยังไม่ได้ถูกติดตั้ง'},
+   {phase:202,label:'สติ๊กเกอร์ CJx คาดเขียว ถูกต้องตามแบบ',note:'ยังไม่ถูกติดตั้ง'},
+   {phase:202,label:'สติ๊กเกอร์รหัสและชื่อสาขา ถูกต้องและติดตามจุดที่กำหนด',note:'ยังไม่ได้ถูกติดตั้ง'},
+   {phase:202,label:'ยิง ซิลิโคน รูเจาะท่อเรียบร้อย',note:'ไม่ได้ซิลิโคน'},
+   {phase:202,label:'พื้นที่โดยรวม สะอาด ไม่มีฝุ่น ไม่มีอุปกรณ์ก่อสร้าง',note:'มีอุปกรณ์ก่อสร้าง'},
+   {phase:204,label:'สะอาดไม่มีคราบสกปรก',note:'มีคราบสกปรก'}]}
+]
+const PHASES_SU=[201,202,203,204,205,206,207,208]
+// normalize ไทย: ตัด null + สระ/วรรณยุกต์บน + ช่องว่าง → เทียบข้าม PDF เพี้ยน
+const nrm=s=>(s||'').replace(/ /g,'').replace(/[ัิ-ฺ็-๎\s]/g,'')
+const isoDate=d=>{const m=/(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(d);if(!m)return new Date().toISOString();return new Date(+m[3]-543,+m[2]-1,+m[1],10,0,0).toISOString()}
+
+let CP={}, profByName={}, meUid=null
+async function refreshAuth(){ const {data}=await sb.auth.getUser(); const u=data&&data.user
+  if(u){ meUid=u.id; $('authState').innerHTML=`✅ ล็อกอิน: <b>${u.email}</b>`; $('loginBox').style.display='none'; await loadRefs(); render(); $('btnAll').disabled=false }
+  else { $('authState').textContent='ยังไม่ล็อกอิน — เข้าด้วย Google ก่อน'; $('loginBox').style.display='block' } }
+$('btnGoogle').onclick=()=>sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href.split('#')[0],queryParams:{hd:'cjmart.co.th',prompt:'select_account'}}})
+
+async function loadRefs(){
+  const {data:cps}=await sb.from('checkpoints').select('id,phase,label,points').gte('phase',201).lte('phase',208)
+  CP={}; (cps||[]).forEach(c=>{ if((+c.points||0)>0){ (CP[c.phase]=CP[c.phase]||[]).push({id:c.id,label:c.label,n:nrm(c.label)}) } })
+  const {data:pf}=await sb.from('profiles').select('id,name,email')
+  profByName={}; (pf||[]).forEach(p=>{ const k=(p.email||'').split('@')[0].toLowerCase(); if(k) profByName[k]=p.id; if(p.name) profByName[p.name.toLowerCase()]=p.id })
+  log(`โหลด: checkpoints Set-Up ${Object.values(CP).reduce((a,b)=>a+b.length,0)} ข้อ · profiles ${(pf||[]).length}`,'ok')
+}
+function uidOf(by){ return profByName[(by||'').toLowerCase()] || meUid }
+function matchCp(phase,label){ const list=CP[phase]||[]; const fn=nrm(label); let best=null,bl=0
+  list.forEach(c=>{ if(!c.n) return; if(fn.includes(c.n)||c.n.includes(fn)){ if(c.n.length>bl){bl=c.n.length;best=c} } }); return best }
+
+function render(){ const el=$('stores'); el.innerHTML=''
+  REC.forEach((s,idx)=>{ let matched=0; s.fails.forEach(f=>{ if(matchCp(f.phase,f.label)) matched++ })
+    const passCnt = s.kind==='full'? Object.values(CP).reduce((a,b)=>a+b.length,0) - s.fails.length : 0
+    const d=document.createElement('div'); d.className='card'
+    d.innerHTML=`<div class="st"><div><h3>${s.name} <span class="pill">${s.code}</span></h3>
+      <div class="sub" style="margin:0">${s.kind==='full'?`ใบเต็ม เกรด ${s.grade} → ${passCnt} ผ่าน · ${s.fails.length} ไม่ผ่าน (จับคู่ได้ ${matched}/${s.fails.length})`:`ใบ punch → ${s.fails.length} ไม่ผ่าน (จับคู่ได้ ${matched}/${s.fails.length}) · ข้อที่ผ่านไม่ทราบ`} · ผู้ตรวจ ${s.by} · ${s.date}</div></div>
+      <button data-i="${idx}">กู้สาขานี้</button></div>`
+    el.appendChild(d) })
+  el.querySelectorAll('button[data-i]').forEach(b=> b.onclick=()=>recoverStore(REC[+b.dataset.i], b))
+}
+
+async function recoverStore(s, btn){ if(btn){btn.disabled=true;btn.textContent='กำลังกู้…'}
+  const iso=isoDate(s.date), by=uidOf(s.by)
+  // กันซ้ำ: มี inspection Set-Up ที่มี event แล้วไหม
+  const {data:exist}=await sb.from('inspections').select('id,phase').eq('store_code',s.code).gte('phase',201).lte('phase',208)
+  if(exist&&exist.length){ const ids=exist.map(x=>x.id); const {count}=await sb.from('check_events').select('id',{count:'exact',head:true}).in('inspection_id',ids)
+    if(count>0){ log(`⏭ ${s.code} มีข้อมูลตรวจ Set-Up อยู่แล้ว (${count} event) — ข้าม กันซ้ำ`,'warn'); if(btn){btn.textContent='ข้าม (มีข้อมูลแล้ว)'} return } }
+  log(`▶ กู้ ${s.name} (${s.code}) …`,'warn')
+  let evTotal=0, unmatched=[]
+  for(const phase of PHASES_SU){
+    const cps=CP[phase]||[]; let events=[]
+    if(s.kind==='full'){
+      const failSet={}; s.fails.filter(f=>f.phase===phase).forEach(f=>{ const cp=matchCp(phase,f.label); if(cp) failSet[cp.id]=f.note; else unmatched.push(f.label) })
+      cps.forEach(c=>{ const isFail=(c.id in failSet); events.push({checkpoint:String(c.id),round:1,status:isFail?'fail':'pass',note:isFail?failSet[c.id]:null,by,created_at:iso}) })
+    } else {
+      s.fails.filter(f=>f.phase===phase).forEach(f=>{ const cp=matchCp(phase,f.label); if(cp) events.push({checkpoint:String(cp.id),round:1,status:'fail',note:f.note,by,created_at:iso}); else unmatched.push(f.label) })
+    }
+    if(!events.length) continue
+    const {data:ins,error:ie}=await sb.from('inspections').insert({store_code:s.code,phase}).select('id').single()
+    if(ie){ log(`  ✗ สร้าง inspection หมวด ${phase-200} ไม่ได้: ${ie.message}`,'err'); continue }
+    events.forEach(e=>e.inspection_id=ins.id)
+    const {error:ee}=await sb.from('check_events').insert(events)
+    if(ee){ log(`  ✗ หมวด ${phase-200}: ${ee.message}`,'err'); continue }
+    evTotal+=events.length
+  }
+  // signoffs (ใบเต็ม = เซ็นครบ)
+  if(s.kind==='full'){ try{ await sb.from('signoffs').insert([
+    {store_code:s.code,scope:'setup',kind:'setup_nsa',by,created_at:iso,note:'กู้จากใบตรวจ'},
+    {store_code:s.code,scope:'setup',kind:'setup_cm',by,created_at:iso,note:'กู้จากใบตรวจ'}]) }catch(e){} }
+  log(`  ✅ ${s.code}: สร้าง ${evTotal} check_events${s.kind==='full'?' + ลายเซ็น 2 ฝ่าย':''}${unmatched.length?` · ⚠ จับคู่ไม่ได้ ${unmatched.length} ข้อ`:''}`,'ok')
+  if(unmatched.length) unmatched.forEach(u=>log(`     ไม่เจอข้อ: ${u}`,'warn'))
+  if(btn){btn.textContent='กู้แล้ว ✓'}
+}
+$('btnAll').onclick=async()=>{ $('btnAll').disabled=true; for(const s of REC){ await recoverStore(s,null) } log('=== กู้ครบทุกสาขาแล้ว ===','ok') }
+
+refreshAuth(); sb.auth.onAuthStateChange(()=>refreshAuth())
+</script>
+</div></body></html>
