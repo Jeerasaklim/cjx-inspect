@@ -29,7 +29,7 @@ input{width:100%;height:44px;padding:0 12px;background:#141416;border:1px solid 
 
 <div id="stores"></div>
 <div class="card"><button id="btnAll" disabled>▶ กู้ทุกสาขาที่กู้ได้ (รวด)</button> <span class="pill">กันซ้ำ: ถ้าสาขามีข้อมูลตรวจแล้วจะข้าม</span></div>
-<div class="log" id="log">พร้อม…</div>
+<div class="log" id="log">พร้อม · เวอร์ชัน v3 (แก้ RLS + reuse inspection ที่ค้าง) …</div>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -126,8 +126,10 @@ async function recoverStore(s, btn){ if(btn){btn.disabled=true;btn.textContent='
     const {data:exI}=await sb.from('inspections').select('id').eq('store_code',s.code).eq('phase',phase).limit(1)
     if(exI&&exI.length){ insId=exI[0].id }
     else { const {data:ins,error:ie}=await sb.from('inspections').insert({store_code:s.code,phase}).select('id').single()
-      if(ie){ log(`  ✗ สร้าง inspection หมวด ${phase-200} ไม่ได้: ${ie.message}`,'err'); continue }
-      insId=ins.id }
+      if(ie){ // ถ้าซ้ำ (unique store+phase) → ดึงตัวเดิมมาใช้
+        const {data:re2}=await sb.from('inspections').select('id').eq('store_code',s.code).eq('phase',phase).limit(1)
+        if(re2&&re2.length){ insId=re2[0].id } else { log(`  ✗ inspection หมวด ${phase-200}: ${ie.message}`,'err'); continue } }
+      else insId=ins.id }
     events.forEach(e=>e.inspection_id=insId)
     const {error:ee}=await sb.from('check_events').insert(events)
     if(ee){ log(`  ✗ หมวด ${phase-200}: ${ee.message}`,'err'); continue }
