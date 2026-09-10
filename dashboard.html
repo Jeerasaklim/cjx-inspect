@@ -31,7 +31,7 @@ fontSize:{"hero-display":["44px",{lineHeight:"44px",letterSpacing:"-0.02em",font
 <body class="bg-surface-container-lowest text-ink-primary" style="font-family:'Noto Sans Thai',sans-serif">
 
 <!-- Sidebar -->
-<aside class="fixed left-0 top-0 h-full w-72 bg-surface-card z-50 flex flex-col justify-between" style="box-shadow:0 14px 40px -14px #000">
+<aside id="hqAside" class="fixed left-0 top-0 h-full w-72 bg-surface-card z-50 flex flex-col justify-between" style="box-shadow:0 14px 40px -14px #000">
   <div class="flex flex-col">
     <div class="h-16 px-4 flex items-center gap-2 bg-surface-control">
       <div class="w-9 h-9 rounded bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-ink-on-yellow font-bold text-[22px]">precision_manufacturing</span></div>
@@ -49,8 +49,8 @@ fontSize:{"hero-display":["44px",{lineHeight:"44px",letterSpacing:"-0.02em",font
   <div class="p-3 bg-surface-control m-2 rounded"><div class="flex items-center justify-between font-label-micro text-label-micro text-ink-faint uppercase mb-1"><span>Core Telemetry</span><span class="text-role-setup" id="teleState">LIVE</span></div><div class="font-data-mono text-[11px] text-ink-muted">NODE: BKK-HQ-01</div><div class="font-data-mono text-[10px] text-ink-faint">SYS VER: 4.2.0-STABLE</div></div>
 </aside>
 
-<div class="pl-72">
-  <header class="fixed top-0 left-72 right-0 h-16 bg-surface-card z-40 px-6 flex items-center justify-between gap-6" style="box-shadow:0 1px 8px rgba(0,0,0,.5)">
+<div class="pl-72" id="hqShell">
+  <header id="hqHeader" class="fixed top-0 left-72 right-0 h-16 bg-surface-card z-40 px-6 flex items-center justify-between gap-6" style="box-shadow:0 1px 8px rgba(0,0,0,.5)">
     <div class="flex items-center gap-4 flex-1 min-w-0">
       <div class="flex items-center gap-2 shrink-0"><span class="font-headline-md text-headline-md uppercase tracking-tight">CJX Inspect HQ</span><span class="px-2 py-0.5 rounded bg-surface-elevated text-primary-fixed-dim font-label-caps text-label-caps uppercase">Central Command</span></div>
       <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-pass"><span class="w-1.5 h-1.5 rounded-full bg-role-setup"></span><span class="font-data-mono text-[11px] text-ink-pass font-bold" id="hdrOnline">ONLINE · Telemetry Active</span></div>
@@ -61,7 +61,8 @@ fontSize:{"hero-display":["44px",{lineHeight:"44px",letterSpacing:"-0.02em",font
       <div class="relative">
         <button id="hdrUser" class="flex items-center gap-2 bg-surface-control hover:bg-surface-elevated py-1 px-2.5 rounded"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col text-left"><span class="font-title-sm text-[13px] leading-tight" id="hdrName">HQ</span><span class="font-label-micro text-label-micro text-primary-fixed-dim uppercase leading-none">Central Command</span></div><span class="material-symbols-outlined text-ink-muted text-[18px]">expand_more</span></button>
         <div id="hdrMenu" hidden class="absolute right-0 mt-1 w-56 bg-surface-card rounded-lg shadow-md p-1.5 z-50" style="border:1px solid #2A2A2E">
-          <div class="px-2.5 py-2 font-label-micro text-label-micro text-ink-faint truncate" id="hdrEmail">—</div>
+          <div class="px-2.5 pt-2 font-label-micro text-label-micro text-ink-faint truncate" id="hdrEmail">—</div>
+          <div class="px-2.5 pb-2 pt-0.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-label-micro text-label-micro font-bold bg-surface-control text-primary-fixed-dim"><span class="material-symbols-outlined text-[13px]">badge</span><span id="hdrRole">—</span></span></div>
           <div class="h-px my-1" style="background:#2A2A2E"></div>
           <button id="hqLogout" class="w-full flex items-center gap-2 px-2.5 py-2 rounded hover:bg-surface-fail text-status-fail font-body-sm text-body-sm text-left"><span class="material-symbols-outlined text-[18px]">logout</span>ออกจากระบบ</button>
         </div>
@@ -98,6 +99,11 @@ let cur={}, cpByPhase={}, nameByUid={}, _view='1', _q='', _cf='all', _rf='inspec
 let _ft='all', _fpv='all', _fct='all', _sort='open'
 // ตัวกรองเฉพาะหน้า
 let _ovStage='all', _cph='all', _sf='all', _ctf='all', _ctSort='score'
+// สิทธิ์ตาม role (ล้อตาม app): pending=บล็อก · head_*/admin=ทุกสาขา · cm/setup=เฉพาะสาขาตัวเอง
+let myUid=null, myRole='', scopeAll=true, allowedViews=['1','2','3','4','5']
+const HQ_ROLE_TH={cm:'CM',head_cm:'หัวหน้า CM',head_construction:'Head Construction',setup:'Set-Up (NSA)',head_setup:'หัวหน้า Set-Up',admin:'Admin',pending:'รออนุมัติ'}
+const HQ_HEAD=['head_cm','head_construction','head_setup','admin']
+const HQ_VIEWS={admin:['1','2','3','4','5'],head_construction:['1','2','4','5'],head_cm:['1','2','4','5'],cm:['1','2','5'],head_setup:['1','3','5'],setup:['1','3','5']}
 async function fetchAll(table,cols,order,filt){ let out=[],from=0,size=1000
   for(;;){ let q=sb.from(table).select(cols).order(order).range(from,from+size-1); if(filt) q=filt(q)
     const {data,error}=await q; if(error){console.warn(table,error.message);break}; out=out.concat(data||[]); if(!data||data.length<size) break; from+=size } return out }
@@ -705,7 +711,8 @@ function renderReports(){
 }
 
 function render(){
-  $('hqNav').querySelectorAll('.navlink').forEach(a=>a.classList.toggle('on', a.dataset.view===_view))
+  if(!allowedViews.includes(_view)) _view=allowedViews[0]||'1'
+  $('hqNav').querySelectorAll('.navlink').forEach(a=>{ a.hidden=!allowedViews.includes(a.dataset.view); a.classList.toggle('on', a.dataset.view===_view) })
   let html=''
   // search bar
   html+=`<div class="mb-4"><div class="relative max-w-md"><span class="material-symbols-outlined absolute left-3 top-2.5 text-ink-muted text-[18px]">search</span><input id="hqSearch" value="${esc(_q)}" placeholder="ค้นหาสาขา / รหัส / จังหวัด / ผรม." class="w-full h-10 pl-9 pr-3 bg-surface-control rounded font-body-sm text-body-sm text-ink-primary placeholder:text-ink-faint focus:outline-none"></div></div>`
@@ -742,7 +749,9 @@ $('hqNav').querySelectorAll('.navlink').forEach(a=> a.onclick=()=>{ _view=a.data
 $('btnRefresh').onclick=async()=>{ $('teleState').textContent='SYNC…'; await loadAll(); $('teleState').textContent='LIVE'; render() }
 $('btnCpSearch').onclick=()=>openCheckpointSearch()
 
+function setChrome(on){ const a=$('hqAside'),h=$('hqHeader'),s=$('hqShell'); if(a)a.hidden=!on; if(h)h.hidden=!on; if(s)s.classList.toggle('pl-72',on) }
 function showLogin(msg){
+  setChrome(false)
   $('hqBody').innerHTML=`<div style="max-width:380px;margin:6vh auto 0" class="bg-surface-card rounded-xl p-6 shadow-md">
     <div class="flex items-center gap-2 mb-1"><div class="w-9 h-9 rounded bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-ink-on-yellow text-[22px]">lock</span></div><div><div class="font-title-md text-title-md">เข้าสู่ระบบ HQ</div><div class="font-label-micro text-label-micro text-ink-muted">ใช้บัญชีเดียวกับแอปตรวจงาน</div></div></div>
     ${msg?`<div class="mt-3 p-2 rounded font-body-sm text-body-sm" style="background:#241416;color:#FF9B9B">${esc(msg)}</div>`:''}
@@ -765,15 +774,39 @@ function showLogin(msg){
     const { error }=await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.href.split('#')[0], queryParams:{ hd:'cjmart.co.th', prompt:'select_account' } } })
     if(error){ $('hqGoogleBtn').style.opacity='1'; showLogin('เข้าสู่ระบบ Google ไม่สำเร็จ: '+error.message) } }
 }
+function showDenied(email, role){ setChrome(false)
+  $('hqBody').innerHTML=`<div style="max-width:420px;margin:8vh auto 0" class="bg-surface-card rounded-xl p-6 shadow-md text-center">
+    <div class="w-14 h-14 rounded-full bg-surface-fail flex items-center justify-center mx-auto mb-3"><span class="material-symbols-outlined text-status-fail text-[30px]">lock_person</span></div>
+    <div class="font-title-md text-title-md mb-1">ยังไม่ได้รับสิทธิ์ใช้งาน</div>
+    <div class="font-body-sm text-body-sm text-ink-muted mb-1">บัญชี <b class="text-ink-primary">${esc(email||'')}</b> เข้าระบบแล้ว แต่${role==='pending'?'ยังรออนุมัติสิทธิ์':'ยังไม่มี role ในระบบ'}</div>
+    <div class="font-label-micro text-label-micro text-ink-faint mb-4">แจ้งผู้ดูแล (Admin) ให้เพิ่มอีเมลของคุณในทะเบียนและกำหนด role ก่อนเข้าใช้ Dashboard</div>
+    <button id="denyLogout" class="w-full h-11 rounded bg-surface-control hover:bg-surface-elevated text-ink-primary font-title-sm font-bold flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[18px]">logout</span>ออกจากระบบ / สลับบัญชี</button>
+  </div>`
+  const b=$('denyLogout'); if(b) b.onclick=async()=>{ try{ await sb.auth.signOut() }catch(e){} location.reload() } }
 async function boot(){
   let user=null; try{ const r=await sb.auth.getUser(); user=r.data&&r.data.user }catch(e){}
   if(!user){ showLogin(''); return }
   $('hqBody').innerHTML='<div class="text-ink-muted" style="padding:40px 0;text-align:center">กำลังโหลดข้อมูล HQ…</div>'
   try{ await loadAll() }catch(e){ $('hqBody').innerHTML=`<div class="text-status-fail p-8">โหลดข้อมูลไม่สำเร็จ: ${esc(e.message||e)}</div>`; return }
   if(!stores.length){ showLogin('บัญชีนี้ไม่มีสิทธิ์อ่านข้อมูล หรือยังไม่มีสาขา — ลองบัญชีหัวหน้า/แอดมิน'); return }
+  // ---- สิทธิ์ตาม role (ล้อ app) ----
+  myUid=user.id; const me=profiles.find(p=>p.id===myUid); myRole=(me&&me.role)||''
+  if(!myRole || myRole==='pending'){ showDenied(user.email, myRole); return }
+  scopeAll=HQ_HEAD.includes(myRole)
+  allowedViews=HQ_VIEWS[myRole]||['1','5']
+  if(!scopeAll){ // เห็นเฉพาะสาขาที่ตัวเองลงตรวจ/เซ็น (เหมือน "งานของฉัน" ใน app)
+    const codeByIns={}; insps.forEach(i=>codeByIns[i.id]=i.store_code)
+    const mine=new Set()
+    events.forEach(e=>{ if(e.by===myUid){ const c=codeByIns[e.inspection_id]; if(c) mine.add(c) } })
+    signoffs.forEach(s=>{ if(s.by===myUid && s.store_code) mine.add(s.store_code) })
+    stores=stores.filter(s=>mine.has(s.code))
+  }
+  if(!allowedViews.includes(_view)) _view=allowedViews[0]
+  setChrome(true)
   $('hdrName').textContent = (user.email||'HQ')
   $('hdrEmail').textContent = (user.email||'')
-  $('hdrOnline').textContent='ONLINE · '+stores.length+' สาขา · '+profiles.length+' ผู้ใช้'
+  const _hr=$('hdrRole'); if(_hr) _hr.textContent = HQ_ROLE_TH[myRole]||myRole
+  $('hdrOnline').textContent='ONLINE · '+stores.length+' สาขา'+(scopeAll?(' · '+profiles.length+' ผู้ใช้'):' (เฉพาะของฉัน)')
   const um=$('hdrMenu'); $('hdrUser').onclick=e=>{ e.stopPropagation(); um.hidden=!um.hidden }
   document.addEventListener('click',e=>{ if(um&&!um.hidden&&!e.target.closest('#hdrUser')&&!e.target.closest('#hdrMenu')) um.hidden=true })
   $('hqLogout').onclick=async()=>{ $('hqLogout').textContent='กำลังออก…'; try{ await sb.auth.signOut() }catch(e){} location.reload() }
