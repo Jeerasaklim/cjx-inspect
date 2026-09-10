@@ -280,7 +280,7 @@ body.hastab .wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}
 .suScore .suGrade{font-size:44px;font-weight:800;color:#37D98B;line-height:1;min-width:52px;text-align:center}
 .suScore.g-B .suGrade{color:#8FD14F} .suScore.g-C .suGrade{color:#F5C518} .suScore.g-D .suGrade{color:#FF6B6B}
 .suMeta{flex:1;min-width:0}
-.suNum{font-family:ui-monospace,monospace;font-size:22px;font-weight:800}.suNum span{font-size:13px;color:var(--muted);font-weight:600}
+.suNum{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}.suNum span{font-size:13px;color:var(--muted);font-weight:600}
 .suSub{font-size:11.5px;color:var(--muted);margin-top:2px}
 .suSup{font-size:11px;color:var(--faint);margin-top:3px}
 /* ประวัติการตรวจแต่ละรอบของ Set-Up */
@@ -660,9 +660,9 @@ input[type=email],input[type=password],input[type=text]{border-radius:13px;backg
         </div>
       </div>
       <div class="grid grid-cols-3 gap-2 mt-4 pt-3.5 border-t border-solid border-border-subtle">
-        <div class="bg-surface-control p-2.5 rounded-xl text-center"><div id="pfStat1" class="text-lg font-bold font-data-mono text-primary-container">–</div><div class="font-label-micro text-label-micro text-ink-muted mt-0.5">สาขาที่รับผิดชอบ</div></div>
-        <div class="bg-surface-control p-2.5 rounded-xl text-center"><div id="pfStat2" class="text-lg font-bold font-data-mono text-secondary">–</div><div class="font-label-micro text-label-micro text-ink-muted mt-0.5">ตรวจผ่านแล้ว</div></div>
-        <div class="bg-surface-control p-2.5 rounded-xl text-center"><div id="pfStat3" class="text-lg font-bold font-data-mono text-status-fail">–</div><div class="font-label-micro text-label-micro text-ink-muted mt-0.5">Defect รอตรวจซ้ำ</div></div>
+        <div class="bg-surface-control p-2.5 rounded-xl text-center"><div id="pfStat1" class="text-lg font-bold text-primary-container">–</div><div class="font-label-micro text-label-micro text-ink-muted mt-0.5">สาขาที่รับผิดชอบ</div></div>
+        <div class="bg-surface-control p-2.5 rounded-xl text-center"><div id="pfStat2" class="text-lg font-bold text-secondary">–</div><div class="font-label-micro text-label-micro text-ink-muted mt-0.5">ตรวจผ่านแล้ว</div></div>
+        <div class="bg-surface-control p-2.5 rounded-xl text-center"><div id="pfStat3" class="text-lg font-bold text-status-fail">–</div><div class="font-label-micro text-label-micro text-ink-muted mt-0.5">Defect รอตรวจซ้ำ</div></div>
       </div>
     </section>
     <!-- offline queue -->
