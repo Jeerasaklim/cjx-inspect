@@ -1458,6 +1458,20 @@ const SETUP_SEED = (function(){
     {G:'ถังเก็บน้ำ'},
     {l:'มีระบบบายพาสน้ำทิ้งลงท่อน้ำทิ้งให้เรียบร้อย', p:1, s:'ซัพหลัก', ph:0, h:'ถ่ายถังเก็บน้ำ'}
   ])
+  // ปิด "บังคับถ่ายรูป" บนข้อให้คะแนน → ติ๊กผ่าน/ไม่ผ่านได้เลย (ไม่ผ่านยังบังคับแนบรูปตามเดิม) · รูปบังคับย้ายไปกลุ่มด้านล่าง
+  rows.forEach(function(r){ if((+r.points||0)>0){ r.photo=false; if(r.media==='video') r.media=null } })
+  // กลุ่ม "รูปที่ต้องถ่าย" ประจำหมวด (ตามคู่มือรับอาคาร) — points:0 = ไม่คิดคะแนน · มีผ่าน/ไม่ผ่าน + บังคับแนบรูป
+  var SPH={201:[['ถ่ายป้าย Tower'],['ถ่ายป้ายบนอาคาร']],
+    202:[['ถ่ายพื้นลานจอด'],['ถ่ายสีช่องจราจร'],['ถ่ายผนังฝั่งซ้าย'],['ถ่ายผนังฝั่งขวา'],['ถ่ายพื้นสีชมพูฝั่ง Nine']],
+    203:[['ถ่ายภาพรวมพื้นที่ขาย'],['ถ่ายแคชเชียร์'],['ถ่ายแคชเชียร์บาว'],['ถ่ายตู้ Nine'],['ถ่ายตู้แช่หน้าเปิด'],['ถ่ายตู้แช่ CR']],
+    204:[['ถ่ายพื้นสต๊อค'],['ถ่ายระบบโซลาร์'],['ถ่ายแผงวงจรไฟฟ้า'],['ถ่ายพัดลมดูด/พัดลมโคจร/ไฟฉุกเฉิน']],
+    205:[['ถ่ายพื้นห้องผู้จัดการ'],['ถ่ายตู้เซิฟเวอร์'],['ถ่ายปลั๊กไฟ']],
+    206:[['ถ่ายวิดีโอราดน้ำ','v'],['ถ่ายโถส้วม อ่าง และกระจก'],['ถ่ายฝ้าและพัดลม']],
+    207:[['ถ่ายวิดีโอเปิดน้ำ','v'],['ถ่ายจุดซักล้าง (ภาพรวม)']],
+    208:[['ถ่ายท่อน้ำทิ้ง'],['ถ่ายบ่อดักข้างสาขา']]}
+  var PN={}; rows.forEach(function(r){ if(!PN[r.phase]) PN[r.phase]=r.phase_name })
+  Object.keys(SPH).forEach(function(k){ var pn=+k; SPH[pn].forEach(function(a){
+    rows.push({phase:pn,phase_name:PN[pn]||('ตรวจรับ · หมวด '+(pn-200)),group_title:'📸 รูปที่ต้องถ่าย (บังคับ)',no:'',label:a[0],hint:null,media:a[1]==='v'?'video':null,na:false,sort:9000+sort++,points:0,supplier:null,photo:true}) }) })
   return rows
 })()
 
@@ -2307,7 +2321,7 @@ function computeSetupScore(events, uptoRound){
   const cur={}; events.forEach(e=>{ if(uptoRound!=null && e.round>uptoRound) return; const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   let total=0, gotMain=0,maxMain=0,gotSub=0,maxSub=0, doneItems=0,failItems=0,fixedItems=0,totalItems=0, wDecided=0
   const sections=SETUP_SECTIONS.map(([ph,name,weight])=>{
-    const items=checkpoints.filter(c=>c.phase===ph)
+    const items=checkpoints.filter(c=>c.phase===ph && (+c.points||0)>0)   // เฉพาะข้อให้คะแนน (ข้ามกลุ่ม "รูปที่ต้องถ่าย" points=0)
     const raw=items.reduce((s,c)=>s+(+c.points||1),0)||1
     let earned=0,done=0,fail=0,fixed=0
     items.forEach(c=>{ const w=(+c.points||1)/raw*weight, isSub=c.supplier==='ซัพย่อย'
