@@ -592,9 +592,9 @@ input[type=email],input[type=password],input[type=text]{border-radius:13px;backg
         <span id="poolUpd" style="font-size:10px;color:#67675F;font-weight:700"></span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-        <div class="kpibox" data-f="building" style="background:#141416;border-radius:12px;padding:11px 6px;text-align:center;cursor:pointer"><span id="kpiBuild" style="font-size:22px;font-weight:800;color:#F5F5F2;line-height:1">–</span><div style="font-size:9.5px;color:#FF9F1C;margin-top:5px;font-weight:700">กำลังก่อสร้าง</div></div>
-        <div class="kpibox" data-f="tofix" style="background:#141416;border-radius:12px;padding:11px 6px;text-align:center;cursor:pointer"><span id="kpiFix" style="font-size:22px;font-weight:800;color:#F5F5F2;line-height:1">–</span><div style="font-size:9.5px;color:#FF5C5C;margin-top:5px;font-weight:700">ต้องแก้</div></div>
-        <div class="kpibox" data-f="opened" style="background:#141416;border-radius:12px;padding:11px 6px;text-align:center;cursor:pointer"><span id="kpiOpen" style="font-size:22px;font-weight:800;color:#F5F5F2;line-height:1">–</span><div style="font-size:9.5px;color:#41e091;margin-top:5px;font-weight:700">เปิดแล้ว</div></div>
+        <div class="kpibox" data-f="building" style="background:#141416;border-radius:12px;padding:11px 6px;text-align:center;cursor:pointer"><span id="kpiBuild" style="font-size:22px;font-weight:800;color:#FF9F1C;line-height:1">–</span><div style="font-size:9.5px;color:#FF9F1C;margin-top:5px;font-weight:700">กำลังก่อสร้าง</div></div>
+        <div class="kpibox" data-f="tofix" style="background:#141416;border-radius:12px;padding:11px 6px;text-align:center;cursor:pointer"><span id="kpiFix" style="font-size:22px;font-weight:800;color:#FF5C5C;line-height:1">–</span><div style="font-size:9.5px;color:#FF5C5C;margin-top:5px;font-weight:700">ต้องแก้</div></div>
+        <div class="kpibox" data-f="opened" style="background:#141416;border-radius:12px;padding:11px 6px;text-align:center;cursor:pointer"><span id="kpiOpen" style="font-size:22px;font-weight:800;color:#41e091;line-height:1">–</span><div style="font-size:9.5px;color:#41e091;margin-top:5px;font-weight:700">เปิดแล้ว</div></div>
       </div>
       <div id="cmBar" style="margin-top:14px"></div>
     </div>
@@ -996,8 +996,8 @@ document.addEventListener('keydown',e=>{ if($('lightbox').classList.contains('hi
 let _lbSx=0
 $('lightbox').addEventListener('touchstart',e=>_lbSx=e.touches[0].clientX,{passive:true})
 $('lightbox').addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-_lbSx; if(Math.abs(dx)>45) lbStep(dx<0?1:-1) },{passive:true})
-const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', setup:'Set-Up (NSA)', head_setup:'หัวหน้า Set-Up', admin:'Admin'}
-const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', setup:'#37D98B', head_setup:'#4FD1B5', admin:'#37D98B'}
+const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', setup:'Set-Up (NSA)', head_setup:'หัวหน้า Set-Up', accounting:'บัญชี', admin:'Admin'}
+const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', setup:'#37D98B', head_setup:'#4FD1B5', accounting:'#C7A6FF', admin:'#37D98B'}
 const isSetup=()=>profile&&(profile.role==='setup'||profile.role==='head_setup')
 const PHASES = [[1,'นัดวางผัง'],[2,'ตอกเสาเข็ม'],[3,'งานโครงสร้างพื้น'],[4,'งานโครงเหล็ก'],
   [5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
@@ -1662,7 +1662,7 @@ async function recentThumbs(rows){
 }
 async function renderLanding(){
   const nm=profile.name||profile.email||'', admin=profile.role==='admin'
-  const RL={cm:['CM (ควบคุมงานก่อสร้าง)','#8FB4FF'],head_cm:['หัวหน้า CM','#FF9F1C'],head_construction:['หัวหน้าก่อสร้าง','#F5C518'],setup:['ทีมตรวจรับ Set-Up','#37D98B'],head_setup:['หัวหน้า Set-Up','#4FD1B5'],admin:['ผู้ดูแลระบบ','#C79BFF']}
+  const RL={cm:['CM (ควบคุมงานก่อสร้าง)','#8FB4FF'],head_cm:['หัวหน้า CM','#FF9F1C'],head_construction:['หัวหน้าก่อสร้าง','#F5C518'],setup:['ทีมตรวจรับ Set-Up','#37D98B'],head_setup:['หัวหน้า Set-Up','#4FD1B5'],accounting:['บัญชี (ดูรายงานทุกสาขา)','#C7A6FF'],admin:['ผู้ดูแลระบบ','#C79BFF']}
   const rl=RL[profile.role]||[String(profile.role||'-'),'#9A9A93']
   $('landBody').innerHTML = `
    <div class="flex flex-col w-full gap-space-xl">
@@ -2112,6 +2112,10 @@ async function openSite(code){
   const prePass = preStats.filter(p=>p.st.key==='pass').length
   const curPhase = phStats.find(p=>p.st.key!=='pass')
   const pct = Math.round(nPass/(PHASES.length||1)*100)
+  // กฎ: มีจุด "ไม่ผ่าน" = ออกใบตรวจรับ/ใบส่งมอบไม่ได้ (ใบงานต้องแก้ยังออกได้)
+  const conBlock = [...preStats,...phStats].some(p=>p.st.key==='fail')
+  const _setupScore = checkpoints.some(c=>c.phase>=201&&c.phase<=208) ? computeSetupScore(events) : null
+  const setupBlock = !!(_setupScore && _setupScore.failItems>0)
   const scoreOf=n=>{ const a=signoffs.filter(x=>String(x.scope)===String(n)&&x.kind==='score'); if(!a.length) return null; const sg2=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)); return (+sg2.note)||null }
   // ---- Store hero (p4) ----
   let html = `<div class="relative overflow-hidden rounded-xl bg-surface-card p-space-lg shadow-md flex flex-col gap-space-md">
@@ -2157,7 +2161,8 @@ async function openSite(code){
     </div>`
     const allPass = nPass===PHASES.length
     html += `<div class="pt-space-xs flex flex-col gap-space-xs">
-      <button class="btn gho" id="btnReport">🧾 ออกรายงานรวมทั้งสาขา (Draft PDF)</button>
+      <button class="btn gho" id="btnReport"${conBlock?' style="opacity:.45;cursor:not-allowed"':''}>🧾 ออกใบตรวจรับ/รายงานรวมทั้งสาขา (PDF)</button>
+      ${conBlock?`<div class="rounded-lg p-space-sm font-body-sm text-body-sm flex items-start gap-2" style="background:#2a1414;border:1px solid #5a2a2a;color:#ffb4b4"><span class="material-symbols-outlined text-[18px] shrink-0">block</span><span>มีงวดที่ <b>ไม่ผ่าน</b> — ออกใบตรวจรับไม่ได้ ต้องแก้ให้ผ่านครบก่อน (ใบรายการงานที่ต้องแก้ยังออกได้ปกติ)</span></div>`:''}
       <button class="btn gho" id="btnConPunch" style="color:#FF9B9B"><span style="margin-right:4px">🔧</span>ออกรายการงานที่ต้องแก้ (ก่อสร้าง)</button>
       ${canApprove()&&allPass&&!handover?`<button class="btn pri" id="btnHandover">✓ รับมอบงาน (ปิดงาน)</button>`:''}
     </div>`
@@ -2240,7 +2245,9 @@ async function openSite(code){
         const allPass = sc.allDone && !sc.failItems && !sc.fixedItems
         const canCert = bothSigned && allPass
         html += `<div class="flex flex-col gap-space-sm pt-space-xs">`
-        html += `<button id="btnSetupReport" class="w-full rounded-full ${(isSetupSide&&canCert)?'bg-primary-container text-ink-on-yellow':'bg-surface-container-high text-ink-primary'} font-title-sm text-title-sm font-bold flex items-center justify-center gap-2 shadow-lg active:translate-y-px transition-all" style="height:54px"><span class="material-symbols-outlined text-[22px]">receipt_long</span><span>${(isSetupSide&&canCert)?'ออกใบส่งมอบร้าน (Report · PDF)':'รายงานสรุป Set-Up (PDF)'}</span></button>`
+        const _suBlk=sc.failItems>0   // มีจุดไม่ผ่าน = ห้ามออกใบตรวจรับ
+        html += `<button id="btnSetupReport" class="w-full rounded-full ${(isSetupSide&&canCert)?'bg-primary-container text-ink-on-yellow':'bg-surface-container-high text-ink-primary'} font-title-sm text-title-sm font-bold flex items-center justify-center gap-2 shadow-lg active:translate-y-px transition-all" style="height:54px${_suBlk?';opacity:.45;cursor:not-allowed':''}"><span class="material-symbols-outlined text-[22px]">${_suBlk?'block':'receipt_long'}</span><span>${(isSetupSide&&canCert)?'ออกใบส่งมอบร้าน (Report · PDF)':'รายงานสรุป Set-Up (PDF)'}</span></button>`
+        if(_suBlk) html += `<div class="rounded-lg p-space-sm font-body-sm text-body-sm flex items-start gap-2" style="background:#2a1414;border:1px solid #5a2a2a;color:#ffb4b4"><span class="material-symbols-outlined text-[18px] shrink-0">block</span><span>มี <b>${sc.failItems} จุดไม่ผ่าน</b> — ออกใบตรวจรับไม่ได้ ต้องแก้ให้ผ่านก่อน (ใบรายการที่ต้องแก้ด้านล่างยังออกได้)</span></div>`
         if(sc.failItems||sc.fixedItems) html += `<button id="btnSetupPunch" class="w-full rounded-full bg-surface-container-high text-ink-primary font-title-sm text-title-sm font-bold flex items-center justify-center gap-2 active:translate-y-px transition-all" style="height:48px"><span class="material-symbols-outlined text-role-head-cm text-[20px]">build</span><span>ออกรายงานรายการที่ต้องแก้ไข</span></button>`
         html += `</div>`
         if(isSetupSide && !canCert){ const bk=[]
@@ -2255,15 +2262,15 @@ async function openSite(code){
   }
   $('siteBody').innerHTML = html
   $('siteBody').querySelectorAll('[data-phase]').forEach(el=> el.onclick=()=>openPhase(code, +el.dataset.phase))
-  const brA=$('btnReport'); if(brA) brA.onclick=()=>generateReport(code)
+  const brA=$('btnReport'); if(brA) brA.onclick=()=>{ if(conBlock){ toast('มีงวดที่ยังไม่ผ่าน — ออกใบตรวจรับไม่ได้ ต้องแก้ให้ผ่านครบก่อน'); return } generateReport(code) }
   const bcpA=$('btnConPunch'); if(bcpA) bcpA.onclick=()=>generateConPunch(code)
   const ccA=$('ctrCard'); if(ccA) ccA.onclick=()=>openCtrPicker(code)
-  const spA=$('btnSitePdf'); if(spA) spA.onclick=()=>generateReport(code)
+  const spA=$('btnSitePdf'); if(spA) spA.onclick=()=>{ if(conBlock){ toast('มีงวดที่ยังไม่ผ่าน — ออกใบตรวจรับไม่ได้ ต้องแก้ให้ผ่านครบก่อน'); return } generateReport(code) }
   const shA=$('btnSiteShare'); if(shA) shA.onclick=()=>{ if(navigator.share){ navigator.share({title:(s.name||code),text:'CJX Inspect · '+(s.name||code),url:location.href}).catch(()=>{}) } else { try{ toast('อุปกรณ์นี้ยังไม่รองรับแชร์ — ใช้ปุ่ม PDF แทนได้') }catch(e){} } }
   const bh=$('btnHandover'); if(bh) bh.onclick=()=>doSignoff(code,'store','handover',()=>openSite(code))
   $('siteBody').querySelectorAll('.sigslot[data-susig]').forEach(el=> el.onclick=()=>{ const kind=el.dataset.susig
     openSigPad(kind==='setup_nsa'?'ลายเซ็นผู้ตรวจรับ (Set-Up/NSA)':'ลายเซ็นทีมก่อสร้าง (CM)', img=>saveSetupSig(code,kind,img)) })
-  const bsr=$('btnSetupReport'); if(bsr) bsr.onclick=()=>generateSetupReport(code)
+  const bsr=$('btnSetupReport'); if(bsr) bsr.onclick=()=>{ if(setupBlock){ toast('มีจุดไม่ผ่าน — ออกใบตรวจรับ Set-Up ไม่ได้ ต้องแก้ให้ผ่านก่อน'); return } generateSetupReport(code) }
   const bsp=$('btnSetupPunch'); if(bsp) bsp.onclick=()=>generateSetupPunch(code)
   hideAllViews(); showTabbar(true); show($('viewSite'),true); window.scrollTo(0,0)   // ค้าง Tab Bar ไว้ · ไม่ทับแท็บต้นทาง (Back กลับไปที่เดิม)
 }
@@ -3120,7 +3127,7 @@ $('btnUsersCsv').onclick = async ()=>{
 }
 function drawUsers(){
   if(!_users.length){ $('usersBox').innerHTML='<div class="uhint">ยังไม่มีผู้ใช้ — สร้างที่ Supabase → Authentication → Users แล้วกลับมาโหลดใหม่</div>'; return }
-  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['admin','Admin']]
+  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['admin','Admin']]
   const q=_userQ.trim().toLowerCase()
   const list=_users.filter(u=>!q||[u.name,u.email].some(v=>(v||'').toLowerCase().includes(q)))
   const rows = list.map(u=>{ const rc=ROLE_COLOR[u.role]||'#9AA7B2'; const self=u.id===myUid
@@ -3154,7 +3161,7 @@ function drawUsers(){
 $('btnPendLogout').onclick = async ()=>{ await sb.auth.signOut(); profile=null; showAuth() }
 
 // ---- ทะเบียนสิทธิ์ (roster) — กำหนดล่วงหน้า + กันคนนอก ----
-const _ROSTER_ROLES=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['admin','Admin']]
+const _ROSTER_ROLES=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['admin','Admin']]
 let _roster=[]
 function _rosOpts(sel){ return _ROSTER_ROLES.map(([k,l])=>`<option value="${k}" ${sel===k?'selected':''}>${l}</option>`).join('') }
 async function _rosterSet(email,name,role){
@@ -3658,6 +3665,7 @@ async function generateConPunch(code){
   let failN=0, fixN=0, body=''
   PRECON.concat(PHASES).forEach(([pn,name])=>{
     const cps=checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort)
+    const pname=(cps[0]&&cps[0].phase_name)||name
     const rows=[]
     cps.forEach(c=>{ const e=cur[String(c.id)]; if(!e||(e.status!=='fail'&&e.status!=='fixed')) return
       if(e.status==='fail') failN++; else fixN++
@@ -3665,12 +3673,12 @@ async function generateConPunch(code){
       const sup=c.supplier==='ซัพย่อย'?'<span class="sup y">ซัพย่อย</span>':(c.supplier?'<span class="sup m">ซัพหลัก</span>':'')
       const tag=e.status==='fixed'?'<span class="tg fx">แก้แล้ว · รอตรวจซ้ำ</span>':'<span class="tg fl">ต้องแก้</span>'
       const imgBlock = e.status==='fixed' ? baHtml(ims, e.by) : `<div class="ims">${ims.map(repImg).join('')||'<span class="noimg">— ไม่มีรูป —</span>'}</div>`
-      rows.push(`<div class="it"><div class="ith"><div class="itl">${c.no?`<span class="grp">${esc(c.no)}</span> `:''}${esc(c.label)} ${sup}</div>${tag}</div>
+      rows.push(`<div class="it"><div class="phc">${esc(pname)}</div><div class="ith"><div class="itl">${c.no?`<span class="grp">${esc(c.no)}</span> `:''}${esc(c.label)} ${sup}</div>${tag}</div>
         ${e.note?`<div class="rsn">✕ ${esc(e.note)}</div>`:''}
         <div class="by">โดย ${esc(nameOf(e.by))} · ${fmtDate(e.created_at)}${e.round>1?' · รอบ '+e.round:''}</div>
         ${imgBlock}</div>`)
     })
-    if(rows.length){ const pname=(cps[0]&&cps[0].phase_name)||name; body+=`<h2 class="ph">${esc(pname)} <span class="cnt">${rows.length} จุด</span></h2>${rows.join('')}` }
+    if(rows.length){ body+=`<h2 class="ph">${esc(pname)} <span class="cnt">${rows.length} จุด</span></h2>${rows.join('')}` }
   })
   const total=failN+fixN
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>งานก่อสร้างที่ต้องแก้ ${esc(s.name||code)}</title><style>${REPORT_CSS} ${REP_IMG_CSS} ${BA_CSS}
@@ -3683,14 +3691,26 @@ async function generateConPunch(code){
     .tg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;flex:0 0 auto}.tg.fl{color:#991B1B;background:#ffdad6}.tg.fx{color:#6e3900;background:#ffdcc3}
     .rsn{color:#8d4b00;font-size:12px;margin:5px 0 3px}.by{color:#9CA3AF;font-size:11px}
     .ims{margin-top:6px}.ims img{width:96px;height:96px;object-fit:cover;border-radius:7px;margin:3px 3px 0 0;border:1px solid #E5E7EB}.noimg{color:#DC2626;font-size:11px}
+    .phc{display:none;font-size:10px;font-weight:700;color:#DC2626;background:#ffdad6;border-radius:5px;padding:1px 8px;margin-bottom:6px;width:fit-content}
+    .pmode{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:2px 0 14px;font-size:12px}
+    .pmode b{font-weight:700;color:#6B7280;margin-right:2px}
+    .pmode button{font:inherit;font-weight:700;border:1px solid #D1D5DB;background:#fff;color:#374151;border-radius:99px;padding:5px 13px;cursor:pointer}
+    .pmode button.on{background:#111827;color:#fff;border-color:#111827}
+    body.split h2.ph{display:none}
+    body.split .it{page-break-before:always}
+    body.split .it:first-of-type{page-break-before:auto}
+    body.split .it .phc{display:block}
+    @media print{.pmode{display:none!important}}
   </style></head><body>
     <div class="paper">
       <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • รายการงานต้องแก้ไข (ก่อสร้าง)</span><span class="appvpill f"><i></i>รอแก้ไข</span></div><h2>รายงานงานที่ต้องแก้ไข (งานก่อสร้าง)</h2><div class="en">Construction Defect Rework List for Contractor</div></div></div>
         <div class="metacard"><div class="metarow"><span>เลขที่เอกสาร:</span><b>CJX-CPL-${dd.getFullYear()+543}-${esc(code)}</b></div><div class="metarow"><span>วันที่ออกเอกสาร:</span><b>${today}</b></div><div class="metarow"><span>ผู้ออก:</span><b>${esc(profile.name||profile.email||'—')}</b></div></div></div>
       <div class="strip"><div><div class="lb">รหัสและชื่อสาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ผู้รับเหมา (ผรม.)</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">ผู้ต้องแก้งาน</div></div><div><div class="lb">ต้องแก้</div><div class="vl" style="color:#DC2626">${failN} จุด</div><div class="sub">ไม่ผ่าน</div></div><div><div class="lb">รอตรวจซ้ำ</div><div class="vl" style="color:#b15f00">${fixN} จุด</div><div class="sub">แก้แล้ว</div></div></div>
+      ${total?`<div class="pmode noprint"><b>โหมดพิมพ์:</b><button id="pmAll" class="on" onclick="setPM(0)">🧾 รวมทุกจุดในเล่มเดียว</button><button id="pmSplit" onclick="setPM(1)">✂️ แยกทีละจุด (จุดละหน้า)</button></div>`:''}
       ${total?body:'<p style="color:#005137;font-weight:600">✓ ไม่มีจุดที่ต้องแก้ในงานก่อสร้าง</p>'}
       ${total?`<div class="legal"><span style="flex:none">🔧</span><p style="margin:0"><b>ขั้นตอนแก้:</b> ผรม. แก้งานหน้างาน → CM/วิศวกรควบคุมตรวจซ้ำ → กดผ่าน/ไม่ผ่านใหม่ในแอป (ระบบเก็บเป็นรอบใหม่ ไม่ทับของเดิม)</p></div>`:''}
     </div>
+    <script>function setPM(s){document.body.classList.toggle('split',!!s);var a=document.getElementById('pmAll'),b=document.getElementById('pmSplit');if(a)a.classList.toggle('on',!s);if(b)b.classList.toggle('on',!!s)}<\/script>
   </body></html>`
   frame.srcdoc=html
   frame.onload=null
