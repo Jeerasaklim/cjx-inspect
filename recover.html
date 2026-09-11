@@ -119,39 +119,55 @@ $('btnZip').onclick=async()=>{ if(!_files.length) return; $('btnZip').disabled=t
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`cjx_media_${Date.now()}.zip`; a.click()
   log(`✅ ดาวน์โหลดรูป ${n} ไฟล์เป็น .zip แล้ว`,'ok'); $('btnZip').disabled=false }
 
-// ---- 4) กู้แถว media คืนจากไฟล์ที่รอดใน Storage (INSERT-only) ----
+// ---- 4) กู้แถว media คืน (เร็ว: สแกนเฉพาะ inspection ที่รูปหายจริง) ----
+async function insertRebuilt(files, havePath, fileSet, label){
+  const toAdd=[]
+  for(const p of files){
+    if(/_t\.jpg$/i.test(p)) continue                 // ข้าม thumbnail
+    if(havePath.has(p)) continue                     // มีแถวแล้ว
+    const parts=p.split('/'); if(parts.length<3) continue
+    const inspId=parts[0], cpId=parts[1], fname=parts.slice(2).join('/')
+    const ts=fname.replace(/\.(jpg|jpeg|png|mp4|mov)$/i,'')
+    const isVid=/\.(mp4|mov)$/i.test(fname)
+    const tpath=`${inspId}/${cpId}/${ts}_t.jpg`
+    toAdd.push({inspection_id:inspId, checkpoint:cpId, round:1, kind:isVid?'video':'image', path:p, thumb_path:fileSet.has(tpath)?tpath:null})
+  }
+  if(!toAdd.length){ log(`  ${label}: ไม่มีไฟล์ที่ต้องกู้`,'warn'); return 0 }
+  let ok=0
+  for(let i=0;i<toAdd.length;i+=200){ const batch=toAdd.slice(i,i+200)
+    const {data,error}=await sb.from('media').insert(batch).select('path')
+    if(error) log(`  ${label} ชุด ${i}: ${error.message}`,'err'); else ok+=(data?data.length:batch.length)
+  }
+  log(`  ${label}: กู้คืน ${ok}/${toAdd.length} รูป`,'ok'); return ok
+}
 $('btnRelink').onclick=async()=>{ $('btnRelink').disabled=true; $('relinkRes').textContent=''
   try{
-    if(!_files.length){ log('ยังไม่ได้สแกน Storage — กดข้อ 2 ก่อน','warn'); _files=await listAll(''); }
-    if(!_files.length){ log('⚠ ไม่พบไฟล์ใน Storage เลย — กู้ไม่ได้','err'); $('btnRelink').disabled=false; return }
-    log(`เริ่มกู้: ตรวจ ${_files.length} ไฟล์ใน Storage…`,'warn')
-    // ไฟล์ทั้งหมด (รวม _t.jpg) — ใช้เช็กว่า thumb มีไหม
-    const fileSet=new Set(_files.map(f=>f.path))
-    // แถว media ที่มีอยู่แล้ว (กันซ้ำ)
-    const existing=await allRows('media','path'); const havePath=new Set(existing.map(m=>m.path))
-    log(`  media เดิมในตาราง: ${existing.length} แถว`,'ok')
-    // ไฟล์หลัก = ไม่ใช่ thumbnail (_t.jpg) และยังไม่มีแถว
-    const toAdd=[]
-    for(const f of _files){ const p=f.path
-      if(/_t\.jpg$/i.test(p)) continue                 // ข้าม thumbnail
-      if(havePath.has(p)) continue                     // มีแถวแล้ว
-      const parts=p.split('/'); if(parts.length<3) continue
-      const inspId=parts[0], cpId=parts[1], fname=parts.slice(2).join('/')
-      const ts=fname.replace(/\.(jpg|jpeg|png|mp4|mov)$/i,'')
-      const isVid=/\.(mp4|mov)$/i.test(fname)
-      const tpath=`${inspId}/${cpId}/${ts}_t.jpg`
-      toAdd.push({inspection_id:inspId, checkpoint:cpId, round:1, kind:isVid?'video':'image', path:p, thumb_path:fileSet.has(tpath)?tpath:null})
+    log('หา inspection ที่รูปหาย (ไม่ต้องสแกนทั้งระบบ)…','warn')
+    const [ins,med,ev,cps]=await Promise.all([
+      allRows('inspections','id,store_code,phase'),
+      allRows('media','inspection_id,path'),
+      allRows('check_events','inspection_id,checkpoint,status'),
+      allRows('checkpoints','id,photo')
+    ])
+    const cpPhoto={}; cps.forEach(c=>cpPhoto[String(c.id)]=(c.photo!==false))
+    const medByIns={}, havePath=new Set()
+    med.forEach(m=>{ medByIns[m.inspection_id]=(medByIns[m.inspection_id]||0)+1; havePath.add(m.path) })
+    const needByIns={}
+    ev.forEach(e=>{ if((e.status==='pass'||e.status==='fixed') && cpPhoto[String(e.checkpoint)]) needByIns[e.inspection_id]=(needByIns[e.inspection_id]||0)+1 })
+    const bad=ins.filter(i=>(needByIns[i.id]||0)>0 && (medByIns[i.id]||0)===0)
+    log(`  media เดิม: ${med.length} แถว · inspection ที่ควรมีรูปแต่ไม่มี: ${bad.length} งวด`,'ok')
+    if(!bad.length){ log('✅ ไม่มี inspection ไหนรูปหาย — ครบหมดแล้ว','ok'); $('relinkRes').textContent='ครบแล้ว 0 ใหม่'; $('btnRelink').disabled=false; return }
+    bad.forEach(b=>log(`   • ${b.store_code} งวด ${b.phase} (${b.id.slice(0,8)})`,'warn'))
+    let total=0
+    for(const b of bad){
+      log(`สแกน Storage โฟลเดอร์ ${b.id.slice(0,8)}… (${b.store_code} งวด ${b.phase})`,'warn')
+      const files=(await listAll(b.id)).map(f=>f.path)
+      if(!files.length){ log(`  ⚠ ${b.store_code} งวด ${b.phase}: ไม่มีไฟล์ใน Storage — รูปถูกลบจริง ต้องถ่ายใหม่`,'err'); continue }
+      const fileSet=new Set(files)
+      total+=await insertRebuilt(files, havePath, fileSet, `${b.store_code} งวด ${b.phase}`)
     }
-    log(`  ไฟล์รูป/วิดีโอที่ยังไม่มีแถว media: ${toAdd.length} รายการ`,'warn')
-    if(!toAdd.length){ log('✅ ไม่มีอะไรต้องกู้ — แถว media ครบตามไฟล์ที่รอดแล้ว','ok'); $('relinkRes').textContent='ครบแล้ว 0 ใหม่'; $('btnRelink').disabled=false; return }
-    let ok=0, fail=0
-    for(let i=0;i<toAdd.length;i+=200){ const batch=toAdd.slice(i,i+200)
-      const {data,error}=await sb.from('media').insert(batch).select('path')
-      if(error){ fail+=batch.length; log(`  ชุด ${i}-${i+batch.length}: ${error.message}`,'err') }
-      else { ok+=(data?data.length:batch.length); log(`  กู้แล้ว ${ok}/${toAdd.length}…`,'ok') }
-    }
-    $('relinkRes').textContent=`กู้สำเร็จ ${ok} · พลาด ${fail}`
-    log(`✅ เสร็จ: สร้างแถว media คืน ${ok} แถว${fail?` (พลาด ${fail})`:''} — เปิดแอปดูรูปได้เลย (รีเฟรชสาขา)`, ok?'ok':'err')
+    $('relinkRes').textContent=`กู้สำเร็จ ${total} รูป`
+    log(`✅ เสร็จ: สร้างแถว media คืน ${total} รูป — เปิดแอปรีเฟรชสาขาดูได้เลย`, total?'ok':'warn')
   }catch(e){ log('กู้ไม่สำเร็จ: '+e.message,'err') }
   $('btnRelink').disabled=false }
 
