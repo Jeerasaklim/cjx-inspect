@@ -140,6 +140,14 @@ async function insertRebuilt(files, havePath, fileSet, label){
   }
   log(`  ${label}: กู้คืน ${ok}/${toAdd.length} รูป`,'ok'); return ok
 }
+async function listTopFolders(){ // โฟลเดอร์ชั้นบนสุด = inspection id · ไม่ recurse (เร็ว)
+  let out=[],offset=0
+  while(true){ const {data,error}=await sb.storage.from('media').list('',{limit:100,offset,sortBy:{column:'name',order:'asc'}})
+    if(error){ log('  storage: '+error.message,'err'); break }
+    if(!data||!data.length) break
+    for(const it of data){ if(it.id===null && it.metadata==null) out.push(it.name) }  // เฉพาะโฟลเดอร์
+    if(data.length<100) break; offset+=100 }
+  return out }
 $('btnRelink').onclick=async()=>{ $('btnRelink').disabled=true; $('relinkRes').textContent=''
   try{
     log('หา inspection ที่รูปหาย (ไม่ต้องสแกนทั้งระบบ)…','warn')
@@ -152,22 +160,52 @@ $('btnRelink').onclick=async()=>{ $('btnRelink').disabled=true; $('relinkRes').t
     const cpPhoto={}; cps.forEach(c=>cpPhoto[String(c.id)]=(c.photo!==false))
     const medByIns={}, havePath=new Set()
     med.forEach(m=>{ medByIns[m.inspection_id]=(medByIns[m.inspection_id]||0)+1; havePath.add(m.path) })
-    const needByIns={}
-    ev.forEach(e=>{ if((e.status==='pass'||e.status==='fixed') && cpPhoto[String(e.checkpoint)]) needByIns[e.inspection_id]=(needByIns[e.inspection_id]||0)+1 })
-    const bad=ins.filter(i=>(needByIns[i.id]||0)>0 && (medByIns[i.id]||0)===0)
+    const needCps={}   // inspId -> Set(cpId ที่ควรมีรูป)
+    ev.forEach(e=>{ if((e.status==='pass'||e.status==='fixed') && cpPhoto[String(e.checkpoint)]){ (needCps[e.inspection_id]||(needCps[e.inspection_id]=new Set())).add(String(e.checkpoint)) } })
+    const bad=ins.filter(i=>needCps[i.id] && needCps[i.id].size>0 && (medByIns[i.id]||0)===0)
     log(`  media เดิม: ${med.length} แถว · inspection ที่ควรมีรูปแต่ไม่มี: ${bad.length} งวด`,'ok')
     if(!bad.length){ log('✅ ไม่มี inspection ไหนรูปหาย — ครบหมดแล้ว','ok'); $('relinkRes').textContent='ครบแล้ว 0 ใหม่'; $('btnRelink').disabled=false; return }
-    bad.forEach(b=>log(`   • ${b.store_code} งวด ${b.phase} (${b.id.slice(0,8)})`,'warn'))
-    let total=0
+    bad.forEach(b=>log(`   • ${b.store_code} งวด ${b.phase} (${b.id.slice(0,8)}) ต้องมีรูป ${needCps[b.id].size} จุด`,'warn'))
+    const curInsIds=new Set(ins.map(i=>i.id))
+    let total=0; const stillEmpty=[]
+    // 1) ลองโฟลเดอร์ตรง id ก่อน
     for(const b of bad){
-      log(`สแกน Storage โฟลเดอร์ ${b.id.slice(0,8)}… (${b.store_code} งวด ${b.phase})`,'warn')
       const files=(await listAll(b.id)).map(f=>f.path)
-      if(!files.length){ log(`  ⚠ ${b.store_code} งวด ${b.phase}: ไม่มีไฟล์ใน Storage — รูปถูกลบจริง ต้องถ่ายใหม่`,'err'); continue }
-      const fileSet=new Set(files)
-      total+=await insertRebuilt(files, havePath, fileSet, `${b.store_code} งวด ${b.phase}`)
+      if(files.length){ total+=await insertRebuilt(files, havePath, new Set(files), `${b.store_code} งวด ${b.phase}`) }
+      else stillEmpty.push(b)
+    }
+    // 2) ที่ยังว่าง → หาโฟลเดอร์ orphan (id เก่าที่ไม่มีใน inspections) แล้วจับคู่ด้วยชุด checkpoint
+    if(stillEmpty.length){
+      log(`หาโฟลเดอร์เก่า (orphan) ให้ ${stillEmpty.length} งวดที่ยังว่าง…`,'warn')
+      const tops=await listTopFolders()
+      const orphans=tops.filter(t=>!curInsIds.has(t))
+      log(`  โฟลเดอร์ทั้งหมด ${tops.length} · เป็นของเก่า/ไม่รู้จัก (orphan) ${orphans.length}`,'ok')
+      // อ่านไฟล์ในแต่ละ orphan → เก็บชุด checkpoint
+      const orphanInfo=[]
+      for(const of of orphans){ const files=(await listAll(of)).map(f=>f.path)
+        const cpset=new Set(files.filter(p=>!/_t\.jpg$/i.test(p)).map(p=>p.split('/')[1]))
+        if(cpset.size) orphanInfo.push({id:of,files,cpset}) }
+      for(const b of stillEmpty){
+        const need=needCps[b.id]
+        // orphan ที่ checkpoint ตรงกับงวดนี้ (ทับซ้อน ≥ ครึ่งของที่ต้องมี และไม่มี checkpoint นอกงวด)
+        const cand=orphanInfo.filter(o=>{ let hit=0; o.cpset.forEach(c=>{ if(need.has(c)) hit++ }); const extra=[...o.cpset].some(c=>!need.has(c)); return hit>0 && hit>=Math.ceil(need.size/2) && !extra })
+        if(cand.length===1){
+          const o=cand[0]
+          log(`  ✓ จับคู่ ${b.store_code} งวด ${b.phase} ↔ โฟลเดอร์เก่า ${o.id.slice(0,8)} (${o.files.filter(p=>!/_t\.jpg$/i.test(p)).length} รูป)`,'ok')
+          // สร้าง media ชี้ inspection ปัจจุบัน (b.id) แต่ path ชี้ไฟล์จริงในโฟลเดอร์เก่า
+          const fileSet=new Set(o.files); const toAdd=[]
+          for(const p of o.files){ if(/_t\.jpg$/i.test(p)) continue; if(havePath.has(p)) continue
+            const parts=p.split('/'); const cpId=parts[1], fname=parts.slice(2).join('/'); const ts=fname.replace(/\.(jpg|jpeg|png|mp4|mov)$/i,'')
+            const isVid=/\.(mp4|mov)$/i.test(fname); const tp=`${parts[0]}/${cpId}/${ts}_t.jpg`
+            toAdd.push({inspection_id:b.id, checkpoint:cpId, round:1, kind:isVid?'video':'image', path:p, thumb_path:fileSet.has(tp)?tp:null}) }
+          let ok=0; for(let i=0;i<toAdd.length;i+=200){ const bt=toAdd.slice(i,i+200); const {data,error}=await sb.from('media').insert(bt).select('path'); if(error)log('   '+error.message,'err'); else ok+=(data?data.length:bt.length) }
+          log(`   กู้คืน ${ok} รูป (จากโฟลเดอร์เก่า)`,'ok'); total+=ok
+        } else if(cand.length>1){ log(`  ⚠ ${b.store_code} งวด ${b.phase}: เจอโฟลเดอร์เก่าที่เข้าเกณฑ์ ${cand.length} อัน — ไม่ชัวร์ ไม่จับคู่ให้ (กันรูปสลับสาขา) แจ้งคาซาม่าคุง`,'warn') }
+        else { log(`  ✗ ${b.store_code} งวด ${b.phase}: ไม่พบไฟล์ทั้งโฟลเดอร์ปัจจุบันและ orphan — รูปถูกลบจริง ต้องถ่ายใหม่ ${need.size} จุด`,'err') }
+      }
     }
     $('relinkRes').textContent=`กู้สำเร็จ ${total} รูป`
-    log(`✅ เสร็จ: สร้างแถว media คืน ${total} รูป — เปิดแอปรีเฟรชสาขาดูได้เลย`, total?'ok':'warn')
+    log(`✅ เสร็จ: สร้างแถว media คืน ${total} รูป${total?' — เปิดแอปรีเฟรชสาขาดูได้เลย':''}`, total?'ok':'warn')
   }catch(e){ log('กู้ไม่สำเร็จ: '+e.message,'err') }
   $('btnRelink').disabled=false }
 
