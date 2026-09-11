@@ -49,6 +49,13 @@ input{width:100%;height:46px;padding:0 14px;background:#141416;border:1px solid 
   <button id="btnZip" disabled>ดาวน์โหลดรูปทั้งหมด (.zip)</button>
 </div>
 
+<div class="card" style="border-color:#3a5a3a">
+  <h3>⭐ 4) กู้รูปคืนเข้าแอป — สร้างแถว media ที่หายจากไฟล์ที่รอด</h3>
+  <p>ไฟล์รูปใน Storage ยังอยู่ แต่แถวในตาราง media หาย รูปเลยไม่โผล่ในแอป · ปุ่มนี้อ่านชื่อไฟล์ (มี checkpoint id อยู่ในชื่อ) แล้วสร้างแถว media คืน — <b>INSERT อย่างเดียว ข้ามอันที่มีอยู่แล้ว ไม่ลบ ไม่ทับอะไร</b> · กดข้อ 2 (สแกน) ก่อน</p>
+  <button id="btnRelink" disabled>กู้รูปคืน (สร้าง media ที่หายไป)</button>
+  <span class="pill" id="relinkRes" style="margin-left:8px"></span>
+</div>
+
 <div class="log" id="log">พร้อม…</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -65,7 +72,7 @@ let _files=[]
 async function refreshAuth(){
   const {data}=await sb.auth.getUser(); const u=data&&data.user
   if(u){ $('authState').innerHTML=`✅ ล็อกอินแล้ว: <b>${u.email}</b>`; $('loginBox').style.display='none'
-    $('btnBackup').disabled=false; $('btnScan').disabled=false }
+    $('btnBackup').disabled=false; $('btnScan').disabled=false; $('btnRelink').disabled=false }
   else{ $('authState').textContent='ยังไม่ได้ล็อกอิน — เข้าสู่ระบบก่อน'; $('loginBox').style.display='block' }
 }
 $('btnLogin').onclick=async()=>{ const {error}=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value}); if(error){log('เข้าไม่สำเร็จ: '+error.message,'err');return} refreshAuth() }
@@ -111,6 +118,42 @@ $('btnZip').onclick=async()=>{ if(!_files.length) return; $('btnZip').disabled=t
   const blob=await zip.generateAsync({type:'blob'})
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`cjx_media_${Date.now()}.zip`; a.click()
   log(`✅ ดาวน์โหลดรูป ${n} ไฟล์เป็น .zip แล้ว`,'ok'); $('btnZip').disabled=false }
+
+// ---- 4) กู้แถว media คืนจากไฟล์ที่รอดใน Storage (INSERT-only) ----
+$('btnRelink').onclick=async()=>{ $('btnRelink').disabled=true; $('relinkRes').textContent=''
+  try{
+    if(!_files.length){ log('ยังไม่ได้สแกน Storage — กดข้อ 2 ก่อน','warn'); _files=await listAll(''); }
+    if(!_files.length){ log('⚠ ไม่พบไฟล์ใน Storage เลย — กู้ไม่ได้','err'); $('btnRelink').disabled=false; return }
+    log(`เริ่มกู้: ตรวจ ${_files.length} ไฟล์ใน Storage…`,'warn')
+    // ไฟล์ทั้งหมด (รวม _t.jpg) — ใช้เช็กว่า thumb มีไหม
+    const fileSet=new Set(_files.map(f=>f.path))
+    // แถว media ที่มีอยู่แล้ว (กันซ้ำ)
+    const existing=await allRows('media','path'); const havePath=new Set(existing.map(m=>m.path))
+    log(`  media เดิมในตาราง: ${existing.length} แถว`,'ok')
+    // ไฟล์หลัก = ไม่ใช่ thumbnail (_t.jpg) และยังไม่มีแถว
+    const toAdd=[]
+    for(const f of _files){ const p=f.path
+      if(/_t\.jpg$/i.test(p)) continue                 // ข้าม thumbnail
+      if(havePath.has(p)) continue                     // มีแถวแล้ว
+      const parts=p.split('/'); if(parts.length<3) continue
+      const inspId=parts[0], cpId=parts[1], fname=parts.slice(2).join('/')
+      const ts=fname.replace(/\.(jpg|jpeg|png|mp4|mov)$/i,'')
+      const isVid=/\.(mp4|mov)$/i.test(fname)
+      const tpath=`${inspId}/${cpId}/${ts}_t.jpg`
+      toAdd.push({inspection_id:inspId, checkpoint:cpId, round:1, kind:isVid?'video':'image', path:p, thumb_path:fileSet.has(tpath)?tpath:null})
+    }
+    log(`  ไฟล์รูป/วิดีโอที่ยังไม่มีแถว media: ${toAdd.length} รายการ`,'warn')
+    if(!toAdd.length){ log('✅ ไม่มีอะไรต้องกู้ — แถว media ครบตามไฟล์ที่รอดแล้ว','ok'); $('relinkRes').textContent='ครบแล้ว 0 ใหม่'; $('btnRelink').disabled=false; return }
+    let ok=0, fail=0
+    for(let i=0;i<toAdd.length;i+=200){ const batch=toAdd.slice(i,i+200)
+      const {data,error}=await sb.from('media').insert(batch).select('path')
+      if(error){ fail+=batch.length; log(`  ชุด ${i}-${i+batch.length}: ${error.message}`,'err') }
+      else { ok+=(data?data.length:batch.length); log(`  กู้แล้ว ${ok}/${toAdd.length}…`,'ok') }
+    }
+    $('relinkRes').textContent=`กู้สำเร็จ ${ok} · พลาด ${fail}`
+    log(`✅ เสร็จ: สร้างแถว media คืน ${ok} แถว${fail?` (พลาด ${fail})`:''} — เปิดแอปดูรูปได้เลย (รีเฟรชสาขา)`, ok?'ok':'err')
+  }catch(e){ log('กู้ไม่สำเร็จ: '+e.message,'err') }
+  $('btnRelink').disabled=false }
 
 refreshAuth()
 sb.auth.onAuthStateChange(()=>refreshAuth())
