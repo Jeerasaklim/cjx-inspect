@@ -139,15 +139,16 @@ async function loadAll(){
 }
 const nameOf=u=>nameByUid[u]||'—'
 // ---- Red Flag (ธงแดง) — อ่านจาก signoffs scope 'rf:<checkpointId>' (จัดการ/ปิดธงทำในแอป · HQ ดูอย่างเดียว) ----
-function rfActiveMap(){ const cpMap={}; checkpoints.forEach(c=>{ cpMap['rf:'+c.id]={phase:c.phase,label:(c.no?c.no+' ':'')+(c.label||'')} })
-  const last={}; signoffs.forEach(x=>{ if(x.scope&&x.scope.slice(0,3)==='rf:'){ const k=x.store_code+'|'+x.scope; const p=last[k]; if(!p||(x.created_at||'')>(p.created_at||'')) last[k]=x } })
-  const byStore={}; Object.values(last).forEach(x=>{ if(x.kind!=='redflag'||!x.store_code) return; const m=cpMap[x.scope]||{}; (byStore[x.store_code]||(byStore[x.store_code]=[])).push({phase:m.phase,label:m.label||x.scope,reason:x.note||'',by:x.by,at:x.created_at}) })
+function rfActiveMap(){ const phName={}; checkpoints.forEach(c=>{ if(c.phase!=null&&!phName[c.phase]) phName[c.phase]=c.phase_name })
+  const lbl=p=>phName[p]||(p>100?'Pre-Con '+(p-100):'งวดที่ '+p)
+  const last={}; signoffs.forEach(x=>{ if(x.scope&&x.scope.slice(0,4)==='rfp:'){ const k=x.store_code+'|'+x.scope; const p=last[k]; if(!p||(x.created_at||'')>(p.created_at||'')) last[k]=x } })
+  const byStore={}; Object.values(last).forEach(x=>{ if(x.kind!=='redflag'||!x.store_code) return; const ph=+x.scope.slice(4); (byStore[x.store_code]||(byStore[x.store_code]=[])).push({phase:ph,label:lbl(ph),reason:x.note||'',by:x.by,at:x.created_at}) })
   return byStore }
 function rfTotal(){ const bs=rfActiveMap(); return Object.keys(bs).reduce((n,c)=>n+bs[c].length,0) }
 function showRfOverlay(){ const bs=rfActiveMap(); const codes=Object.keys(bs).sort((a,b)=>bs[b].length-bs[a].length)
   const total=codes.reduce((n,c)=>n+bs[c].length,0)
   const body=codes.map(code=>{ const s=stores.find(z=>z.code===code)||{code}; return `<div style="border-bottom:1px solid #2A2A2E;padding:10px 0"><div style="font-weight:800;font-size:14px;color:#F5F5F2">${esc(s.name||code)} <span style="color:#FF5C5C">🚩 ${bs[code].length}</span> <span style="color:#67675F;font-size:11px">(${esc(code)})</span></div>${bs[code].map(it=>`<div style="background:#141416;border-left:3px solid #DC2626;border-radius:8px;padding:8px 10px;margin:5px 0"><div style="font-size:12px;color:#ffd9d9">${esc(it.label)} <span style="color:#8a7766">· ${it.phase>100?'Pre-Con '+(it.phase-100):'งวด '+it.phase}</span></div><div style="font-size:13px;color:#F5F5F2;margin-top:2px">“${esc(it.reason)}”</div><div style="font-size:10.5px;color:#67675F;margin-top:2px">โดย ${esc(nameOf(it.by))} · ${fmtDate(it.at)}</div></div>`).join('')}</div>` }).join('')
-  showOverlay(ovHead('🚩 ธงแดง — แจ้งแบบผิด/ไม่ถูกต้อง ('+total+' จุด)','จัดการ/ปิดธงทำในแอป · ที่นี่ดูอย่างเดียว')+`<div style="padding:14px 16px;max-height:70vh;overflow:auto">${body||'<div style="color:#9A9A93;text-align:center;padding:24px">ไม่มีธงแดง</div>'}</div>`) }
+  showOverlay(ovHead('🚩 ธงแดง — แจ้งแบบผิด/ไม่ถูกต้อง ('+total+' งวด)','จัดการ/ปิดธงทำในแอป · ที่นี่ดูอย่างเดียว')+`<div style="padding:14px 16px;max-height:70vh;overflow:auto">${body||'<div style="color:#9A9A93;text-align:center;padding:24px">ไม่มีธงแดง</div>'}</div>`) }
 window._rfOverlay=showRfOverlay
 function phaseStat(code,phase){ const cps=cpByPhase[phase]||[]; const total=cps.length
   const m=cur[code]||{}; let done=0,pass=0,fail=0,fixed=0
@@ -201,7 +202,7 @@ function renderOverview(){
   let h=pageHead('ภาพรวมทุกสาขา (OVERVIEW)','ภาพรวมสาขาและการขยายเครือข่ายทั่วประเทศ (Store Rollout HQ)','มุมมองรวมทุกสาขาข้ามทุกเฟส — ตำแหน่งในไปป์ไลน์ (ก่อสร้าง → ตรวจรับ Set-Up → เปิดบริการ), สาขาใกล้เปิด, และข้อบกพร่องค้างทั้งประเทศ · ดึงจากข้อมูลจริงในระบบ')
   // Red Flag banner
   { const bs=rfActiveMap(); const codes=Object.keys(bs); const tot2=codes.reduce((n,c)=>n+bs[c].length,0)
-    if(tot2) h+=`<button onclick="window._rfOverlay()" class="w-full flex items-center gap-3 mb-4 rounded-xl" style="background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;padding:12px 14px;cursor:pointer;text-align:left"><span style="font-size:24px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:14px">ธงแดง ${tot2} จุด · ${codes.length} สาขา — แจ้งแบบผิด/ไม่ถูกต้อง</b><div style="font-size:11.5px;color:#ffd9d9;opacity:.9">CM แจ้งว่าแบบอาจผิด — Head เข้าไปตัดสินใจ/ปิดธงในแอป · แตะเพื่อดูรายการ</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>` }
+    if(tot2) h+=`<button onclick="window._rfOverlay()" class="w-full flex items-center gap-3 mb-4 rounded-xl" style="background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;padding:12px 14px;cursor:pointer;text-align:left"><span style="font-size:24px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:14px">ธงแดง ${tot2} งวด · ${codes.length} สาขา — แจ้งแบบผิด/ไม่ถูกต้อง</b><div style="font-size:11.5px;color:#ffd9d9;opacity:.9">CM แจ้งว่าแบบอาจผิด — Head เข้าไปตัดสินใจ/ปิดธงในแอป · แตะเพื่อดูรายการ</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>` }
   // KPI
   h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
     ${kpi('#F5F5F2','#353436','store','สาขาทั้งหมดในระบบ',tot,'สาขา',building+' ก่อสร้าง · '+setup+' Set-Up · '+opened+' เปิดแล้ว')}

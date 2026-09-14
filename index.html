@@ -1954,22 +1954,24 @@ function renderHome(){
 }
 let _rfHome=null
 async function loadRedFlags(){
-  const {data}=await sb.from('signoffs').select('store_code,scope,kind,by,created_at,note').like('scope','rf:%')
+  const {data}=await sb.from('signoffs').select('store_code,scope,kind,by,created_at,note').like('scope','rfp:%')
   const rows=data||[], last={}
   rows.forEach(x=>{ const k=x.store_code+'|'+x.scope; const p=last[k]; if(!p||(x.created_at||'')>(p.created_at||'')) last[k]=x })
   await loadChecklist()
-  const cpPh={}, cpLb={}; checkpoints.forEach(c=>{ cpPh['rf:'+c.id]=c.phase; cpLb['rf:'+c.id]=(c.no?c.no+' ':'')+(c.label||'') })
+  const phName={}; checkpoints.forEach(c=>{ if(c.phase!=null&&!phName[c.phase]) phName[c.phase]=c.phase_name })
+  const lbl=p=>phName[p]||(p>100?'Pre-Con '+(p-100):'งวดที่ '+p)
   const byStore={}
-  Object.values(last).forEach(x=>{ if(x.kind!=='redflag'||!x.store_code) return
-    ;(byStore[x.store_code]||(byStore[x.store_code]=[])).push({phase:cpPh[x.scope],label:cpLb[x.scope]||x.scope,reason:x.note||'',by:x.by,at:x.created_at}) })
+  Object.values(last).forEach(x=>{ if(x.kind!=='redflag'||!x.store_code) return; const ph=+x.scope.slice(4)
+    ;(byStore[x.store_code]||(byStore[x.store_code]=[])).push({phase:ph,label:lbl(ph),reason:x.note||'',by:x.by,at:x.created_at}) })
   const head=isHead()
   const list=Object.keys(byStore).filter(code=> head||myStores.has(code)).map(code=>{ const s=stores.find(z=>z.code===code); return {code,name:(s&&s.name)||code,items:byStore[code]} })
   list.sort((a,b)=>b.items.length-a.items.length)
   _rfHome={ list, total:list.reduce((n,s)=>n+s.items.length,0) }; return _rfHome
 }
 function renderRfHome(){ const el=$('rfHomeBar'); if(!el) return
-  if(!_rfHome||!_rfHome.total){ el.innerHTML=''; return }
-  el.innerHTML=`<button id="rfHomeBtn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:10px;background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;border-radius:12px;padding:11px 13px;cursor:pointer;font-family:inherit;text-align:left"><span style="font-size:22px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:13.5px">ธงแดง ${_rfHome.total} จุด · ${_rfHome.list.length} สาขา</b><div style="font-size:11px;color:#ffd9d9;opacity:.9">แจ้งแบบผิด/ไม่ถูกต้อง — แตะดูรายการ</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>`
+  const total=(_rfHome&&_rfHome.total)||0, nStore=(_rfHome&&_rfHome.list.length)||0
+  if(total){ el.innerHTML=`<button id="rfHomeBtn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:10px;background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;border-radius:12px;padding:11px 13px;cursor:pointer;font-family:inherit;text-align:left"><span style="font-size:22px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:13.5px">ธงแดง ${total} งวด · ${nStore} สาขา</b><div style="font-size:11px;color:#ffd9d9;opacity:.9">แจ้งแบบผิด/ไม่ถูกต้อง — แตะดูรายการ</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>` }
+  else { el.innerHTML=`<button id="rfHomeBtn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:10px;background:#141416;border:1px solid #2A2A2E;border-radius:12px;padding:11px 13px;cursor:pointer;font-family:inherit;text-align:left"><span style="font-size:20px;opacity:.5">🚩</span><span style="flex:1;min-width:0"><b style="color:#9A9A93;font-size:13px">ธงแดง (แจ้งแบบผิด)</b><div style="font-size:11px;color:#67675F">ไม่มีธงแดงค้าง — แตะเพื่อดู</div></span><span class="material-symbols-outlined" style="color:#67675F">chevron_right</span></button>` }
   $('rfHomeBtn').onclick=openRfList
 }
 function openRfList(){ if(!_rfHome) return
@@ -2160,10 +2162,9 @@ async function openSite(code){
   const curPhase = phStats.find(p=>p.st.key!=='pass')
   const pct = Math.round(nPass/(PHASES.length||1)*100)
   // ธงแดง active ต่อ phase (จาก signoffs scope 'rf:<checkpointId>' — kind ล่าสุดเป็น redflag = ยังไม่ปิด)
-  const _cpPh={}; checkpoints.forEach(cc=>{ _cpPh['rf:'+cc.id]=cc.phase })
-  const _rfLast={}; signoffs.forEach(x=>{ if(x.scope&&x.scope.slice(0,3)==='rf:'){ const p=_rfLast[x.scope]; if(!p||(x.created_at||'')>(p.created_at||'')) _rfLast[x.scope]=x } })
-  const rfByPhase={}; Object.keys(_rfLast).forEach(k=>{ if(_rfLast[k].kind==='redflag'){ const ph=_cpPh[k]; if(ph!=null) rfByPhase[ph]=(rfByPhase[ph]||0)+1 } })
-  const rfTotal=Object.values(rfByPhase).reduce((a,b)=>a+b,0)
+  const _rfLast={}; signoffs.forEach(x=>{ if(x.scope&&x.scope.slice(0,4)==='rfp:'){ const p=_rfLast[x.scope]; if(!p||(x.created_at||'')>(p.created_at||'')) _rfLast[x.scope]=x } })
+  const rfByPhase={}; Object.keys(_rfLast).forEach(k=>{ if(_rfLast[k].kind==='redflag'){ const ph=+k.slice(4); if(!isNaN(ph)) rfByPhase[ph]=1 } })
+  const rfTotal=Object.keys(rfByPhase).length
   const scoreOf=n=>{ const a=signoffs.filter(x=>String(x.scope)===String(n)&&x.kind==='score'); if(!a.length) return null; const sg2=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)); return (+sg2.note)||null }
   // ---- Store hero (p4) ----
   let html = `<div class="relative overflow-hidden rounded-xl bg-surface-card p-space-lg shadow-md flex flex-col gap-space-md">
@@ -2185,7 +2186,7 @@ async function openSite(code){
   // ---- งานก่อสร้าง (Pre-Con + 9 งวด): ทีม Set-Up ไม่เห็น ----
   if(!isSetup()){
     if(handover) html += `<div class="appv">✓ รับมอบงานแล้ว · ${esc(nameOf(handover.by))} · ${fmtDate(handover.created_at)}</div>`
-    if(rfTotal) html += `<div class="rfstore"><span class="rfflag">🚩</span><div style="flex:1;min-width:0"><b>มีธงแดง ${rfTotal} จุด — แจ้งแบบผิด/ไม่ถูกต้อง</b><div style="font-size:11px;opacity:.9;margin-top:1px">รอ Head CM / Head Construction เข้ามาดูและตัดสินใจ · แตะงวดที่มี 🚩 เพื่อดู/ปิด</div></div></div>`
+    if(rfTotal) html += `<div class="rfstore"><span class="rfflag">🚩</span><div style="flex:1;min-width:0"><b>มีธงแดง ${rfTotal} งวด — แจ้งแบบผิด/ไม่ถูกต้อง</b><div style="font-size:11px;opacity:.9;margin-top:1px">รอ Head CM / Head Construction เข้ามาดูและตัดสินใจ · แตะงวดที่มี 🚩 เพื่อดู/ปิด</div></div></div>`
     html += `<div class="flex flex-col gap-space-sm">
       <div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-setup text-[18px]">verified</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">PRE-CON · งานเตรียมพื้นที่ก่อนก่อสร้าง</h2></div><span class="font-label-caps text-label-caps px-2 py-0.5 rounded-full ${prePass===PRECON.length?'bg-surface-pass text-ink-pass':'bg-surface-warning text-ink-warning'}">${prePass===PRECON.length?'ผ่านครบ':'ผ่าน'} ${prePass}/${PRECON.length}</span></div>
       <div class="rounded-xl bg-surface-card p-space-md shadow-sm"><div class="grid grid-cols-4 gap-space-xs text-center">
@@ -2435,25 +2436,21 @@ async function openPhase(code, phase){
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code).eq('scope',String(phase))
   // ธงแดง (Red Flag) — เฉพาะก่อสร้าง · เก็บใน signoffs scope='rf:<checkpointId>'
   let redflags=[]
-  if(phase<200){ const cpScopes=cps.map(c=>'rf:'+c.id)
-    if(cpScopes.length){ const {data:rf}=await sb.from('signoffs').select('scope,kind,by,created_at,note').eq('store_code',code).in('scope',cpScopes); redflags=rf||[] } }
+  if(phase<200){ const {data:rf}=await sb.from('signoffs').select('scope,kind,by,created_at,note').eq('store_code',code).eq('scope','rfp:'+phase); redflags=rf||[] }
   pctx={ code, phase, inspId, cps, events, media, signoffs:sg||[], redflags, storeName:s?(s.name||code):code, editing:new Set() }
   renderPhase(); hideAllViews(); showTabbar(true); show($('viewPhase'),true); window.scrollTo(0,0)   // ค้าง Tab Bar ไว้ · ไม่ทับแท็บต้นทาง
 }
-// สถานะธงแดงของ checkpoint: active = signoff ล่าสุดของ scope 'rf:<id>' เป็น kind 'redflag' (ยังไม่ถูกปิดด้วย 'redflag_done')
-function rfState(cpId){ const sc='rf:'+cpId; const a=(pctx.redflags||[]).filter(x=>x.scope===sc)
-  if(!a.length) return null; const last=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p))
+// สถานะธงแดงระดับงวด: active = signoff ล่าสุดของ scope 'rfp:<งวด>' เป็น kind 'redflag' (ยังไม่ถูกปิดด้วย 'redflag_done')
+function rfPhaseState(){ const a=(pctx.redflags||[]); if(!a.length) return null; const last=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p))
   return { active:last.kind==='redflag', reason:last.note||'', by:last.by, at:last.created_at, kind:last.kind } }
 function canClearRf(){ return profile && ['head_cm','head_construction','admin'].includes(profile.role) }
-async function reloadRedflags(){ const cpScopes=(pctx.cps||[]).map(c=>'rf:'+c.id); if(!cpScopes.length){ pctx.redflags=[]; return }
-  const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,note').eq('store_code',pctx.code).in('scope',cpScopes); pctx.redflags=data||[] }
-function openRedFlag(cpId){
-  const cp=pctx.cps.find(c=>String(c.id)===String(cpId))
+async function reloadRedflags(){ const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,note').eq('store_code',pctx.code).eq('scope','rfp:'+pctx.phase); pctx.redflags=data||[] }
+function openRedFlag(){
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
   ov.innerHTML=`<div style="background:#191A1D;border-top:3px solid #DC2626;border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgba(0,0,0,.5)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:20px">🚩</span><b style="font-size:16px;color:#F5F5F2">ปักธงแดง — แจ้งแบบผิด/ไม่ถูกต้อง</b></div>
-    <div style="font-size:12px;color:#9A9A93;margin-bottom:10px">ข้อ: ${esc((cp&&cp.no?cp.no+' ':'')+((cp&&cp.label)||''))}</div>
-    <textarea id="rfReason" rows="4" placeholder="ระบุเหตุผล เช่น แบบกำหนดระยะผิด / จุดนี้ควรเป็น... (บังคับ ไม่ใส่กดไม่ได้)" style="width:100%;box-sizing:border-box;background:#0e0e0f;border:1px solid #3a2020;border-radius:10px;color:#F5F5F2;font-family:inherit;font-size:14px;padding:12px;resize:vertical"></textarea>
+    <div style="font-size:12px;color:#9A9A93;margin-bottom:10px">งวด: ${esc((pctx.cps[0]&&pctx.cps[0].phase_name)||('งวดที่ '+pctx.phase))}</div>
+    <textarea id="rfReason" rows="4" placeholder="ระบุเหตุผล เช่น แบบกำหนดระยะผิด / จุด ___ ควรเป็น... (บังคับ ไม่ใส่กดไม่ได้ · ระบุข้อ/จุดที่มีปัญหาได้)" style="width:100%;box-sizing:border-box;background:#0e0e0f;border:1px solid #3a2020;border-radius:10px;color:#F5F5F2;font-family:inherit;font-size:14px;padding:12px;resize:vertical"></textarea>
     <div style="display:flex;gap:10px;margin-top:12px">
       <button id="rfCancel" style="flex:1;height:46px;border:0;border-radius:10px;background:#232327;color:#F5F5F2;font-weight:700;font-family:inherit;cursor:pointer">ยกเลิก</button>
       <button id="rfSubmit" disabled style="flex:2;height:46px;border:0;border-radius:10px;background:#DC2626;color:#fff;font-weight:800;font-family:inherit;opacity:.45;cursor:not-allowed">🚩 ปักธงแดง</button>
@@ -2465,15 +2462,14 @@ function openRedFlag(cpId){
   setTimeout(()=>ta.focus(),50)
   sub.onclick=async()=>{ const reason=ta.value.trim(); if(!reason) return
     sub.disabled=true; sub.textContent='กำลังบันทึก…'
-    const { error }=await sb.from('signoffs').insert({ store_code:pctx.code, scope:'rf:'+cpId, kind:'redflag', note:reason })
+    const { error }=await sb.from('signoffs').insert({ store_code:pctx.code, scope:'rfp:'+pctx.phase, kind:'redflag', note:reason })
     if(error){ toast('ปักธงไม่สำเร็จ: '+error.message,'err'); sub.disabled=false; sub.textContent='🚩 ปักธงแดง'; return }
     close(); await reloadRedflags(); renderPhase(); toast('ปักธงแดงแล้ว — แจ้ง Head ให้เข้ามาดู','ok') }
 }
-async function clearRedFlag(cpId){ if(!canClearRf()){ alert('เฉพาะหัวหน้า (Head CM / Head Construction) หรือ Admin ปิดธงได้'); return }
-  const cp=pctx.cps.find(c=>String(c.id)===String(cpId))
-  const note=prompt('ปิดธงแดง — สรุปการตัดสินใจ (เช่น "แก้แบบแล้ว" / "ยืนยันตามแบบเดิม ไม่ต้องแก้")\nข้อ: '+((cp&&cp.label)||''), '')
+async function clearRedFlag(){ if(!canClearRf()){ alert('เฉพาะหัวหน้า (Head CM / Head Construction) หรือ Admin ปิดธงได้'); return }
+  const note=prompt('ปิดธงแดง — สรุปการตัดสินใจ (เช่น "แก้แบบแล้ว" / "ยืนยันตามแบบเดิม ไม่ต้องแก้")\nงวด: '+((pctx.cps[0]&&pctx.cps[0].phase_name)||('งวดที่ '+pctx.phase)), '')
   if(note===null) return
-  const { error }=await sb.from('signoffs').insert({ store_code:pctx.code, scope:'rf:'+cpId, kind:'redflag_done', note:(note||'').trim()||'ปิดธง (ตัดสินใจแล้ว)' })
+  const { error }=await sb.from('signoffs').insert({ store_code:pctx.code, scope:'rfp:'+pctx.phase, kind:'redflag_done', note:(note||'').trim()||'ปิดธง (ตัดสินใจแล้ว)' })
   if(error){ toast('ปิดธงไม่สำเร็จ: '+error.message,'err'); return }
   await reloadRedflags(); renderPhase(); toast('ปิดธงแดงแล้ว ✓','ok') }
 function latestEvent(id){ const es=pctx.events.filter(e=>e.checkpoint===String(id)); if(!es.length) return null
@@ -2602,18 +2598,19 @@ function renderPhase(){
     }
     const _bd={pass:['#12271B','#7EE6B0','check_circle','ผ่าน'],fail:['#241416','#FF9B9B','cancel','ไม่ผ่าน'],fixed:['#1C1608','#D9B84A','build','แก้แล้ว'],na:['#232327','#9A9A93','block','ไม่มีงานนี้']}[cur]||['#232327','#67675F','hourglass_empty','รอตรวจ']
     const badge=`<span style="display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;padding:4px 10px;border-radius:999px;background:${_bd[0]};color:${_bd[1]};font-size:11px;font-weight:700"><span class="material-symbols-outlined" style="font-size:14px">${_bd[2]}</span>${_bd[3]}</span>`
-    const rf = suPhase ? null : rfState(c.id)   // ธงแดงเฉพาะก่อสร้าง
-    const rfBanner = (rf&&rf.active) ? `<div class="rfbanner"><span class="rfflag">🚩</span><div style="min-width:0;flex:1"><div class="rft">ธงแดง — แจ้งแบบผิด/ไม่ถูกต้อง <span class="rfby">· โดย ${esc(nameOf(rf.by))} · ${fmtDate(rf.at)}</span></div><div class="rfr">“${esc(rf.reason)}”</div>${canClearRf()?'':'<div class="rfwait">รอ Head CM / Head Construction ตัดสินใจ</div>'}</div>${canClearRf()?`<button class="rfclear" data-rfclear="${c.id}">✓ ปิดธง</button>`:''}</div>` : ''
-    const rfBtn = (suPhase||(rf&&rf.active)) ? '' : `<button class="rfbtn" data-rf="${c.id}">🚩 ปักธงแดง (แจ้งแบบผิด/ไม่ถูกต้อง)</button>`
-    html+=`<div class="cp ${cls}${rf&&rf.active?' rfon':''}">
+    html+=`<div class="cp ${cls}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
         <div style="min-width:0">${c.no?`<div class="cno"${cur==='fail'?' style="color:var(--fail)"':''}>ข้อ ${esc(c.no)}${cur==='fail'?' · พบจุดบกพร่อง':(needEvid?' · บังคับตรวจ':'')}</div>`:''}<div class="clb">${esc(c.label)}${c.supplier?`<span class="supchip ${c.supplier==='ซัพย่อย'?'sub':'main'}">${c.supplier==='ซัพย่อย'?'ย่อย':'หลัก'}</span>`:''}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}</div>
         ${badge}
       </div>
-      ${rfBanner}
       <div class="photos">${ph.map(m=>evidTile(m)).join('')}${showAddph?`<span class="addph${needEvid?'':' opt'}" data-cp="${c.id}" data-vid="${isVid?1:0}">${isVid?'🎥 ถ่าย/แนบวิดีโอ':'📷 ถ่าย/แนบรูป'}<small>${isVid?'สั้นๆ พอ':(needEvid?'หลายรูปได้':'ถ้ามี')}</small></span>`:''}</div>
-      ${act}${stamp}${rfBtn}</div>`
+      ${act}${stamp}</div>`
   })
+  // ===== ธงแดง — งวดละปุ่มเดียว (เฉพาะก่อสร้าง) =====
+  if(!suPhase){ const rf=rfPhaseState()
+    if(rf&&rf.active){ html+=`<div class="rfbanner" style="margin-top:12px"><span class="rfflag">🚩</span><div style="min-width:0;flex:1"><div class="rft">ธงแดง — แจ้งแบบผิด/ไม่ถูกต้อง <span class="rfby">· โดย ${esc(nameOf(rf.by))} · ${fmtDate(rf.at)}</span></div><div class="rfr">“${esc(rf.reason)}”</div>${canClearRf()?'':'<div class="rfwait">รอ Head CM / Head Construction ตัดสินใจ</div>'}</div>${canClearRf()?`<button class="rfclear" id="rfClearBtn">✓ ปิดธง</button>`:''}</div>` }
+    else { html+=`<button class="rfbtn" id="rfRaiseBtn" style="margin-top:12px">🚩 ปักธงแดง — แจ้งแบบผิด/ไม่ถูกต้องในงวดนี้</button>` }
+  }
   // ---- summary + actions ----
   const scls = total===0?'mid':allPass?'ok':(failN?'bad':'mid')
   let sub, big
@@ -2667,8 +2664,7 @@ function renderPhase(){
   const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
   _ths.forEach((im,idx)=> im.onclick=()=>openLightbox(_urls, idx))   // ดูรูปได้เสมอ
   // ธงแดง — ปัก/ปิด ได้เสมอ (ไม่ขึ้นกับ lock งวด · เป็นเรื่องแบบ ไม่ใช่งานตรวจ)
-  $('phaseBody').querySelectorAll('.rfbtn').forEach(el=> el.onclick=()=>openRedFlag(el.dataset.rf))
-  $('phaseBody').querySelectorAll('.rfclear').forEach(el=> el.onclick=()=>clearRedFlag(el.dataset.rfclear))
+  { const rb=$('rfRaiseBtn'); if(rb) rb.onclick=()=>openRedFlag(); const rc=$('rfClearBtn'); if(rc) rc.onclick=()=>clearRedFlag() }
   if(editable){
     $('phaseBody').querySelectorAll('.addph').forEach(el=> el.onclick=()=>capturePhoto(+el.dataset.cp))
     $('phaseBody').querySelectorAll('.delph').forEach(el=> el.onclick=(e)=>{ e.stopPropagation(); deletePhoto(el.dataset.path, el.dataset.qid) })
