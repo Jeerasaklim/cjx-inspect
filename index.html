@@ -138,8 +138,13 @@ a.link{color:var(--yellow);text-decoration:none}
 .addph{display:inline-flex;align-items:center;gap:6px;background:#232327;color:var(--yellow);border:1px dashed #4a4632;border-radius:8px;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer}
 .addph small{font-weight:600;opacity:.7;font-size:9.5px}
 .addph.opt{color:var(--muted);border-color:#333}
-.rfbtn{display:block;width:100%;margin-top:10px;background:#2a1414;color:#FF6B6B;border:1px dashed #7a2a2a;border-radius:10px;padding:10px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit}
+.rfbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;border:0;border-radius:12px;padding:13px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit;background:linear-gradient(90deg,#7a1414,#DC2626,#ff6b6b,#DC2626,#7a1414);background-size:300% 100%;animation:rfrun 2.2s linear infinite, rfglow 1.4s ease-in-out infinite}
 .rfbtn:active{transform:scale(.99)}
+.rfbtnflag{display:inline-block;font-size:18px;line-height:1;animation:rfwave .9s ease-in-out infinite;transform-origin:0% 60%}
+@keyframes rfrun{0%{background-position:0% 0}100%{background-position:300% 0}}
+@keyframes rfglow{0%,100%{box-shadow:0 0 0 0 rgba(255,60,60,0)}50%{box-shadow:0 0 16px 2px rgba(255,60,60,.55)}}
+.rf-hot{animation:rfglow 1.4s ease-in-out infinite}
+.rf-hot .rfbtnflag{color:inherit}
 .rfbanner{display:flex;align-items:flex-start;gap:10px;margin:8px 0;padding:10px 12px;border-radius:10px;background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626}
 .rfbanner .rfflag{font-size:22px;line-height:1;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%}
 .rfbanner .rft{font-size:12px;font-weight:800;color:#FF6B6B}
@@ -1718,7 +1723,7 @@ async function renderLanding(){
      <span class="material-symbols-outlined text-ink-on-yellow text-[20px]">arrow_forward</span>
    </button>
    <!-- quick actions -->
-   <section class="grid grid-cols-3 gap-space-sm">
+   <section class="grid grid-cols-2 gap-space-sm">
      <div class="qact flex flex-col items-center text-center p-space-lg rounded-2xl bg-surface-card shadow-md cursor-pointer" data-go="inspect">
        <div class="w-16 h-16 rounded-2xl bg-secondary/15 text-secondary flex items-center justify-center mb-space-xs relative"><span class="material-symbols-outlined text-[36px]" style="font-variation-settings:'FILL' 1">fact_check</span><span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-secondary text-ink-on-yellow font-label-micro text-label-micro flex items-center justify-center font-bold">✓</span></div>
        <span class="font-title-sm text-title-sm text-ink-primary font-bold">ตรวจงาน</span><span class="font-label-micro text-label-micro text-ink-muted mt-0.5">Checklist</span>
@@ -1730,6 +1735,10 @@ async function renderLanding(){
      <div class="qact flex flex-col items-center text-center p-space-lg rounded-2xl bg-surface-card shadow-md cursor-pointer relative" data-go="tofix">
        <div class="w-16 h-16 rounded-2xl bg-status-fail/15 text-status-fail flex items-center justify-center mb-space-xs relative"><span class="material-symbols-outlined text-[36px]" style="font-variation-settings:'FILL' 1">assignment_late</span><span id="fixBadge" class="absolute -top-1 -right-1 px-1.5 h-4 rounded-full bg-status-fail text-white font-label-micro text-label-micro items-center justify-center font-bold" style="display:none"></span></div>
        <span class="font-title-sm text-title-sm text-ink-primary font-bold">ต้องแก้ไข</span><span class="font-label-micro text-label-micro text-ink-fail font-bold mt-0.5">งานตีกลับ</span>
+     </div>
+     <div id="rfLandCard" class="qact flex flex-col items-center text-center p-space-lg rounded-2xl bg-surface-card shadow-md cursor-pointer relative" data-go="redflag">
+       <div class="w-16 h-16 rounded-2xl bg-status-fail/15 flex items-center justify-center mb-space-xs relative"><span class="rfbtnflag" style="font-size:34px;line-height:1">🚩</span><span id="rfLandBadge" class="absolute -top-1 -right-1 px-1.5 h-4 rounded-full bg-status-fail text-white font-label-micro text-label-micro items-center justify-center font-bold" style="display:none"></span></div>
+       <span class="font-title-sm text-title-sm text-ink-primary font-bold">ธงแดง</span><span class="font-label-micro text-label-micro text-ink-fail font-bold mt-0.5">แจ้งสิ่งผิดปกติ</span>
      </div>
    </section>
    <!-- recent -->
@@ -1747,7 +1756,10 @@ async function renderLanding(){
    </div>`
   $('lav').onclick=()=>switchTab('profile')
   $('lcta').onclick=()=>switchTab('inspect')
-  $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
+  $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='redflag')return openRfList(); if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
+  loadRedFlags().then(()=>{ const b=$('rfLandBadge'), c=$('rfLandCard'); const t=(_rfHome&&_rfHome.total)||0
+    if(b){ if(t){ b.textContent=t; b.style.display='flex' } else b.style.display='none' }
+    if(c){ c.classList.toggle('rf-hot', t>0) } }).catch(()=>{})
   await loadDashData()
   refreshNoti()   // อัปเดตกระดิ่ง + แถบเตือนหน้าแรก
   const prog=_dashRows.filter(r=>dstt(r)==='progress').length
@@ -1970,7 +1982,7 @@ async function loadRedFlags(){
 }
 function renderRfHome(){ const el=$('rfHomeBar'); if(!el) return
   const total=(_rfHome&&_rfHome.total)||0, nStore=(_rfHome&&_rfHome.list.length)||0
-  if(total){ el.innerHTML=`<button id="rfHomeBtn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:10px;background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;border-radius:12px;padding:11px 13px;cursor:pointer;font-family:inherit;text-align:left"><span style="font-size:22px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:13.5px">ธงแดง ${total} งวด · ${nStore} สาขา</b><div style="font-size:11px;color:#ffd9d9;opacity:.9">แจ้งแบบผิด/ไม่ถูกต้อง — แตะดูรายการ</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>` }
+  if(total){ el.innerHTML=`<button id="rfHomeBtn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:10px;background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;border-radius:12px;padding:11px 13px;cursor:pointer;font-family:inherit;text-align:left"><span style="font-size:22px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:13.5px">ธงแดง ${total} งวด · ${nStore} สาขา</b><div style="font-size:11px;color:#ffd9d9;opacity:.9">แจ้งสิ่งผิดปกติ/ควรเฝ้าระวัง — แตะดูรายการ</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>` }
   else { el.innerHTML=`<button id="rfHomeBtn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:10px;background:#141416;border:1px solid #2A2A2E;border-radius:12px;padding:11px 13px;cursor:pointer;font-family:inherit;text-align:left"><span style="font-size:20px;opacity:.5">🚩</span><span style="flex:1;min-width:0"><b style="color:#9A9A93;font-size:13px">ธงแดง (แจ้งแบบผิด)</b><div style="font-size:11px;color:#67675F">ไม่มีธงแดงค้าง — แตะเพื่อดู</div></span><span class="material-symbols-outlined" style="color:#67675F">chevron_right</span></button>` }
   $('rfHomeBtn').onclick=openRfList
 }
@@ -2186,7 +2198,7 @@ async function openSite(code){
   // ---- งานก่อสร้าง (Pre-Con + 9 งวด): ทีม Set-Up ไม่เห็น ----
   if(!isSetup()){
     if(handover) html += `<div class="appv">✓ รับมอบงานแล้ว · ${esc(nameOf(handover.by))} · ${fmtDate(handover.created_at)}</div>`
-    if(rfTotal) html += `<div class="rfstore"><span class="rfflag">🚩</span><div style="flex:1;min-width:0"><b>มีธงแดง ${rfTotal} งวด — แจ้งแบบผิด/ไม่ถูกต้อง</b><div style="font-size:11px;opacity:.9;margin-top:1px">รอ Head CM / Head Construction เข้ามาดูและตัดสินใจ · แตะงวดที่มี 🚩 เพื่อดู/ปิด</div></div></div>`
+    if(rfTotal) html += `<div class="rfstore"><span class="rfflag">🚩</span><div style="flex:1;min-width:0"><b>มีธงแดง ${rfTotal} งวด — แจ้งสิ่งผิดปกติ/ควรเฝ้าระวัง</b><div style="font-size:11px;opacity:.9;margin-top:1px">รอ Head CM / Head Construction เข้ามาดูและตัดสินใจ · แตะงวดที่มี 🚩 เพื่อดู/ปิด</div></div></div>`
     html += `<div class="flex flex-col gap-space-sm">
       <div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-setup text-[18px]">verified</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">PRE-CON · งานเตรียมพื้นที่ก่อนก่อสร้าง</h2></div><span class="font-label-caps text-label-caps px-2 py-0.5 rounded-full ${prePass===PRECON.length?'bg-surface-pass text-ink-pass':'bg-surface-warning text-ink-warning'}">${prePass===PRECON.length?'ผ่านครบ':'ผ่าน'} ${prePass}/${PRECON.length}</span></div>
       <div class="rounded-xl bg-surface-card p-space-md shadow-sm"><div class="grid grid-cols-4 gap-space-xs text-center">
@@ -2448,7 +2460,7 @@ async function reloadRedflags(){ const {data}=await sb.from('signoffs').select('
 function openRedFlag(){
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
   ov.innerHTML=`<div style="background:#191A1D;border-top:3px solid #DC2626;border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgba(0,0,0,.5)">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:20px">🚩</span><b style="font-size:16px;color:#F5F5F2">ปักธงแดง — แจ้งแบบผิด/ไม่ถูกต้อง</b></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:20px">🚩</span><b style="font-size:16px;color:#F5F5F2">ปักธงแดง — แจ้งสิ่งผิดปกติ/ควรเฝ้าระวัง</b></div>
     <div style="font-size:12px;color:#9A9A93;margin-bottom:10px">งวด: ${esc((pctx.cps[0]&&pctx.cps[0].phase_name)||('งวดที่ '+pctx.phase))}</div>
     <textarea id="rfReason" rows="4" placeholder="ระบุเหตุผล เช่น แบบกำหนดระยะผิด / จุด ___ ควรเป็น... (บังคับ ไม่ใส่กดไม่ได้ · ระบุข้อ/จุดที่มีปัญหาได้)" style="width:100%;box-sizing:border-box;background:#0e0e0f;border:1px solid #3a2020;border-radius:10px;color:#F5F5F2;font-family:inherit;font-size:14px;padding:12px;resize:vertical"></textarea>
     <div style="display:flex;gap:10px;margin-top:12px">
@@ -2608,8 +2620,8 @@ function renderPhase(){
   })
   // ===== ธงแดง — งวดละปุ่มเดียว (เฉพาะก่อสร้าง) =====
   if(!suPhase){ const rf=rfPhaseState()
-    if(rf&&rf.active){ html+=`<div class="rfbanner" style="margin-top:12px"><span class="rfflag">🚩</span><div style="min-width:0;flex:1"><div class="rft">ธงแดง — แจ้งแบบผิด/ไม่ถูกต้อง <span class="rfby">· โดย ${esc(nameOf(rf.by))} · ${fmtDate(rf.at)}</span></div><div class="rfr">“${esc(rf.reason)}”</div>${canClearRf()?'':'<div class="rfwait">รอ Head CM / Head Construction ตัดสินใจ</div>'}</div>${canClearRf()?`<button class="rfclear" id="rfClearBtn">✓ ปิดธง</button>`:''}</div>` }
-    else { html+=`<button class="rfbtn" id="rfRaiseBtn" style="margin-top:12px">🚩 ปักธงแดง — แจ้งแบบผิด/ไม่ถูกต้องในงวดนี้</button>` }
+    if(rf&&rf.active){ html+=`<div class="rfbanner" style="margin-top:12px"><span class="rfflag">🚩</span><div style="min-width:0;flex:1"><div class="rft">ธงแดง — แจ้งสิ่งผิดปกติ/ควรเฝ้าระวัง <span class="rfby">· โดย ${esc(nameOf(rf.by))} · ${fmtDate(rf.at)}</span></div><div class="rfr">“${esc(rf.reason)}”</div>${canClearRf()?'':'<div class="rfwait">รอ Head CM / Head Construction ตัดสินใจ</div>'}</div>${canClearRf()?`<button class="rfclear" id="rfClearBtn">✓ ปิดธง</button>`:''}</div>` }
+    else { html+=`<button class="rfbtn" id="rfRaiseBtn" style="margin-top:12px"><span class="rfbtnflag">🚩</span><span>ปักธงแดง — แจ้งสิ่งผิดปกติ หรือควรเฝ้าระวัง</span></button>` }
   }
   // ---- summary + actions ----
   const scls = total===0?'mid':allPass?'ok':(failN?'bad':'mid')
