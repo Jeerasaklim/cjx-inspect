@@ -2439,7 +2439,7 @@ function cpEvid(c){ return !!c && c.photo!==false }
 function cpVideo(c){ return !!c && c.media==='video' }
 function evidTile(m){
   const del=canDelPhoto(m)?`<i class="delph" data-path="${esc(m.path||'')}" data-qid="${m.qid!=null?m.qid:''}" title="ลบ">✕</i>`:''
-  const badge=(m.pending?'<i class="pbadge">⟳</i>':'')+(m.err?'<i class="pbadge eb">!</i>':'')
+  const badge=(m.pending?'<i class="pbadge">⟳</i>':'')+(m.err?`<i class="pbadge eb" title="${esc(m.errMsg||'อัปไม่สำเร็จ')}">!</i>`:'')
   if(m.kind==='video') return `<span class="thw vid${m.pending?' pend':''}${m.err?' err':''}"><video class="thv" src="${m.url||''}" playsinline controls preload="metadata"></video>${badge}${del}</span>`
   return `<span class="thw${m.pending?' pend':''}${m.err?' err':''}"><img class="th" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">${badge}${del}</span>`
 }
@@ -2713,37 +2713,39 @@ async function _ensureInsp(code, phase, cache){
     cache[k]=id; return id
   }catch(e){ cache[k]=null; return null }
 }
-let _syncing=false, _syncTouched=false
+let _syncing=false, _syncTouched=false, _lastUpErr=''
 const QMAXTRY=8   // รูปที่ส่งไม่ขึ้นเกินนี้ = ข้ามไว้ (ไม่บล็อกรูปอื่น) จนกว่าจะกด retry ใหม่
 // อัปทีละรูป · รูปไหนพลาด "ข้าม" ไปตัวถัดไป (ไม่ break ทั้งคิว) · นับ retry ต่อรูป
 async function syncQueue(force){
   updatePendBadge()
   if(_syncing || !navigator.onLine) return
-  const { data:{ session } } = await sb.auth.getSession(); if(!session) return
-  _syncing=true; _syncTouched=false
+  const { data:{ session } } = await sb.auth.getSession()
+  if(!session){ if(await queueCount().catch(()=>0)) toast('อัปรูปไม่ขึ้น: เซสชันหมดอายุ — ปิดแอปแล้วเปิดใหม่/ล็อกอินใหม่','err'); return }
+  _syncing=true; _syncTouched=false; _lastUpErr=''
   try{
     const items=await queueAll(); const cache={}
     for(const r of items){
       if(!force && (r.tries||0)>=QMAXTRY) continue   // ข้ามรูปที่ส่งไม่ขึ้นซ้ำๆ — ไม่ให้บล็อกรูปที่ดี
       try{
         const inspId=await _ensureInsp(r.storeCode, r.phase, cache)
-        if(!inspId){ await _qFail(r); continue }
+        if(!inspId){ await _qFail(r,'สร้างรายการตรวจไม่ได้ (สิทธิ์/เน็ต)'); continue }
         const isV = r.kind==='video', ext = isV?'mp4':'jpg', ctype = isV?((r.blob&&r.blob.type)||'video/mp4'):'image/jpeg'
         const path=`${inspId}/${r.cpId}/${r.ts}.${ext}`, tpath=`${inspId}/${r.cpId}/${r.ts}_t.jpg`
-        const {error:up}=await sb.storage.from('media').upload(path, r.blob, {contentType:ctype,upsert:true}); if(up){ await _qFail(r); continue }
+        const {error:up}=await sb.storage.from('media').upload(path, r.blob, {contentType:ctype,upsert:true}); if(up){ await _qFail(r, (up.message||up.error||'อัปไฟล์ไม่สำเร็จ')+(r.blob&&r.blob.size?` [ไฟล์ ${(r.blob.size/1048576).toFixed(1)}MB]`:'')); continue }
         let thumbOk=false; if(r.tblob){ const {error:up2}=await sb.storage.from('media').upload(tpath, r.tblob, {contentType:'image/jpeg',upsert:true}); thumbOk=!up2 }
-        const {error}=await sb.from('media').insert({inspection_id:inspId, checkpoint:r.cpId, round:r.round, kind:(r.kind||'image'), path, gps:r.gps, thumb_path:(thumbOk?tpath:null)}); if(error){ await _qFail(r); continue }
+        const {error}=await sb.from('media').insert({inspection_id:inspId, checkpoint:r.cpId, round:r.round, kind:(r.kind||'image'), path, gps:r.gps, thumb_path:(thumbOk?tpath:null)}); if(error){ await _qFail(r, error.message||'บันทึกข้อมูลรูปไม่สำเร็จ'); continue }
         await queueDel(r.id)
-        if(pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ m.pending=false; m.err=false; m.path=path; _syncTouched=true } }
-      }catch(e){ await _qFail(r) }
+        if(pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ m.pending=false; m.err=false; m.errMsg=''; m.path=path; _syncTouched=true } }
+      }catch(e){ await _qFail(r, (e&&e.message)||'ผิดพลาดระหว่างอัป') }
     }
   }catch(e){}
   _syncing=false
   updatePendBadge()
+  if(_lastUpErr){ toast('อัปรูปไม่ขึ้น: '+_lastUpErr,'err'); _lastUpErr='' }
   if(_syncTouched && pctx&&$('viewPhase')&&!$('viewPhase').classList.contains('hide')) renderPhase()
 }
-async function _qFail(r){ r.tries=(r.tries||0)+1; try{ await queuePut(r) }catch(e){}
-  if(r.tries>=QMAXTRY && pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ m.err=true; m.pending=false; _syncTouched=true } } }
+async function _qFail(r, why){ r.tries=(r.tries||0)+1; if(why) _lastUpErr=why; try{ await queuePut(r) }catch(e){}
+  if(pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ if(why) m.errMsg=why; if(r.tries>=QMAXTRY){ m.err=true; m.pending=false; _syncTouched=true } } } }
 // ล้างคิวรูปที่ค้าง (ผู้ใช้กดเอง) — ใช้ตอนคิวค้าง/รูปเทสต์ค้าง
 async function clearPhotoQueue(){
   const n=await queueCount(); if(!n){ toast('ไม่มีรูปค้างในเครื่อง'); return }
