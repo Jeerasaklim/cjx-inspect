@@ -2688,20 +2688,25 @@ async function handlePhotos(cpId, files){
   const cp=P.cps.find(c=>String(c.id)===String(cpId)), round=maxRound(cpId)||1, cpVid=cpVideo(cp)
   myStores.add(P.code)
   toast(`กำลังเตรียม ${files.length} ไฟล์…`)
+  let done=0, failMsg=''
   for(let idx=0; idx<files.length; idx++){
-    const f=files[idx], isV = cpVid || (f.type||'').startsWith('video')
-    let blob, tblob=null
-    if(isV){ blob=f }   // วิดีโอ: ไม่ใส่ลายน้ำ/ไม่ทำ thumb (ไฟล์ใหญ่ ใช้เท่าที่ถ่าย)
-    else { try{ blob=await watermark(f, loc, cp) }catch(e){ blob=f }; try{ tblob=await makeThumb(blob) }catch(e){} }
-    const ts=Date.now()+'_'+idx, kind=isV?'video':'image'
-    let qid=null; try{ qid=await queueAdd({storeCode:P.code, phase:P.phase, cpId:String(cpId), round, gps, ts, blob, tblob, kind}) }catch(e){}
-    const rec={checkpoint:String(cpId), path:null, kind, url:URL.createObjectURL(blob), turl:(tblob?URL.createObjectURL(tblob):null), pending:true, qid}
-    if(!isV && !rec.turl) rec.turl=rec.url
-    P.media.push(rec)
+    try{
+      const f=files[idx], isV = cpVid || (f.type||'').startsWith('video')
+      let blob, tblob=null
+      if(isV){ blob=f }   // วิดีโอ: ไม่ใส่ลายน้ำ/ไม่ทำ thumb (ไฟล์ใหญ่ ใช้เท่าที่ถ่าย)
+      else { try{ blob=await watermark(f, loc, cp) }catch(e){ blob=f }; try{ tblob=await makeThumb(blob) }catch(e){} }  // decode ค้าง/พัง = ใช้ไฟล์ดิบ ยังแนบได้
+      const ts=Date.now()+'_'+idx, kind=isV?'video':'image'
+      let qid=null; try{ qid=await queueAdd({storeCode:P.code, phase:P.phase, cpId:String(cpId), round, gps, ts, blob, tblob, kind}) }
+        catch(e){ failMsg='บันทึกลงเครื่องไม่ได้ — พื้นที่เครื่องเต็ม/โหมดไม่เก็บข้อมูล ('+((e&&e.name)||'err')+')'; continue }   // เขียน IndexedDB ไม่ได้ = ไม่นับว่าแนบ
+      const rec={checkpoint:String(cpId), path:null, kind, url:URL.createObjectURL(blob), turl:(tblob?URL.createObjectURL(tblob):null), pending:true, qid}
+      if(!isV && !rec.turl) rec.turl=rec.url
+      P.media.push(rec); done++
+    }catch(e){ failMsg=(e&&e.message)||'เตรียมไฟล์ไม่สำเร็จ' }
   }
   if(pctx===P) renderPhase()   // render ครั้งเดียวหลังแนบครบ (ไม่เด้งทุกใบ)
-  toast(navigator.onLine?`แนบ ${files.length} ไฟล์แล้ว · กำลังส่งขึ้นระบบ`:`เก็บ ${files.length} ไฟล์ในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต`,'ok')
-  syncQueue()
+  if(done) toast(navigator.onLine?`แนบ ${done} ไฟล์แล้ว · กำลังส่งขึ้นระบบ`:`เก็บ ${done} ไฟล์ในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต`,'ok')
+  if(failMsg) toast('แนบไม่สำเร็จ '+(files.length-done)+' ไฟล์: '+failMsg,'err')
+  if(done) syncQueue()
 }
 async function _ensureInsp(code, phase, cache){
   const k=code+'|'+phase; if(cache[k]!==undefined) return cache[k]
@@ -2771,13 +2776,16 @@ async function updatePendBadge(){ let n=0, stuck=0
 window.addEventListener('online', ()=>syncQueue())
 window.addEventListener('offline', ()=>updatePendBadge())
 setInterval(()=>{ if(navigator.onLine) syncQueue() }, 30000)
+function _timeout(p, ms, label){ return Promise.race([ Promise.resolve(p), new Promise((_,rej)=>setTimeout(()=>rej(new Error((label||'op')+' timeout '+ms+'ms')), ms)) ]) }
 async function loadImage(file){
   // มือถือ (โดยเฉพาะ iOS) event onload ยิง "ก่อน" รูป decode เสร็จ → drawImage ลง canvas ได้ภาพดำ
   // ใช้ createImageBitmap ที่ decode ให้ครบก่อนคืนค่า = กันรูปดำ (fallback เป็น Image + .decode())
-  if(window.createImageBitmap){ try{ return await createImageBitmap(file,{imageOrientation:'from-image'}) }catch(e){ try{ return await createImageBitmap(file) }catch(e2){} } }
-  return await new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image()
-    img.onload=async()=>{ try{ if(img.decode) await img.decode() }catch(e){} URL.revokeObjectURL(url); res(img) }
-    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))}; img.src=url }) }
+  // ครอบ timeout 8 วิ กันบางเครื่อง/บางไฟล์ decode ค้างไม่ throw → แอปแฮงก์ (ถ้าค้าง = โยน error ให้ fallback ไปใช้ไฟล์ดิบ)
+  if(window.createImageBitmap){ try{ return await _timeout(createImageBitmap(file,{imageOrientation:'from-image'}),8000,'decode') }catch(e){ try{ return await _timeout(createImageBitmap(file),8000,'decode') }catch(e2){} } }
+  return await new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image(); let done=false
+    const to=setTimeout(()=>{ if(done)return; done=true; URL.revokeObjectURL(url); rej(new Error('img timeout')) },8000)
+    img.onload=async()=>{ if(done)return; try{ if(img.decode) await img.decode() }catch(e){} if(done)return; done=true; clearTimeout(to); URL.revokeObjectURL(url); res(img) }
+    img.onerror=()=>{ if(done)return; done=true; clearTimeout(to); URL.revokeObjectURL(url); rej(new Error('img')) }; img.src=url }) }
 async function watermark(file, loc, cp){
   const img=await loadImage(file); let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height
   const s=Math.min(1,1600/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s)
