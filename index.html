@@ -3503,6 +3503,12 @@ async function generateSetupReport(code){
     return `<div class="sgcard"><div class="sgtop"><span class="sgrole">${role}</span>${sig?'<span style="color:#006948;font-weight:700">✓</span>':''}</div><div class="sgsig">${sig&&sig.image?`<img src="${sig.image}"><span class="key">ลงนามในระบบแล้ว</span>`:'<div style="height:52px"></div>'}</div><div class="sgfoot"><span class="nm">${nm?esc(nm):'..............'}</span><br><span class="rl">${esc(sub)}</span><br><span class="rl">${sig?fmtDate(sig.created_at):(fbDate||'—')}</span></div></div>` }
   const sgCards = sgCard(nsaSig,'ฝ่ายที่ 1: ผู้ตรวจรับสาขา (Set-Up / NSA)','ฝ่าย Set-Up & NSA','','')
     + sgCard(cmSig,'ฝ่ายที่ 2: ทีมก่อสร้าง (CM)','ผู้ควบคุมงานก่อสร้าง',cmName,cmDate?('รับมอบงาน '+cmDate):'')
+  // จุดที่ไม่ผ่าน/รอตรวจซ้ำ + รูปหลักฐาน (ให้ตรงกับ HQ)
+  const failCards = suFail.length ? `<div class="sect"><div class="st"><span class="sbar" style="background:#DC2626"></span>จุดที่ไม่ผ่าน / ต้องแก้ไข (${suFail.length} จุด)</div><span class="cap" style="color:#DC2626;font-weight:600">พร้อมรูปหลักฐานจุดที่มีปัญหา</span></div>`
+    + suFail.map(({c,e,name})=>{ const ims=(mediaByCp[String(c.id)]||[])
+      const tag = e.status==='fixed'?'<span style="font-size:10px;font-weight:700;color:#8d4b00;background:#ffdcc3;padding:2px 8px;border-radius:6px;white-space:nowrap">CM แก้แล้ว · รอตรวจซ้ำ</span>':'<span style="font-size:10px;font-weight:700;color:#991B1B;background:#ffdad6;padding:2px 8px;border-radius:6px;white-space:nowrap">ไม่ผ่าน</span>'
+      return `<div style="background:#fff;border-radius:6px;border-left:4px solid ${e.status==='fixed'?'#E67E22':'#DC2626'};padding:12px;margin-bottom:8px;page-break-inside:avoid"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div style="font-weight:600;font-size:12.5px;color:#111827">${esc(c.label)} <span style="color:#8d4b00;font-size:11px">[${esc(name)}]</span></div>${tag}</div>${e.note?`<div style="color:#DC2626;font-size:12px;margin:5px 0">✕ ${esc(e.note)}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">${ims.map(repImg).join('')||'<span style="color:#DC2626;font-size:11px">— ยังไม่มีรูป —</span>'}</div></div>`
+    }).join('') : ''
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${approved?'ใบส่งมอบร้าน':'รายงานสรุปผลตรวจรับ (ร่าง)'} ${esc(s.name||code)}</title><style>
   *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -3570,6 +3576,7 @@ async function generateSetupReport(code){
     </div>
     <div class="sect"><div class="st"><span class="sbar"></span>สรุปผลการประเมิน ${SETUP_SECTIONS.length} หมวดงานก่อสร้างและ Set-Up สาขา</div><span class="cap">คะแนนเต็ม 100.00 คะแนน</span></div>
     <div class="catgrid"><div class="catcol">${catAll.slice(0,4).join('')}</div><div class="catcol">${catAll.slice(4).join('')}</div></div>
+    ${failCards}
     ${fixCps.length?`<div class="sect"><div class="st"><span class="sbar g"></span>บันทึกการแก้ไขข้อบกพร่อง (Defect Resolution Record)</div><span class="cap" style="color:#006948;font-weight:600">✓ แก้ไขครบถ้วน 100%</span></div><div class="deflog">${defCards}</div>`:''}
     ${passShots.length?`<div class="sect"><div class="st"><span class="sbar b"></span>ภาพถ่ายหลักฐานการตรวจรับหน้างานจริง</div><span class="cap">บันทึกเวลาแบบ Real-time</span></div><div class="phgrid">${phCells}</div>`:''}
     <div class="signsec"><div style="margin-bottom:12px"><div class="eyebrow">${approved?'Official Certification &amp; Signatures':'Signatures — Current Status'}</div><div style="font-size:16px;font-weight:600;color:#111827">${approved?'การลงนามรับรองการส่งมอบ-รับมอบอาคาร':'ลายเซ็นผู้เกี่ยวข้อง (สถานะปัจจุบัน)'}</div></div>
