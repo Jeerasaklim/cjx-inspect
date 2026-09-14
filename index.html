@@ -2245,9 +2245,8 @@ async function openSite(code){
         const allPass = sc.allDone && !sc.failItems && !sc.fixedItems
         const canCert = bothSigned && allPass
         html += `<div class="flex flex-col gap-space-sm pt-space-xs">`
-        const _suBlk=sc.failItems>0   // มีจุดไม่ผ่าน = ห้ามออกใบตรวจรับ
-        html += `<button id="btnSetupReport" class="w-full rounded-full ${(isSetupSide&&canCert)?'bg-primary-container text-ink-on-yellow':'bg-surface-container-high text-ink-primary'} font-title-sm text-title-sm font-bold flex items-center justify-center gap-2 shadow-lg active:translate-y-px transition-all" style="height:54px${_suBlk?';opacity:.45;cursor:not-allowed':''}"><span class="material-symbols-outlined text-[22px]">${_suBlk?'block':'receipt_long'}</span><span>${(isSetupSide&&canCert)?'ออกใบส่งมอบร้าน (Report · PDF)':'รายงานสรุป Set-Up (PDF)'}</span></button>`
-        if(_suBlk) html += `<div class="rounded-lg p-space-sm font-body-sm text-body-sm flex items-start gap-2" style="background:#2a1414;border:1px solid #5a2a2a;color:#ffb4b4"><span class="material-symbols-outlined text-[18px] shrink-0">block</span><span>มี <b>${sc.failItems} จุดไม่ผ่าน</b> — ออกใบตรวจรับไม่ได้ ต้องแก้ให้ผ่านก่อน (ใบรายการที่ต้องแก้ด้านล่างยังออกได้)</span></div>`
+        // ปุ่มกดได้ตลอด — ผ่านครบ+เซ็นครบ = ใบส่งมอบตัวจริง · ยังไม่ผ่าน = รายงานสรุป (ร่าง) เอาไว้ดู/ส่งสถานะ (เอกสารจะตัดข้อความเบิกเงินออกเองเมื่อยังไม่ผ่าน)
+        html += `<button id="btnSetupReport" class="w-full rounded-full ${(isSetupSide&&canCert)?'bg-primary-container text-ink-on-yellow':'bg-surface-container-high text-ink-primary'} font-title-sm text-title-sm font-bold flex items-center justify-center gap-2 shadow-lg active:translate-y-px transition-all" style="height:54px"><span class="material-symbols-outlined text-[22px]">receipt_long</span><span>${(isSetupSide&&canCert)?'ออกใบส่งมอบร้าน (Report · PDF)':'รายงานสรุปผลตรวจรับ (PDF)'}</span></button>`
         if(sc.failItems||sc.fixedItems) html += `<button id="btnSetupPunch" class="w-full rounded-full bg-surface-container-high text-ink-primary font-title-sm text-title-sm font-bold flex items-center justify-center gap-2 active:translate-y-px transition-all" style="height:48px"><span class="material-symbols-outlined text-role-head-cm text-[20px]">build</span><span>ออกรายงานรายการที่ต้องแก้ไข</span></button>`
         html += `</div>`
         if(isSetupSide && !canCert){ const bk=[]
@@ -2270,7 +2269,7 @@ async function openSite(code){
   const bh=$('btnHandover'); if(bh) bh.onclick=()=>doSignoff(code,'store','handover',()=>openSite(code))
   $('siteBody').querySelectorAll('.sigslot[data-susig]').forEach(el=> el.onclick=()=>{ const kind=el.dataset.susig
     openSigPad(kind==='setup_nsa'?'ลายเซ็นผู้ตรวจรับ (Set-Up/NSA)':'ลายเซ็นทีมก่อสร้าง (CM)', img=>saveSetupSig(code,kind,img)) })
-  const bsr=$('btnSetupReport'); if(bsr) bsr.onclick=()=>{ if(setupBlock){ toast('มีจุดไม่ผ่าน — ออกใบตรวจรับ Set-Up ไม่ได้ ต้องแก้ให้ผ่านก่อน'); return } generateSetupReport(code) }
+  const bsr=$('btnSetupReport'); if(bsr) bsr.onclick=()=>generateSetupReport(code)
   const bsp=$('btnSetupPunch'); if(bsp) bsp.onclick=()=>generateSetupPunch(code)
   hideAllViews(); showTabbar(true); show($('viewSite'),true); window.scrollTo(0,0)   // ค้าง Tab Bar ไว้ · ไม่ทับแท็บต้นทาง (Back กลับไปที่เดิม)
 }
@@ -3508,7 +3507,7 @@ async function generateSetupReport(code){
   const sgCards = sgCard(nsaSig,'ฝ่ายที่ 1: ผู้ตรวจรับสาขา (Set-Up / NSA)','ฝ่าย Set-Up & NSA','','')
     + sgCard(cmSig,'ฝ่ายที่ 2: ทีมก่อสร้าง (CM)','ผู้ควบคุมงานก่อสร้าง',cmName,cmDate?('รับมอบงาน '+cmDate):'')
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ใบส่งมอบร้าน ${esc(s.name||code)}</title><style>
+  <title>${approved?'ใบส่งมอบร้าน':'รายงานสรุปผลตรวจรับ (ร่าง)'} ${esc(s.name||code)}</title><style>
   *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#111827;margin:0;padding:0;font-size:13px;line-height:1.5;background:#F4F5F7;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .paper{max-width:840px;margin:20px auto;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.08);border-radius:4px;padding:40px}
@@ -3563,7 +3562,7 @@ async function generateSetupReport(code){
   ${REP_IMG_CSS} ${BA_CSS}
   </style></head><body>
   <div class="paper">
-    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • QA &amp; Handover Protocol</span>${approved?'<span class="appvpill"><i></i>รับมอบแล้ว (Approved)</span>':'<span class="appvpill" style="background:#fff6e8;color:#a5701a"><i style="background:#E0A800"></i>อยู่ระหว่างตรวจรับ</span>'}</div><h2>ใบส่งมอบร้านและตรวจรับอาคาร</h2><div class="en">Store Handover &amp; Facility Acceptance Certificate</div></div></div>
+    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • QA &amp; Handover Protocol</span>${approved?'<span class="appvpill"><i></i>รับมอบแล้ว (Approved)</span>':'<span class="appvpill" style="background:#fff6e8;color:#a5701a"><i style="background:#E0A800"></i>ร่าง · อยู่ระหว่างตรวจรับ</span>'}</div><h2>${approved?'ใบส่งมอบร้านและตรวจรับอาคาร':'รายงานสรุปผลตรวจรับ Set-Up (ร่าง)'}</h2><div class="en">${approved?'Store Handover &amp; Facility Acceptance Certificate':'Set-Up Inspection Status Report — DRAFT (not a handover certificate)'}</div></div></div>
       <div class="metacard"><div class="metarow"><span>เลขที่เอกสาร:</span><b>${docNo}</b></div><div class="metarow"><span>วันที่ตรวจรับ:</span><b>${recvDate}</b></div><div class="metarow"><span>รอบการตรวจ:</span><b>${roundTxt}</b></div></div></div>
     <div class="strip"><div><div class="lb">รหัสและชื่อสาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ประเภทอาคาร</div><div class="vl">${esc(s.building_type||'—')}</div><div class="sub">Set-Up · NSA</div></div><div><div class="lb">ผู้รับเหมาก่อสร้าง (ผรม.)</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">&nbsp;</div></div><div><div class="lb">ผู้ควบคุมงานตรวจรับ (Set-Up)</div><div class="vl">${nsaLead?esc(nsaLead):'—'}</div><div class="sub">ฝ่าย Set-Up &amp; NSA</div></div></div>
     <div class="scard">
@@ -3576,9 +3575,11 @@ async function generateSetupReport(code){
     <div class="catgrid"><div class="catcol">${catAll.slice(0,4).join('')}</div><div class="catcol">${catAll.slice(4).join('')}</div></div>
     ${fixCps.length?`<div class="sect"><div class="st"><span class="sbar g"></span>บันทึกการแก้ไขข้อบกพร่อง (Defect Resolution Record)</div><span class="cap" style="color:#006948;font-weight:600">✓ แก้ไขครบถ้วน 100%</span></div><div class="deflog">${defCards}</div>`:''}
     ${passShots.length?`<div class="sect"><div class="st"><span class="sbar b"></span>ภาพถ่ายหลักฐานการตรวจรับหน้างานจริง</div><span class="cap">บันทึกเวลาแบบ Real-time</span></div><div class="phgrid">${phCells}</div>`:''}
-    <div class="signsec"><div style="margin-bottom:12px"><div class="eyebrow">Official Certification &amp; Signatures</div><div style="font-size:16px;font-weight:600;color:#111827">การลงนามรับรองการส่งมอบ-รับมอบอาคาร</div></div>
+    <div class="signsec"><div style="margin-bottom:12px"><div class="eyebrow">${approved?'Official Certification &amp; Signatures':'Signatures — Current Status'}</div><div style="font-size:16px;font-weight:600;color:#111827">${approved?'การลงนามรับรองการส่งมอบ-รับมอบอาคาร':'ลายเซ็นผู้เกี่ยวข้อง (สถานะปัจจุบัน)'}</div></div>
       <div class="signgrid">${sgCards}</div>
-      <div class="legal"><span style="flex:none">ℹ️</span><p style="margin:0"><b>คำรับรองทางนิติกรรม:</b> ผู้แทนทุกฝ่ายได้ทำการตรวจสอบอาคารและอุปกรณ์ติดตั้งตามมาตรฐาน CJ Mart ครบถ้วนแล้ว มีมติเห็นชอบรับมอบสถานที่ตั้งแต่วันที่ระบุข้างต้นเป็นต้นไป เอกสารฉบับนี้ใช้เป็นหลักฐานประกอบการเบิกจ่ายเงินค่างวดสุดท้าย (Final Payment Release) และส่งมอบร้านให้ฝ่ายปฏิบัติการสาขาเปิดให้บริการอย่างเป็นทางการ</p></div>
+      ${approved
+        ? `<div class="legal"><span style="flex:none">ℹ️</span><p style="margin:0"><b>คำรับรองทางนิติกรรม:</b> ผู้แทนทุกฝ่ายได้ทำการตรวจสอบอาคารและอุปกรณ์ติดตั้งตามมาตรฐาน CJ Mart ครบถ้วนแล้ว มีมติเห็นชอบรับมอบสถานที่ตั้งแต่วันที่ระบุข้างต้นเป็นต้นไป เอกสารฉบับนี้ใช้เป็นหลักฐานประกอบการเบิกจ่ายเงินค่างวดสุดท้าย (Final Payment Release) และส่งมอบร้านให้ฝ่ายปฏิบัติการสาขาเปิดให้บริการอย่างเป็นทางการ</p></div>`
+        : `<div class="legal" style="background:#fff6e8;color:#a5701a"><span style="flex:none">⚠️</span><p style="margin:0"><b>เอกสารร่าง (ยังไม่ใช่ใบรับมอบ):</b> เป็นรายงานสรุป<b>สถานะ</b>การตรวจรับ ณ วันที่ระบุ ${sc.failItems?`ยังมี <b>${sc.failItems} จุดไม่ผ่าน</b> `:''}— <b>ห้ามใช้เป็นหลักฐานเบิกจ่ายงวดสุดท้ายหรือรับมอบร้าน</b> จนกว่าจะแก้ครบทุกจุดและลงนามรับมอบครบ 2 ฝ่าย จึงจะออกใบส่งมอบตัวจริงได้</p></div>`}
     </div>
   </div></body></html>`
   frame.srcdoc=html
