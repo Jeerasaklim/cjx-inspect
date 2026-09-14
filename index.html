@@ -2112,10 +2112,6 @@ async function openSite(code){
   const prePass = preStats.filter(p=>p.st.key==='pass').length
   const curPhase = phStats.find(p=>p.st.key!=='pass')
   const pct = Math.round(nPass/(PHASES.length||1)*100)
-  // กฎ: มีจุด "ไม่ผ่าน" = ออกใบตรวจรับ/ใบส่งมอบไม่ได้ (ใบงานต้องแก้ยังออกได้)
-  const conBlock = [...preStats,...phStats].some(p=>p.st.key==='fail')
-  const _setupScore = checkpoints.some(c=>c.phase>=201&&c.phase<=208) ? computeSetupScore(events) : null
-  const setupBlock = !!(_setupScore && _setupScore.failItems>0)
   const scoreOf=n=>{ const a=signoffs.filter(x=>String(x.scope)===String(n)&&x.kind==='score'); if(!a.length) return null; const sg2=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)); return (+sg2.note)||null }
   // ---- Store hero (p4) ----
   let html = `<div class="relative overflow-hidden rounded-xl bg-surface-card p-space-lg shadow-md flex flex-col gap-space-md">
@@ -2161,8 +2157,7 @@ async function openSite(code){
     </div>`
     const allPass = nPass===PHASES.length
     html += `<div class="pt-space-xs flex flex-col gap-space-xs">
-      <button class="btn gho" id="btnReport"${conBlock?' style="opacity:.45;cursor:not-allowed"':''}>🧾 ออกใบตรวจรับ/รายงานรวมทั้งสาขา (PDF)</button>
-      ${conBlock?`<div class="rounded-lg p-space-sm font-body-sm text-body-sm flex items-start gap-2" style="background:#2a1414;border:1px solid #5a2a2a;color:#ffb4b4"><span class="material-symbols-outlined text-[18px] shrink-0">block</span><span>มีงวดที่ <b>ไม่ผ่าน</b> — ออกใบตรวจรับไม่ได้ ต้องแก้ให้ผ่านครบก่อน (ใบรายการงานที่ต้องแก้ยังออกได้ปกติ)</span></div>`:''}
+      <button class="btn gho" id="btnReport">🧾 ออกใบรับรอง/รายงานสรุปงานก่อสร้าง (PDF)</button>
       <button class="btn gho" id="btnConPunch" style="color:#FF9B9B"><span style="margin-right:4px">🔧</span>ออกรายการงานที่ต้องแก้ (ก่อสร้าง)</button>
       ${canApprove()&&allPass&&!handover?`<button class="btn pri" id="btnHandover">✓ รับมอบงาน (ปิดงาน)</button>`:''}
     </div>`
@@ -2261,10 +2256,10 @@ async function openSite(code){
   }
   $('siteBody').innerHTML = html
   $('siteBody').querySelectorAll('[data-phase]').forEach(el=> el.onclick=()=>openPhase(code, +el.dataset.phase))
-  const brA=$('btnReport'); if(brA) brA.onclick=()=>{ if(conBlock){ toast('มีงวดที่ยังไม่ผ่าน — ออกใบตรวจรับไม่ได้ ต้องแก้ให้ผ่านครบก่อน'); return } generateReport(code) }
+  const brA=$('btnReport'); if(brA) brA.onclick=()=>generateReport(code)
   const bcpA=$('btnConPunch'); if(bcpA) bcpA.onclick=()=>generateConPunch(code)
   const ccA=$('ctrCard'); if(ccA) ccA.onclick=()=>openCtrPicker(code)
-  const spA=$('btnSitePdf'); if(spA) spA.onclick=()=>{ if(conBlock){ toast('มีงวดที่ยังไม่ผ่าน — ออกใบตรวจรับไม่ได้ ต้องแก้ให้ผ่านครบก่อน'); return } generateReport(code) }
+  const spA=$('btnSitePdf'); if(spA) spA.onclick=()=>generateReport(code)
   const shA=$('btnSiteShare'); if(shA) shA.onclick=()=>{ if(navigator.share){ navigator.share({title:(s.name||code),text:'CJX Inspect · '+(s.name||code),url:location.href}).catch(()=>{}) } else { try{ toast('อุปกรณ์นี้ยังไม่รองรับแชร์ — ใช้ปุ่ม PDF แทนได้') }catch(e){} } }
   const bh=$('btnHandover'); if(bh) bh.onclick=()=>doSignoff(code,'store','handover',()=>openSite(code))
   $('siteBody').querySelectorAll('.sigslot[data-susig]').forEach(el=> el.onclick=()=>{ const kind=el.dataset.susig
@@ -3401,15 +3396,17 @@ async function generateReport(code, phase){
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>รายงานตรวจงาน ${esc(s.name||code)}</title><style>${REPORT_CSS} ${REP_IMG_CSS} ${BA_CSS}</style></head><body>
   <div class="paper">
-    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • Construction QA Report</span>${passAll?'<span class="appvpill"><i></i>ตรวจผ่าน</span>':'<span class="appvpill f"><i></i>อยู่ระหว่างตรวจ</span>'}</div><h2>ใบรับรองการตรวจรับงานก่อสร้าง</h2><div class="en">Construction Work Inspection &amp; Acceptance Report</div></div></div>
+    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • Construction QA Report</span>${passAll?'<span class="appvpill"><i></i>ตรวจผ่าน</span>':'<span class="appvpill f"><i></i>ร่าง · อยู่ระหว่างตรวจ</span>'}</div><h2>${passAll?'ใบรับรองการตรวจรับงานก่อสร้าง':'รายงานสรุปผลตรวจงานก่อสร้าง (ร่าง)'}</h2><div class="en">${passAll?'Construction Work Inspection &amp; Acceptance Report':'Construction Inspection Status Report — DRAFT (not an acceptance certificate)'}</div></div></div>
       <div class="metacard"><div class="metarow"><span>เลขที่เอกสาร:</span><b>CJX-QA-${dd.getFullYear()+543}-${esc(code)}</b></div><div class="metarow"><span>วันที่ออกเอกสาร:</span><b>${today}</b></div><div class="metarow"><span>ขอบเขต:</span><b>${phase?('งวดที่ '+phase):'ทั้งโครงการ'}</b></div></div></div>
     <div class="strip"><div><div class="lb">รหัสและชื่อสาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ขอบเขตการตรวจ</div><div class="vl">${phase?('งวดที่ '+phase):'Pre-Con + 9 งวด'}</div><div class="sub">${phase?'เฉพาะงวดนี้':'ตรวจครบทุกงวด'}</div></div><div><div class="lb">ผู้รับเหมา (ผรม.)</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">&nbsp;</div></div><div><div class="lb">ออกเอกสารโดย</div><div class="vl">${esc(profile.name||profile.email||'—')}</div><div class="sub">CJX Inspect</div></div></div>
     <div class="scard"><div style="display:flex;align-items:center;gap:16px"><div class="gstamp" style="background:${passAll?'#006948':'#b15f00'};position:relative"><span class="gl">${passAll?'PASS':'ตรวจ'}</span><span class="gv" style="font-size:22px">${totIn?Math.round(totPass/totIn*100):0}%</span>${passAll?'<span style="position:absolute;bottom:-2px;right:-2px;background:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25);color:#006948;font-size:13px;font-weight:700">✓</span>':''}</div>
       <div><div class="verdict ${passAll?'p':'f'}">${passAll?`✓ ตรวจผ่าน 100% (${totPass}/${totIn} รายการ)`:`ผ่าน ${totPass} · ไม่ผ่าน ${totFail} · ตรวจแล้ว ${totIn}`}</div><div class="scrit" style="margin-top:6px">ออกเอกสาร ณ วันที่ ${today} โดย ${esc(profile.name||profile.email||'')}${handover?' · รับมอบงานแล้ว '+fmtDate(handover.created_at):''}</div>${passAll?'<div class="scrit" style="color:#006948;font-weight:600;margin-top:2px">งานผ่านเกณฑ์ครบถ้วน พร้อมประกอบการเบิกจ่ายงวดงาน</div>':''}</div></div></div>
     ${failHtml}
     ${body||'<p style="color:#9CA3AF">ยังไม่มีข้อมูลการตรวจในขอบเขตนี้</p>'}
-    <div class="signsec"><div style="margin-bottom:12px"><div class="eyebrow">Official Certification &amp; Signatures</div><div style="font-size:16px;font-weight:600;color:#111827">การลงนามรับรองการตรวจรับงานก่อสร้าง</div></div>${signHtml}
-      <div class="legal"><span style="flex:none">ℹ️</span><p style="margin:0"><b>คำรับรองทางนิติกรรม:</b> ผู้แทนทุกฝ่ายได้ทำการตรวจสอบงานก่อสร้างตามมาตรฐาน CJ Mart ครบถ้วนแล้ว เอกสารฉบับนี้ใช้เป็นหลักฐานประกอบการเบิกจ่ายเงินค่างวดงานก่อสร้าง</p></div>
+    <div class="signsec"><div style="margin-bottom:12px"><div class="eyebrow">${passAll?'Official Certification &amp; Signatures':'Signatures — Current Status'}</div><div style="font-size:16px;font-weight:600;color:#111827">${passAll?'การลงนามรับรองการตรวจรับงานก่อสร้าง':'ลายเซ็นผู้เกี่ยวข้อง (สถานะปัจจุบัน)'}</div></div>${signHtml}
+      ${passAll
+        ? `<div class="legal"><span style="flex:none">ℹ️</span><p style="margin:0"><b>คำรับรองทางนิติกรรม:</b> ผู้แทนทุกฝ่ายได้ทำการตรวจสอบงานก่อสร้างตามมาตรฐาน CJ Mart ครบถ้วนแล้ว เอกสารฉบับนี้ใช้เป็นหลักฐานประกอบการเบิกจ่ายเงินค่างวดงานก่อสร้าง</p></div>`
+        : `<div class="legal" style="background:#fff6e8;color:#a5701a"><span style="flex:none">⚠️</span><p style="margin:0"><b>เอกสารร่าง (ยังไม่ใช่ใบรับรอง):</b> รายงานสรุป<b>สถานะ</b>การตรวจ ${totFail?`ยังมี <b>${totFail} จุดไม่ผ่าน</b> `:''}— <b>ห้ามใช้เป็นหลักฐานเบิกจ่ายงวดงาน</b> จนกว่าจะตรวจผ่านครบ</p></div>`}
     </div>
   </div></body></html>`
   frame.srcdoc=html
