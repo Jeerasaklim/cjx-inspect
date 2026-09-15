@@ -2402,7 +2402,7 @@ async function pickContractor(code, v){
   if(s) s.contractor = v||null; toast('บันทึก ผรม. แล้ว'); openSite(code)
 }
 // ===== Auto Red Flag: เส้นตายตรวจต่องวด (Store Day D-day · เลขดำในตาราง Timeline) =====
-const RF_DUE={1:44,2:42,3:30,4:25,5:22,6:19,7:13,8:8,9:6}   // แก้ตรงนี้ปรับเส้นตายได้
+const RF_DUE={1:48,2:46,3:33,4:28,5:24,6:20,7:13,8:8,9:6}   // เส้นตาย Store Day (ยึดเลขน้ำเงิน=หน้าฝน เป็นค่าตั้งต้น · งวด 7-9 ไม่มีน้ำเงินใช้ดำ) · แก้ตรงนี้ปรับได้
 function _rfDaysSince(iso){ if(!iso) return null; const d=new Date(iso); if(isNaN(d)) return null; d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
 function _rfOverdue(openingISO, off){ if(!openingISO||off==null) return null; const d=new Date(openingISO); if(isNaN(d)) return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }   // >=0 = เกินเส้นตายมาแล้วกี่วัน
 function _rfFutureOpen(openingISO){ if(!openingISO) return false; const d=new Date(openingISO); if(isNaN(d)) return false; d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return d>t }   // ⏰ เฉพาะร้านที่เปิดหลังวันนี้

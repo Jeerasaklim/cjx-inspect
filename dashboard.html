@@ -140,7 +140,7 @@ async function loadAll(){
 }
 const nameOf=u=>nameByUid[u]||'—'
 // ---- Red Flag (ธงแดง) : manual (signoffs rfp:) + auto (เกินกำหนดตรวจ/ค้างแก้ไข) ----
-const RF_DUE={1:44,2:42,3:30,4:25,5:22,6:19,7:13,8:8,9:6}
+const RF_DUE={1:48,2:46,3:33,4:28,5:24,6:20,7:13,8:8,9:6}   // ยึดเลขน้ำเงิน(หน้าฝน) · งวด 7-9 ใช้ดำ
 function _rfPhName(p){ const c=(cpByPhase[p]||[])[0]; return (c&&c.phase_name)||(p>200?'Set-Up '+(p-200):p>100?'Pre-Con '+(p-100):'งวดที่ '+p) }
 function _rfDaysSince(iso){ if(!iso)return null; const d=new Date(iso); if(isNaN(d))return null; d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
 function _rfOverdue(openingISO,off){ if(!openingISO||off==null)return null; const d=new Date(openingISO); if(isNaN(d))return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
