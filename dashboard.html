@@ -187,11 +187,14 @@ function renderRedFlags(){
   h+=`<div class="flex items-center justify-between mb-3"><span class="font-body-sm text-body-sm text-ink-muted">${codes.length} สาขา${_q?' (กรอง)':''}</span><button onclick="window._rfReport()" class="inline-flex items-center gap-2 px-4 py-2 rounded bg-surface-card hover:bg-surface-elevated font-body-sm text-body-sm text-ink-primary"><span class="material-symbols-outlined text-[18px] text-role-head-const">picture_as_pdf</span>พิมพ์รายงานธงแดงทั้งหมด</button></div>`
   if(!codes.length){ h+=`<div class="bg-surface-card rounded-xl p-10 text-center text-ink-muted font-body-sm">🎉 ไม่มีสาขาติดธงแดง</div>`; return h }
   h+=`<div class="flex flex-col gap-3">`+codes.map(code=>{ const s=stores.find(z=>z.code===code)||{code}; const items=bs[code]
-    return `<div class="bg-surface-card rounded-xl shadow-md overflow-hidden">
-      <div data-store="${esc(code)}" class="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-surface-elevated" title="คลิกดูรายละเอียดการตรวจ + รูป/วิดีโอ">
-        <div class="min-w-0"><div class="font-title-sm text-title-sm font-bold text-ink-primary truncate">${esc(s.name||code)} <span class="text-status-fail">🚩 ${items.length}</span></div><div class="font-label-micro text-label-micro text-ink-faint">${esc(code)}${s.province?' · '+esc(s.province):''}${s.contractor?' · ผรม. '+esc(s.contractor):''}</div></div>
-        <span class="inline-flex items-center gap-1 text-primary-container font-label-micro text-label-micro">ดูรายละเอียด<span class="material-symbols-outlined text-[18px]">chevron_right</span></span></div>
-      <div class="px-4 pb-4 flex flex-col gap-2">${items.map(it=>{ let icon,line,col
+    let o=0,d=0,m=0; items.forEach(f=>f.kind==='overdue'?o++:f.kind==='defect'?d++:m++)
+    const sum=[m?'🚩'+m:'',o?'⏰'+o:'',d?'🔧'+d:''].filter(Boolean).join(' · ')
+    return `<div class="rfcard bg-surface-card rounded-xl shadow-md overflow-hidden">
+      <div class="rfhead p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-surface-elevated" onclick="window._rfToggle(this)">
+        <div class="min-w-0 flex items-center gap-2"><span class="material-symbols-outlined rfchev text-ink-faint shrink-0" style="transition:transform .15s">chevron_right</span>
+          <div class="min-w-0"><div class="font-title-sm text-title-sm font-bold text-ink-primary truncate">${esc(s.name||code)} <span class="text-status-fail">🚩 ${items.length}</span></div><div class="font-label-micro text-label-micro text-ink-faint">${esc(code)}${s.province?' · '+esc(s.province):''}${s.contractor?' · '+esc(s.contractor):''} · <span class="text-ink-muted">${sum}</span></div></div></div>
+        <button onclick="event.stopPropagation();window._openStore('${esc(code)}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-surface-control hover:bg-surface-elevated text-primary-container font-label-micro text-label-micro shrink-0">ดูรายละเอียด<span class="material-symbols-outlined text-[16px]">open_in_new</span></button></div>
+      <div class="rfitems px-4 pb-4 flex flex-col gap-2" hidden>${items.map(it=>{ let icon,line,col
         if(it.kind==='overdue'){icon='⏰';col='#E0A800';line='ต้องตรวจด่วน — เลยเส้นตายตรวจ '+it.days+' วัน'}
         else if(it.kind==='defect'){icon='🔧';col='#FF5C5C';line='ค้างแก้ '+it.count+' จุด — รอแก้มาแล้ว '+it.days+' วัน'}
         else {icon='🚩';col='#FF5C5C';line='“'+esc(it.reason)+'” · โดย '+esc(nameOf(it.by))}
@@ -199,6 +202,8 @@ function renderRedFlags(){
     </div>` }).join('')+`</div>`
   return h
 }
+window._rfToggle=function(head){ const card=head.closest('.rfcard'); if(!card) return; const it=card.querySelector('.rfitems'), ch=head.querySelector('.rfchev')
+  if(!it) return; const hidden=it.hasAttribute('hidden'); if(hidden){ it.removeAttribute('hidden'); if(ch)ch.style.transform='rotate(90deg)' } else { it.setAttribute('hidden',''); if(ch)ch.style.transform='' } }
 function buildAllRedFlagReport(){ const bs=rfAllMap(); const codes=Object.keys(bs).sort((a,b)=>bs[b].length-bs[a].length)
   const total=codes.reduce((n,c)=>n+bs[c].length,0)
   const rows=codes.map(code=>{ const s=stores.find(z=>z.code===code)||{code}
