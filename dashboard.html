@@ -41,6 +41,7 @@ fontSize:{"hero-display":["44px",{lineHeight:"44px",letterSpacing:"-0.02em",font
     <div class="px-3 py-2"><div class="px-2 py-1 font-label-caps text-label-caps text-ink-faint uppercase">Main Operations</div></div>
     <nav class="flex flex-col gap-1 px-2" id="hqNav">
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="1"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>ภาพรวมทุกสาขา (Overview)</span></a>
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="7"><span class="material-symbols-outlined text-[20px] text-status-fail">flag</span><span>🚩 ธงแดง &amp; แจ้งเตือน</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="2"><span class="material-symbols-outlined text-[20px]">engineering</span><span>ติดตามงานก่อสร้าง (9 งวด)</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="3"><span class="material-symbols-outlined text-[20px]">rule</span><span>ตรวจรับร้าน Set-Up</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="4"><span class="material-symbols-outlined text-[20px]">analytics</span><span>วิเคราะห์ผู้รับเหมา</span></a>
@@ -105,7 +106,7 @@ let _ovStage='all', _cph='all', _sf='all', _ctf='all', _ctSort='score'
 let myUid=null, myRole='', scopeAll=true, allowedViews=['1','2','3','4','5']
 const HQ_ROLE_TH={cm:'CM',head_cm:'หัวหน้า CM',head_construction:'Head Construction',setup:'Set-Up (NSA)',head_setup:'หัวหน้า Set-Up',accounting:'บัญชี',admin:'Admin',pending:'รออนุมัติ'}
 const HQ_HEAD=['head_cm','head_construction','head_setup','accounting','admin']
-const HQ_VIEWS={admin:['1','2','3','4','6','5'],accounting:['1','2','3','4','6','5'],head_construction:['1','2','4','6','5'],head_cm:['1','2','4','6','5'],cm:['1','2','5'],head_setup:['1','3','5'],setup:['1','3','5']}
+const HQ_VIEWS={admin:['1','7','2','3','4','6','5'],accounting:['1','7','2','3','4','6','5'],head_construction:['1','7','2','4','6','5'],head_cm:['1','7','2','4','6','5'],cm:['1','7','2','5'],head_setup:['1','7','3','5'],setup:['1','7','3','5']}
 async function fetchAll(table,cols,order,filt){ let out=[],from=0,size=1000
   for(;;){ let q=sb.from(table).select(cols).order(order).range(from,from+size-1); if(filt) q=filt(q)
     const {data,error}=await q; if(error){console.warn(table,error.message);break}; out=out.concat(data||[]); if(!data||data.length<size) break; from+=size } return out }
@@ -168,6 +169,51 @@ function showRfOverlay(){ const bs=rfAllMap(); const codes=Object.keys(bs).sort(
       return `<div style="background:#141416;border-left:3px solid ${col};border-radius:8px;padding:8px 10px;margin:5px 0"><div style="font-size:12px;color:#ffd9d9">${icon} ${esc(it.label)} <span style="color:#8a7766">· ${phTxt(it.phase)}</span></div><div style="font-size:13px;color:#F5F5F2;margin-top:2px">${line}</div><div style="font-size:10.5px;color:#67675F;margin-top:2px">${sub}</div></div>` }).join('')}</div>` }).join('')
   showOverlay(ovHead('🚩 ธงแดง & แจ้งเตือน ('+total+' รายการ)','🚩แจ้งเอง · ⏰เกินกำหนดตรวจ · 🔧ค้างแก้ไข · จัดการทำในแอป')+`<div style="padding:14px 16px;max-height:70vh;overflow:auto">${body||'<div style="color:#9A9A93;text-align:center;padding:24px">ไม่มีรายการ</div>'}</div>`) }
 window._rfOverlay=showRfOverlay
+window._rfView=()=>{ _view='7'; render() }
+const _phTxt=p=> p>200?'Set-Up '+(p-200):p>100?'Pre-Con '+(p-100):'งวด '+p
+// ===== หน้า "ธงแดง & แจ้งเตือน" (view 7) — รายการสาขา คลิกดูรายละเอียดได้ =====
+function renderRedFlags(){
+  const bs=rfAllMap()
+  const codes=Object.keys(bs).filter(c=>{ if(!_q) return true; const s=stores.find(z=>z.code===c)||{}; return [s.name,c,s.province,s.contractor].some(v=>(v||'').toLowerCase().includes(_q)) }).sort((a,b)=>bs[b].length-bs[a].length)
+  const totItems=Object.keys(bs).reduce((n,c)=>n+bs[c].length,0)
+  let over=0,def=0,man=0; Object.keys(bs).forEach(c=>bs[c].forEach(f=>f.kind==='overdue'?over++:f.kind==='defect'?def++:man++))
+  let h=pageHead('ธงแดง & แจ้งเตือน (RED FLAGS)','สาขาที่ติดธงแดง — แจ้งเอง / เกินกำหนดตรวจ / ค้างแก้ไข','⏰ เกินเส้นตายตรวจ (เฉพาะร้านยังไม่เปิด) · 🔧 จุดไม่ผ่านยังไม่แก้ (นับวัน) · 🚩 CM แจ้งเอง — คลิกสาขาเพื่อดูรายละเอียด+รูป · จัดการธงทำในแอป')
+  h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+    ${kpi('#FF6B6B','#241416','flag','สาขาติดธงแดง',Object.keys(bs).length,'สาขา',totItems+' รายการรวม')}
+    ${kpi('#E0A800','#1C1608','schedule','เกินกำหนดตรวจ',over,'งวด','⏰ เฉพาะร้านยังไม่เปิด')}
+    ${kpi('#FF5C5C','#241416','build','ค้างแก้ไข',def,'งวด','🔧 ยังไม่แก้')}
+    ${kpi('#F5C518','#1C1608','campaign','แจ้งเอง',man,'งวด','🚩 CM แจ้ง')}
+  </div>`
+  h+=`<div class="flex items-center justify-between mb-3"><span class="font-body-sm text-body-sm text-ink-muted">${codes.length} สาขา${_q?' (กรอง)':''}</span><button onclick="window._rfReport()" class="inline-flex items-center gap-2 px-4 py-2 rounded bg-surface-card hover:bg-surface-elevated font-body-sm text-body-sm text-ink-primary"><span class="material-symbols-outlined text-[18px] text-role-head-const">picture_as_pdf</span>พิมพ์รายงานธงแดงทั้งหมด</button></div>`
+  if(!codes.length){ h+=`<div class="bg-surface-card rounded-xl p-10 text-center text-ink-muted font-body-sm">🎉 ไม่มีสาขาติดธงแดง</div>`; return h }
+  h+=`<div class="flex flex-col gap-3">`+codes.map(code=>{ const s=stores.find(z=>z.code===code)||{code}; const items=bs[code]
+    return `<div class="bg-surface-card rounded-xl shadow-md overflow-hidden">
+      <div data-store="${esc(code)}" class="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-surface-elevated" title="คลิกดูรายละเอียดการตรวจ + รูป/วิดีโอ">
+        <div class="min-w-0"><div class="font-title-sm text-title-sm font-bold text-ink-primary truncate">${esc(s.name||code)} <span class="text-status-fail">🚩 ${items.length}</span></div><div class="font-label-micro text-label-micro text-ink-faint">${esc(code)}${s.province?' · '+esc(s.province):''}${s.contractor?' · ผรม. '+esc(s.contractor):''}</div></div>
+        <span class="inline-flex items-center gap-1 text-primary-container font-label-micro text-label-micro">ดูรายละเอียด<span class="material-symbols-outlined text-[18px]">chevron_right</span></span></div>
+      <div class="px-4 pb-4 flex flex-col gap-2">${items.map(it=>{ let icon,line,col
+        if(it.kind==='overdue'){icon='⏰';col='#E0A800';line='ต้องตรวจด่วน — เลยเส้นตายตรวจ '+it.days+' วัน'}
+        else if(it.kind==='defect'){icon='🔧';col='#FF5C5C';line='ค้างแก้ '+it.count+' จุด — รอแก้มาแล้ว '+it.days+' วัน'}
+        else {icon='🚩';col='#FF5C5C';line='“'+esc(it.reason)+'” · โดย '+esc(nameOf(it.by))}
+        return `<div style="background:#141416;border-left:3px solid ${col};border-radius:8px;padding:8px 10px"><div style="font-size:12px;color:#ffd9d9">${icon} ${esc(it.label)} <span style="color:#8a7766">· ${_phTxt(it.phase)}</span></div><div style="font-size:12.5px;color:#F5F5F2;margin-top:2px">${line}</div></div>` }).join('')}</div>
+    </div>` }).join('')+`</div>`
+  return h
+}
+function buildAllRedFlagReport(){ const bs=rfAllMap(); const codes=Object.keys(bs).sort((a,b)=>bs[b].length-bs[a].length)
+  const total=codes.reduce((n,c)=>n+bs[c].length,0)
+  const rows=codes.map(code=>{ const s=stores.find(z=>z.code===code)||{code}
+    const body=bs[code].map(it=>{ let tag,line
+      if(it.kind==='overdue'){tag='⏰ เกินกำหนดตรวจ';line='เลยเส้นตาย '+it.days+' วัน (ยังตรวจไม่ครบ/ไม่ผ่าน)'}
+      else if(it.kind==='defect'){tag='🔧 ค้างแก้ไข';line=it.count+' จุด · รอแก้ '+it.days+' วัน'}
+      else {tag='🚩 แจ้งเอง';line=(it.reason||'')+' — โดย '+nameOf(it.by)}
+      return `<tr><td class="ph">${esc(_phTxt(it.phase))} · ${esc(it.label)}</td><td class="tg">${tag}</td><td>${esc(line)}</td></tr>` }).join('')
+    return `<h2 class="ph">${esc(s.name||code)} <span style="color:#DC2626">🚩 ${bs[code].length}</span> <span style="color:#9CA3AF;font-size:12px">(${esc(code)}${s.contractor?' · '+esc(s.contractor):''})</span></h2><table><thead><tr><th>งวด/รายการ</th><th>ชนิด</th><th>รายละเอียด</th></tr></thead><tbody>${body}</tbody></table>` }).join('')
+  const dd=new Date(),p2=n=>String(n).padStart(2,'0'),today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543} ${p2(dd.getHours())}:${p2(dd.getMinutes())}`
+  const html=wrapReport(`<div class="paper"><div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • Red Flag Report</span><span class="pill y">${total} รายการ</span></div><h2>รายงานธงแดง &amp; แจ้งเตือนทั้งระบบ</h2><div class="en">Red Flags &amp; Alerts — ${codes.length} สาขา</div></div></div><div class="metacard"><div class="mrow"><span>วันที่ออก:</span><b>${today}</b></div><div class="mrow"><span>ขอบเขต:</span><b>ทุกสาขาที่ติดธง</b></div></div></div>
+    <div class="strip"><div><div class="lb">⏰ เกินกำหนดตรวจ</div><div class="vl" style="color:#b15f00">${codes.reduce((n,c)=>n+bs[c].filter(f=>f.kind==='overdue').length,0)} งวด</div></div><div><div class="lb">🔧 ค้างแก้ไข</div><div class="vl" style="color:#DC2626">${codes.reduce((n,c)=>n+bs[c].filter(f=>f.kind==='defect').length,0)} งวด</div></div><div><div class="lb">🚩 แจ้งเอง</div><div class="vl" style="color:#8d4b00">${codes.reduce((n,c)=>n+bs[c].filter(f=>f.kind==='manual').length,0)} งวด</div></div><div><div class="lb">รวมสาขา</div><div class="vl">${codes.length}</div></div></div>
+    ${total?rows:'<p style="color:#005137;font-weight:600">✓ ไม่มีสาขาติดธงแดง</p>'}</div>`)
+  const w=window.open('','_blank'); if(w){ w.document.write(html); w.document.close() } else { const b=new Blob([html],{type:'text/html'}); location.href=URL.createObjectURL(b) } }
+window._rfReport=buildAllRedFlagReport
 function phaseStat(code,phase){ const cps=cpByPhase[phase]||[]; const total=cps.length
   const m=cur[code]||{}; let done=0,pass=0,fail=0,fixed=0
   cps.forEach(c=>{ const e=m[String(c.id)]; if(e){done++; if(e.status==='pass')pass++; else if(e.status==='fail')fail++; else if(e.status==='fixed')fixed++} })
@@ -220,7 +266,7 @@ function renderOverview(){
   let h=pageHead('ภาพรวมทุกสาขา (OVERVIEW)','ภาพรวมสาขาและการขยายเครือข่ายทั่วประเทศ (Store Rollout HQ)','มุมมองรวมทุกสาขาข้ามทุกเฟส — ตำแหน่งในไปป์ไลน์ (ก่อสร้าง → ตรวจรับ Set-Up → เปิดบริการ), สาขาใกล้เปิด, และข้อบกพร่องค้างทั้งประเทศ · ดึงจากข้อมูลจริงในระบบ')
   // Red Flag banner
   { const bs=rfActiveMap(); const codes=Object.keys(bs); const tot2=codes.reduce((n,c)=>n+bs[c].length,0)
-    if(tot2) h+=`<button onclick="window._rfOverlay()" class="w-full flex items-center gap-3 mb-4 rounded-xl" style="background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;padding:12px 14px;cursor:pointer;text-align:left"><span style="font-size:24px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:14px">ธงแดง & แจ้งเตือน ${tot2} รายการ · ${codes.length} สาขา</b><div style="font-size:11.5px;color:#ffd9d9;opacity:.9">🚩แจ้งเอง · ⏰เกินกำหนดตรวจ · 🔧ค้างแก้ไข — แตะเพื่อดูรายการ (จัดการในแอป)</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>` }
+    if(tot2) h+=`<button onclick="window._rfView()" class="w-full flex items-center gap-3 mb-4 rounded-xl" style="background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;padding:12px 14px;cursor:pointer;text-align:left"><span style="font-size:24px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:14px">ธงแดง & แจ้งเตือน ${tot2} รายการ · ${codes.length} สาขา</b><div style="font-size:11.5px;color:#ffd9d9;opacity:.9">🚩แจ้งเอง · ⏰เกินกำหนดตรวจ · 🔧ค้างแก้ไข — แตะเพื่อดูรายการ (จัดการในแอป)</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>` }
   // KPI
   h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
     ${kpi('#F5F5F2','#353436','store','สาขาทั้งหมดในระบบ',tot,'สาขา',building+' ก่อสร้าง · '+setup+' Set-Up · '+opened+' เปิดแล้ว')}
@@ -831,6 +877,7 @@ function render(){
   else if(_view==='3') html+=renderSetup()
   else if(_view==='4') html+=renderContractor()
   else if(_view==='6') html+=renderCmAnalysis()
+  else if(_view==='7') html+=renderRedFlags()
   else if(_view==='5') html+=renderReports()
   $('hqBody').innerHTML=html
   const si=$('hqSearch'); if(si){ si.oninput=e=>{ _q=e.target.value.toLowerCase(); const p=si.selectionStart; render(); const n=$('hqSearch'); if(n){n.focus(); try{n.setSelectionRange(p,p)}catch(e){}} } }
