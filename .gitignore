@@ -1,0 +1,6 @@
+# ห้ามขึ้น GitHub — ของลับ (กุญแจเซ็นแอป Android)
+*.keystore
+signing-key-info.txt
+CJX Inspect - Google Play package.zip
+CJX Inspect - Google Play package/signing.keystore
+CJX Inspect - Google Play package/signing-key-info.txt
