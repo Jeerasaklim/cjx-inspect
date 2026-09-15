@@ -474,9 +474,11 @@ function renderContractor(){
 
 // ===== วิเคราะห์ CM — ความตรงเวลาในการตรวจ (ธงแดง ⏰ ตรวจล่าช้า / 🔧 ค้างแก้) =====
 function renderCmAnalysis(){
+  const roleByUid={}; profiles.forEach(p=>roleByUid[p.id]=p.role)
+  const isCM=u=>roleByUid[u]==='cm'   // เฉพาะ role CM (ไม่เอา admin/หัวหน้า)
   const byCm={}   // uid -> {stores:Set, overdue, maxLate, defect}
-  stores.forEach(s=>{ const m=cur[s.code]||{}; const cnt={}; Object.values(m).forEach(e=>{ if(e.by) cnt[e.by]=(cnt[e.by]||0)+1 })
-    let cm=null,mx=0; Object.keys(cnt).forEach(u=>{ if(cnt[u]>mx){mx=cnt[u];cm=u} }); if(!cm) return   // ไม่มีคนตรวจ = ไม่ระบุ CM
+  stores.forEach(s=>{ const m=cur[s.code]||{}; const cnt={}; Object.values(m).forEach(e=>{ if(e.by&&isCM(e.by)) cnt[e.by]=(cnt[e.by]||0)+1 })
+    let cm=null,mx=0; Object.keys(cnt).forEach(u=>{ if(cnt[u]>mx){mx=cnt[u];cm=u} }); if(!cm) return   // ไม่มี CM ตรวจ = ไม่ระบุ
     const g=byCm[cm]||(byCm[cm]={uid:cm,name:nameOf(cm),stores:new Set(),overdue:0,maxLate:0,defect:0})
     g.stores.add(s.code)
     autoFlagsForStore(s.code).forEach(f=>{ if(f.kind==='overdue'){ g.overdue++; g.maxLate=Math.max(g.maxLate,f.days) } else if(f.kind==='defect'){ g.defect++ } }) })
