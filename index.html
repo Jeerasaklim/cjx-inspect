@@ -1759,7 +1759,7 @@ async function renderLanding(){
   $('lcta').onclick=()=>switchTab('inspect')
   $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='redflag'){ filter='redflag'; return switchTab('inspect') } if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
   await loadDashData()
-  loadRedFlags().then(()=>{ const b=$('rfLandBadge'), c=$('rfLandCard'); const t=(_rfHome&&_rfHome.total)||0
+  loadRedFlags().then(()=>{ const b=$('rfLandBadge'), c=$('rfLandCard'); const t=(_rfHome&&_rfHome.list.length)||0
     if(b){ if(t){ b.textContent=t; b.style.display='flex' } else b.style.display='none' }
     if(c){ c.classList.toggle('rf-hot', t>0) } }).catch(()=>{})
   refreshNoti()   // อัปเดตกระดิ่ง + แถบเตือนหน้าแรก
@@ -1953,9 +1953,9 @@ function renderHome(){
   show($('tabs'), true)
   if(head){
     $('cmBar').innerHTML=''
-    if(!['mine','tofix','building','notyet','opened','all'].includes(filter)) filter='building'
+    if(!['mine','tofix','redflag','building','notyet','opened','all'].includes(filter)) filter='building'
   } else {
-    if(!['mine','tofix'].includes(filter)) filter='mine'
+    if(!['mine','tofix','redflag'].includes(filter)) filter='mine'
     $('cmBar').innerHTML='<button class="btn pri" id="btnPick" style="margin-bottom:14px">＋ เลือกสาขาเพื่อเริ่มตรวจ</button>'
     $('btnPick').onclick=openPick
   }
