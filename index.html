@@ -1757,7 +1757,7 @@ async function renderLanding(){
    </div>`
   $('lav').onclick=()=>switchTab('profile')
   $('lcta').onclick=()=>switchTab('inspect')
-  $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='redflag')return openRfList(); if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
+  $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='redflag'){ filter='redflag'; return switchTab('inspect') } if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
   await loadDashData()
   loadRedFlags().then(()=>{ const b=$('rfLandBadge'), c=$('rfLandCard'); const t=(_rfHome&&_rfHome.total)||0
     if(b){ if(t){ b.textContent=t; b.style.display='flex' } else b.style.display='none' }
@@ -1963,10 +1963,16 @@ function renderHome(){
   $('viewHome').querySelectorAll('.kpibox').forEach(b=> b.onclick=()=>{ filter=b.dataset.f; updateHomeStat(); renderTabs(); renderPool() })
   loadFixWork().then(()=>{ renderTabs(); updateHomeStat(); if(filter==='tofix') renderPool() })   // อัปเดตจำนวน + รายการงานที่ต้องแก้
   { const el=$('rfHomeBar'); if(el) el.innerHTML='' }
-  loadRedFlags().then(renderRfHome).catch(()=>{})   // แถบธงแดงหน้าหลัก
+  loadRedFlags().then(()=>{ renderRfHome(); renderTabs(); if(filter==='redflag') renderPool() }).catch(()=>{})   // แถบธงแดง + อัปเดตชิป/รายการ
 }
 let _rfHome=null
+let _rfMap={}   // {code: items[]} สำหรับ filter ธงแดง + chip บนการ์ด
+function _rfChipsFor(code){ const items=(_rfMap&&_rfMap[code])||[]; if(!items.length) return ''
+  let over=0,def=0,man=0; items.forEach(f=>{ if(f.kind==='overdue')over++; else if(f.kind==='defect')def++; else man++ })
+  let h=''; if(man) h+='<span class="rfchip">🚩 '+man+'</span>'; if(over) h+='<span class="rfchip amber">⏰ เกินตรวจ '+over+'</span>'; if(def) h+='<span class="rfchip">🔧 ค้างแก้ '+def+'</span>'
+  return h?('<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">'+h+'</div>'):'' }
 async function loadRedFlags(){
+  if(!Object.keys(_curByStore||{}).length){ try{ await loadDashData() }catch(e){} }   // ต้องมี event ต่อสาขาก่อนคำนวณ auto
   const {data}=await sb.from('signoffs').select('store_code,scope,kind,by,created_at,note').like('scope','rfp:%')
   const rows=data||[], last={}
   rows.forEach(x=>{ const k=x.store_code+'|'+x.scope; const p=last[k]; if(!p||(x.created_at||'')>(p.created_at||'')) last[k]=x })
@@ -1982,13 +1988,14 @@ async function loadRedFlags(){
     computeAutoFlags(s, _curByStore[code]).forEach(f=>{ (byStore[code]||(byStore[code]=[])).push({phase:f.phase,kind:f.kind,label:lbl(f.phase),days:f.days,count:f.count}) }) })
   const list=Object.keys(byStore).filter(code=> head||myStores.has(code)).map(code=>{ const s=stores.find(z=>z.code===code); return {code,name:(s&&s.name)||code,items:byStore[code]} })
   list.sort((a,b)=>b.items.length-a.items.length)
+  _rfMap={}; Object.keys(byStore).forEach(code=>{ if(head||myStores.has(code)) _rfMap[code]=byStore[code] })
   _rfHome={ list, total:list.reduce((n,s)=>n+s.items.length,0) }; return _rfHome
 }
 function renderRfHome(){ const el=$('rfHomeBar'); if(!el) return
   const total=(_rfHome&&_rfHome.total)||0, nStore=(_rfHome&&_rfHome.list.length)||0
   if(total){ el.innerHTML=`<button id="rfHomeBtn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:10px;background:#2a1414;border:1px solid #7a2a2a;border-left:4px solid #DC2626;border-radius:12px;padding:11px 13px;cursor:pointer;font-family:inherit;text-align:left"><span style="font-size:22px;animation:rfwave 1s ease-in-out infinite;transform-origin:0% 60%">🚩</span><span style="flex:1;min-width:0"><b style="color:#FF6B6B;font-size:13.5px">ธงแดง ${total} งวด · ${nStore} สาขา</b><div style="font-size:11px;color:#ffd9d9;opacity:.9">แจ้งสิ่งผิดปกติ/ควรเฝ้าระวัง — แตะดูรายการ</div></span><span class="material-symbols-outlined" style="color:#FF6B6B">chevron_right</span></button>` }
   else { el.innerHTML=`<button id="rfHomeBtn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:10px;background:#141416;border:1px solid #2A2A2E;border-radius:12px;padding:11px 13px;cursor:pointer;font-family:inherit;text-align:left"><span style="font-size:20px;opacity:.5">🚩</span><span style="flex:1;min-width:0"><b style="color:#9A9A93;font-size:13px">ธงแดง (แจ้งแบบผิด)</b><div style="font-size:11px;color:#67675F">ไม่มีธงแดงค้าง — แตะเพื่อดู</div></span><span class="material-symbols-outlined" style="color:#67675F">chevron_right</span></button>` }
-  $('rfHomeBtn').onclick=openRfList
+  $('rfHomeBtn').onclick=()=>{ filter='redflag'; renderTabs(); renderPool(); window.scrollTo(0,0) }
 }
 function openRfList(){ if(!_rfHome) return
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
@@ -2093,9 +2100,11 @@ async function loadStores(){
 function renderTabs(){
   const nfix=_fixWork.byStore?Object.values(_fixWork.byStore).filter(b=>b.total>0).length:0
   const tofix=['tofix',`🔧 ต้องแก้${nfix?' ('+nfix+')':''}`]
+  const nrf=Object.keys(_rfMap||{}).length
+  const rf=['redflag',`🚩 ธงแดง${nrf?' ('+nrf+')':''}`]
   const defs = isHead()
-    ? [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], tofix, ['building','กำลังก่อสร้าง'],['notyet','ยังไม่ก่อสร้าง'],['opened','เปิดแล้ว'],['all','ทั้งหมด']]
-    : [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], tofix]
+    ? [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], tofix, rf, ['building','กำลังก่อสร้าง'],['notyet','ยังไม่ก่อสร้าง'],['opened','เปิดแล้ว'],['all','ทั้งหมด']]
+    : [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], tofix, rf]
   $('tabs').innerHTML = defs.map(([k,l])=>`<b class="${filter===k?'on':''}${k==='tofix'&&nfix?' tabfix':''}" data-k="${k}">${l}</b>`).join('')
   $('tabs').querySelectorAll('b').forEach(b=> b.onclick=()=>{ filter=b.dataset.k; updateHomeStat(); renderTabs(); renderPool() })
 }
@@ -2108,12 +2117,15 @@ function renderPool(){
   }) }
   let list=stores.filter(s=>{
     if(q && ![s.name,s.code,s.province].some(v=>(v||'').toLowerCase().includes(q))) return false
+    if(filter==='redflag') return (_rfMap&&_rfMap[s.code]&&_rfMap[s.code].length)
     if(filter==='mine') return myStores.has(s.code)
     if(filter==='all') return true
     return s.cs.key===filter
   })
+  // filter ธงแดง: เรียงตามจำนวนธงมากสุดก่อน
+  if(filter==='redflag') list.sort((a,b)=>((_rfMap[b.code]||[]).length)-((_rfMap[a.code]||[]).length))
   const el=$('poolList')
-  if(!list.length){ const emp = filter==='mine'?'ยังไม่มีงานที่คุณลงตรวจ — เปิดสาขาแล้วเริ่มตรวจได้เลย':(stores.length?'ไม่มีสาขาในกลุ่มนี้':'ยังไม่มีสาขา — '+(profile.role==='admin'?'อัป CSV ด้านบน':'รอผู้ดูแลเพิ่ม'))
+  if(!list.length){ const emp = filter==='redflag'?'ไม่มีสาขาที่ติดธงแดง 🎉 (⏰ เกินกำหนดตรวจ · 🔧 ค้างแก้ไข · 🚩 แจ้งเอง)':filter==='mine'?'ยังไม่มีงานที่คุณลงตรวจ — เปิดสาขาแล้วเริ่มตรวจได้เลย':(stores.length?'ไม่มีสาขาในกลุ่มนี้':'ยังไม่มีสาขา — '+(profile.role==='admin'?'อัป CSV ด้านบน':'รอผู้ดูแลเพิ่ม'))
     el.innerHTML=`<div class="spin">${emp}</div>`; return }
   const drMap={}; (_dashRows||[]).forEach(r=>drMap[r.code]=r)
   el.innerHTML = list.map(s=>{
@@ -2148,6 +2160,7 @@ function renderPool(){
         </div>
         ${mine?`<span style="padding:2px 9px;border-radius:999px;background:#12271B;color:#7EE6B0;font-size:10px;font-weight:700;flex:0 0 auto;height:fit-content;display:inline-flex;align-items:center;gap:3px"><span class="material-symbols-outlined" style="font-size:12px">check</span>งานของฉัน</span>`:''}
       </div>
+      ${_rfChipsFor(s.code)}
       ${mid}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:10px;border-top:1px solid #202024">
         <span style="font-size:10px;color:#67675F;display:flex;align-items:center;gap:5px;min-width:0"><span class="material-symbols-outlined" style="font-size:13px">history</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(dr&&dr.last&&dr.last.at)?('เข้าตรวจล่าสุด '+esc(fmtDate(dr.last.at))):esc(foot||'ยังไม่เริ่มตรวจ')}</span></span>
@@ -2392,6 +2405,7 @@ async function pickContractor(code, v){
 const RF_DUE={1:44,2:42,3:30,4:25,5:22,6:19,7:13,8:8,9:6}   // แก้ตรงนี้ปรับเส้นตายได้
 function _rfDaysSince(iso){ if(!iso) return null; const d=new Date(iso); if(isNaN(d)) return null; d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
 function _rfOverdue(openingISO, off){ if(!openingISO||off==null) return null; const d=new Date(openingISO); if(isNaN(d)) return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }   // >=0 = เกินเส้นตายมาแล้วกี่วัน
+function _rfFutureOpen(openingISO){ if(!openingISO) return false; const d=new Date(openingISO); if(isNaN(d)) return false; d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return d>t }   // ⏰ เฉพาะร้านที่เปิดหลังวันนี้
 // cur = {cpId: latestEvent} · คืน auto flags: overdue (ก่อสร้าง 1-9 ที่ยังไม่ผ่าน+เกินเส้นตาย) + defect (fail/fixed ค้าง ทุกเฟส)
 function computeAutoFlags(store, cur){ const phCps={}; checkpoints.forEach(c=>{ (phCps[c.phase]||(phCps[c.phase]=[])).push(c) })
   const out=[]
@@ -2400,7 +2414,7 @@ function computeAutoFlags(store, cur){ const phCps={}; checkpoints.forEach(c=>{ 
     cps.forEach(c=>{ const e=cur[String(c.id)]; if(e&&e.status) any=true; if(e&&(e.status==='fail'||e.status==='fixed')){ dcount++; if(!oldest||(e.created_at||'')<oldest) oldest=e.created_at }
       if(!(e&&(e.status==='pass'||e.status==='na'))) allPassNa=false })
     if(dcount>0){ out.push({phase,kind:'defect',days:_rfDaysSince(oldest)||0,count:dcount}); return }
-    if(phase>=1&&phase<=9 && !(total>0&&allPassNa)){ const ov=_rfOverdue(store.opening_date, RF_DUE[phase]); if(ov!=null&&ov>=0) out.push({phase,kind:'overdue',days:ov}) }
+    if(phase>=1&&phase<=9 && !(total>0&&allPassNa) && _rfFutureOpen(store.opening_date)){ const ov=_rfOverdue(store.opening_date, RF_DUE[phase]); if(ov!=null&&ov>=0) out.push({phase,kind:'overdue',days:ov}) }
   })
   return out }
 function _curFromEvents(events){ const m={}; (events||[]).forEach(e=>{ const k=String(e.checkpoint), p=m[k]; if(!p||(+e.round>+p.round)||(+e.round===+p.round&&(e.created_at||'')>=(p.created_at||''))) m[k]=e }); return m }

@@ -143,11 +143,12 @@ const RF_DUE={1:44,2:42,3:30,4:25,5:22,6:19,7:13,8:8,9:6}
 function _rfPhName(p){ const c=(cpByPhase[p]||[])[0]; return (c&&c.phase_name)||(p>200?'Set-Up '+(p-200):p>100?'Pre-Con '+(p-100):'งวดที่ '+p) }
 function _rfDaysSince(iso){ if(!iso)return null; const d=new Date(iso); if(isNaN(d))return null; d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
 function _rfOverdue(openingISO,off){ if(!openingISO||off==null)return null; const d=new Date(openingISO); if(isNaN(d))return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
+function _rfFutureOpen(openingISO){ if(!openingISO)return false; const d=new Date(openingISO); if(isNaN(d))return false; d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return d>t }
 function autoFlagsForStore(code){ const s=stores.find(z=>z.code===code); if(!s) return []; const m=cur[code]||{}; const out=[]
   Object.keys(cpByPhase).forEach(pn=>{ const phase=+pn, cps=cpByPhase[pn]; let oldest=null,dcount=0,total=cps.length,allPassNa=true
     cps.forEach(c=>{ const e=m[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')){ dcount++; if(!oldest||(e.created_at||'')<oldest) oldest=e.created_at } if(!(e&&(e.status==='pass'||e.status==='na'))) allPassNa=false })
     if(dcount>0){ out.push({phase,kind:'defect',days:_rfDaysSince(oldest)||0,count:dcount}); return }
-    if(phase>=1&&phase<=9 && !(total>0&&allPassNa)){ const ov=_rfOverdue(s.opening_date, RF_DUE[phase]); if(ov!=null&&ov>=0) out.push({phase,kind:'overdue',days:ov}) } })
+    if(phase>=1&&phase<=9 && !(total>0&&allPassNa) && _rfFutureOpen(s.opening_date)){ const ov=_rfOverdue(s.opening_date, RF_DUE[phase]); if(ov!=null&&ov>=0) out.push({phase,kind:'overdue',days:ov}) } })
   return out }
 function rfAllMap(){ const byStore={}
   const last={}; signoffs.forEach(x=>{ if(x.scope&&x.scope.slice(0,4)==='rfp:'){ const k=x.store_code+'|'+x.scope; const p=last[k]; if(!p||(x.created_at||'')>(p.created_at||'')) last[k]=x } })
