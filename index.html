@@ -1592,7 +1592,7 @@ async function enterApp(){
       else if(_rt==='punch') generateSetupPunch(_rc)
       else generateReport(_rc, _rp.get('phase')?+_rp.get('phase'):null)
     } else switchTab('home') }
-  syncQueue()   // ส่งรูปที่ค้างในคิว offline จาก session ก่อน (ถ้ามี)
+  syncQueue(); syncEventQueue()   // ส่งรูป+ผลตรวจที่ค้างในคิว offline จาก session ก่อน (ถ้ามี)
   refreshNoti(); if(!window._notiTimer) window._notiTimer=setInterval(refreshNoti,180000)   // แจ้งเตือนงานที่ต้องแก้ + เช็คซ้ำทุก 3 นาที
 }
 function renderHomeActs(){ $('homeActs').innerHTML='' }
@@ -2629,7 +2629,8 @@ function renderPhase(){
     const decided = !cmRespond && (cur==='pass'||cur==='na')   // ผ่าน/ไม่มีงาน = กะทัดรัด · ไม่ผ่าน/รอตรวจซ้ำ = เปิดค้างให้ตรวจซ้ำจนกว่าจะผ่าน
     const expand = !decided || pctx.editing.has(String(c.id))
     const showAddph = editable && expand && (!cmRespond || cur==='fail' || cur==='fixed')
-    const stamp = cur ? `<div class="stamp">${cur==='fixed'?'🔧 แก้โดย':'ตรวจโดย'} ${esc(nameOf(byOf(c.id)))} · ${fmtDate(whenOf(c.id))}</div>` : ''
+    const _le=latestEvent(c.id)
+    const stamp = cur ? `<div class="stamp">${cur==='fixed'?'🔧 แก้โดย':'ตรวจโดย'} ${esc(nameOf(byOf(c.id)))} · ${fmtDate(whenOf(c.id))}${_le&&_le._pending?' · <span style="color:#FF9F1C">⟳ รอส่งขึ้นระบบ</span>':''}</div>` : ''
     let act=''
     if(cmRespond){
       if(cur==='fail'){
@@ -2722,7 +2723,7 @@ function renderPhase(){
   $('phaseBody').innerHTML=html
   $('phaseBody').classList.toggle('phlocked', !editable)
   { const pb=$('phaseBody').querySelector('.phback'); if(pb) pb.onclick=()=>openSite(pctx.code) }
-  { const bd=$('btnPhDone'); if(bd) bd.onclick=()=>{ toast('บันทึกและส่งผลการตรวจแล้ว ✓'); openSite(pctx.code) }
+  { const bd=$('btnPhDone'); if(bd) bd.onclick=()=>{ syncEventQueue(); syncQueue(); toast(navigator.onLine?'บันทึกและส่งผลการตรวจแล้ว ✓':'บันทึกในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต','ok'); openSite(pctx.code) }
     const bp=$('btnPhPause'); if(bp) bp.onclick=()=>{ toast('พักไว้ก่อน — ผลถูกบันทึกแล้ว'); openSite(pctx.code) } }
   const _ths=[...$('phaseBody').querySelectorAll('.th')]
   const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
@@ -2762,24 +2763,33 @@ async function saveTick(cpId, status){
     alert(status==='fail'
       ? (cpVideo(_cp)?'“ไม่ผ่าน” — ต้องแนบวิดีโอจุดที่มีปัญหาก่อน':'“ไม่ผ่าน” — ต้องแนบรูปจุดที่มีปัญหาก่อน')
       : (cpVideo(_cp)?'ข้อนี้ต้องแนบวิดีโอก่อนกดผ่าน':'ข้อนี้ต้องแนบรูปก่อนกดผ่าน')); return }
-  if(!pctx.inspId){
-    const { data, error } = await sb.from('inspections').insert({ store_code:pctx.code, phase:pctx.phase }).select('id').single()
-    if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
-    pctx.inspId=data.id
-  }
   const inp=$('phaseBody').querySelector(`.cmt[data-cp="${cpId}"]`)
   const note = inp && inp.value.trim() ? inp.value.trim() : null
   const round=maxRound(cpId)||1   // ไม่เพิ่มรอบทุกครั้งที่ติ๊ก — แก้ที่กดผิดอยู่รอบเดิม · รอบเพิ่มเฉพาะตอน CM ส่งงานแก้ (saveFix)
-  const { data:ins, error } = await sb.from('check_events').insert({ inspection_id:pctx.inspId, checkpoint:String(cpId), round, status, note }).select('by,created_at').single()
-  if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
-  pctx.events.push({ checkpoint:String(cpId), round, status, note, by:(ins&&ins.by)||myUid, created_at:(ins&&ins.created_at)||null })
+  const createdISO=new Date().toISOString()
+  // เข้าคิว offline ก่อนเสมอ (กันหายตอนเน็ตหลุด/เซสชันหมด) แล้วค่อยซิงค์
+  let qid=null
+  try{ qid=await evqAdd({storeCode:pctx.code, phase:pctx.phase, cpId:String(cpId), round, status, note, ts:Date.now(), by:myUid, created_at:createdISO}) }
+  catch(e){ alert('บันทึกผลตรวจลงเครื่องไม่ได้ (พื้นที่เต็ม/โหมดไม่เก็บข้อมูล) — ลองอีกครั้ง'); return }
+  pctx.events.push({ checkpoint:String(cpId), round, status, note, by:myUid, created_at:createdISO, _qid:qid, _pending:true })
   myStores.add(pctx.code); renderPhase()
+  syncEventQueue()
 }
 // ล้างการติ๊ก (ติ๊กผิด) — ลบ event รอบล่าสุดของข้อนี้ (เฉพาะของตัวเอง/Admin) กลับเป็น "ยังไม่ตรวจ"
 async function clearTick(cpId){
   if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว — แก้ไม่ได้'); return }
   const es=pctx.events.filter(e=>e.checkpoint===String(cpId)); if(!es.length) return
   const mr=Math.max(...es.map(e=>e.round))
+  const roundEvs=es.filter(e=>e.round===mr)
+  const pend=roundEvs.filter(e=>e._pending && e._qid!=null)
+  // ถ้ารอบล่าสุดยังไม่ซิงค์ทั้งหมด = ลบจากคิว+เครื่องได้เลย (ออฟไลน์ก็ได้)
+  if(roundEvs.length && roundEvs.every(e=>e._pending)){
+    for(const p of pend){ try{ await evqDel(p._qid) }catch(e){} }
+    pctx.events=pctx.events.filter(e=>!(e.checkpoint===String(cpId)&&e.round===mr))
+    renderPhase(); toast('ล้างการติ๊กแล้ว'); return
+  }
+  // มีติ๊กที่ส่งขึ้นระบบแล้ว → ต้องออนไลน์เพื่อลบ
+  if(!navigator.onLine){ alert('ตอนนี้ออฟไลน์ — การติ๊กนี้ส่งขึ้นระบบแล้ว ต้องต่อเน็ตก่อนถึงจะล้างได้'); return }
   if(pctx.inspId){
     const { data:del, error } = await sb.from('check_events').delete().eq('inspection_id',pctx.inspId).eq('checkpoint',String(cpId)).eq('round',mr).select()
     if(error) return alert('ล้างไม่สำเร็จ: '+error.message)
@@ -2787,24 +2797,23 @@ async function clearTick(cpId){
       ? 'Admin ล้างไม่สำเร็จ — ให้รัน sql/20 ใน Supabase ก่อน (เปิดสิทธิ์ให้ Admin ลบติ๊กของคนอื่นได้)'
       : 'ล้างไม่สำเร็จ — ลบได้เฉพาะติ๊กของตัวเอง (ติ๊กนี้เป็นของคนอื่น) · ถ้ายังลบของตัวเองไม่ได้ ให้ผู้ดูแลรัน sql/19'); return }
   }
+  for(const p of pend){ try{ await evqDel(p._qid) }catch(e){} }   // เก็บกวาด pending ที่ค้างในคิวด้วย
   pctx.events=pctx.events.filter(e=>!(e.checkpoint===String(cpId)&&e.round===mr))
   renderPhase(); toast('ล้างการติ๊กแล้ว')
 }
 // ---- CM ส่งงานที่แก้แล้วให้ Set-Up ตรวจซ้ำ (status='fixed', เก็บเป็นรอบใหม่ ไม่ทับของเดิม) ----
 async function saveFix(cpId){
   if(!mediaOf(cpId).length){ alert('ต้องแนบรูปที่แก้แล้วก่อนส่งให้ Set-Up ตรวจซ้ำ'); return }
-  if(!pctx.inspId){
-    const { data, error } = await sb.from('inspections').insert({ store_code:pctx.code, phase:pctx.phase }).select('id').single()
-    if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
-    pctx.inspId=data.id
-  }
   const inp=$('phaseBody').querySelector(`.cmt[data-cp="${cpId}"]`)
   const note = inp && inp.value.trim() ? inp.value.trim() : null
   const round=maxRound(cpId)+1
-  const { data:ins, error } = await sb.from('check_events').insert({ inspection_id:pctx.inspId, checkpoint:String(cpId), round, status:'fixed', note }).select('by,created_at').single()
-  if(error) return alert('ส่งไม่สำเร็จ: '+error.message+'\n(ถ้าขึ้น check constraint ให้รัน sql/16 เพิ่มสถานะ fixed)')
-  pctx.events.push({ checkpoint:String(cpId), round, status:'fixed', note, by:(ins&&ins.by)||myUid, created_at:(ins&&ins.created_at)||null })
-  myStores.add(pctx.code); renderPhase(); toast('ส่งให้ Set-Up ตรวจซ้ำแล้ว ✓')
+  const createdISO=new Date().toISOString()
+  let qid=null
+  try{ qid=await evqAdd({storeCode:pctx.code, phase:pctx.phase, cpId:String(cpId), round, status:'fixed', note, ts:Date.now(), by:myUid, created_at:createdISO}) }
+  catch(e){ alert('บันทึกลงเครื่องไม่ได้ (พื้นที่เต็ม/โหมดไม่เก็บข้อมูล) — ลองอีกครั้ง'); return }
+  pctx.events.push({ checkpoint:String(cpId), round, status:'fixed', note, by:myUid, created_at:createdISO, _qid:qid, _pending:true })
+  myStores.add(pctx.code); renderPhase(); toast(navigator.onLine?'ส่งให้ Set-Up ตรวจซ้ำแล้ว ✓':'เก็บในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต','ok')
+  syncEventQueue()
 }
 // ---- photo: capture → watermark → upload storage ----
 function getGPS(){ return new Promise(res=>{ if(!navigator.geolocation) return res(null)
@@ -2830,8 +2839,8 @@ function capturePhoto(cpId){ if(!phaseEditable()){ alert('งวดนี้ป�
 // ===== Offline photo queue (IndexedDB) — ถ่าย offline ได้ อัปอัตโนมัติเมื่อเน็ตกลับ =====
 let _idb=null
 function idbGet(){ return new Promise((res,rej)=>{ if(_idb) return res(_idb)
-  const r=indexedDB.open('cjx_inspect',1)
-  r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains('photoq')) r.result.createObjectStore('photoq',{keyPath:'id',autoIncrement:true}) }
+  const r=indexedDB.open('cjx_inspect',2)   // v2: เพิ่ม eventq (ผลตรวจ offline)
+  r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains('photoq')) db.createObjectStore('photoq',{keyPath:'id',autoIncrement:true}); if(!db.objectStoreNames.contains('eventq')) db.createObjectStore('eventq',{keyPath:'id',autoIncrement:true}) }
   r.onsuccess=()=>{ _idb=r.result; res(_idb) }; r.onerror=()=>rej(r.error) }) }
 async function qStore(mode){ const db=await idbGet(); return db.transaction('photoq',mode).objectStore('photoq') }
 async function queueAdd(rec){ const st=await qStore('readwrite'); return new Promise((res,rej)=>{ const q=st.add(rec); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error) }) }
@@ -2839,6 +2848,13 @@ async function queueAll(){ const st=await qStore('readonly'); return new Promise
 async function queueDel(id){ const st=await qStore('readwrite'); return new Promise(res=>{ const q=st.delete(id); q.onsuccess=()=>res(); q.onerror=()=>res() }) }
 async function queuePut(rec){ const st=await qStore('readwrite'); return new Promise(res=>{ const q=st.put(rec); q.onsuccess=()=>res(); q.onerror=()=>res() }) }
 async function queueClear(){ const st=await qStore('readwrite'); return new Promise(res=>{ const q=st.clear(); q.onsuccess=()=>res(); q.onerror=()=>res() }) }
+// ===== Offline event queue (ผลตรวจ ผ่าน/ไม่ผ่าน) — ตรวจ offline ได้ ซิงค์เมื่อเน็ตกลับ =====
+async function evqStore(mode){ const db=await idbGet(); return db.transaction('eventq',mode).objectStore('eventq') }
+async function evqAdd(rec){ const st=await evqStore('readwrite'); return new Promise((res,rej)=>{ const q=st.add(rec); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error) }) }
+async function evqAll(){ const st=await evqStore('readonly'); return new Promise(res=>{ const q=st.getAll(); q.onsuccess=()=>res(q.result||[]); q.onerror=()=>res([]) }) }
+async function evqDel(id){ const st=await evqStore('readwrite'); return new Promise(res=>{ const q=st.delete(id); q.onsuccess=()=>res(); q.onerror=()=>res() }) }
+async function evqPut(rec){ const st=await evqStore('readwrite'); return new Promise(res=>{ const q=st.put(rec); q.onsuccess=()=>res(); q.onerror=()=>res() }) }
+async function evqCount(){ const st=await evqStore('readonly'); return new Promise(res=>{ const q=st.count(); q.onsuccess=()=>res(q.result); q.onerror=()=>res(0) }) }
 async function queueCount(){ const st=await qStore('readonly'); return new Promise(res=>{ const q=st.count(); q.onsuccess=()=>res(q.result); q.onerror=()=>res(0) }) }
 
 // ถ่าย/เลือกหลายรูปทีเดียว · เข้าคิวในเครื่องทันที (offline ได้) · อ่าน GPS ครั้งเดียว/ชุด
@@ -2911,6 +2927,31 @@ async function syncQueue(force){
 }
 async function _qFail(r, why){ r.tries=(r.tries||0)+1; if(why) _lastUpErr=why; try{ await queuePut(r) }catch(e){}
   if(pctx&&pctx.media){ const m=pctx.media.find(x=>x.qid===r.id); if(m){ if(why) m.errMsg=why; if(r.tries>=QMAXTRY){ m.err=true; m.pending=false; _syncTouched=true } } } }
+// ===== ซิงค์ผลตรวจ (offline queue) — ส่ง check_events ที่ค้างขึ้น server =====
+let _evSyncing=false
+async function syncEventQueue(){
+  if(_evSyncing || !navigator.onLine) return
+  const { data:{ session } } = await sb.auth.getSession()
+  if(!session){ if(await evqCount().catch(()=>0)) toast('ผลตรวจยังไม่ขึ้นระบบ: เซสชันหมดอายุ — ปิดแอปแล้วเปิดใหม่/ล็อกอินใหม่','err'); updatePendBadge(); return }
+  _evSyncing=true; let touched=false, failMsg=''
+  try{
+    const items=await evqAll(); const cache={}
+    for(const r of items){
+      try{
+        const inspId=await _ensureInsp(r.storeCode, r.phase, cache)
+        if(!inspId){ failMsg='สร้างรายการตรวจไม่ได้ (สิทธิ์/เน็ต)'; continue }
+        const { error } = await sb.from('check_events').insert({ inspection_id:inspId, checkpoint:r.cpId, round:r.round, status:r.status, note:r.note })
+        if(error){ failMsg=error.message||'บันทึกผลตรวจไม่สำเร็จ'; continue }
+        await evqDel(r.id)
+        if(pctx&&pctx.events){ const m=pctx.events.find(e=>e._qid===r.id); if(m){ m._pending=false; delete m._qid; touched=true } }
+      }catch(e){ failMsg=(e&&e.message)||'ผิดพลาด' }
+    }
+  }catch(e){}
+  _evSyncing=false
+  if(failMsg) toast('ผลตรวจบางรายการยังไม่ขึ้นระบบ: '+failMsg,'err')
+  if(touched && pctx&&$('viewPhase')&&!$('viewPhase').classList.contains('hide')) renderPhase()
+  updatePendBadge()
+}
 // ล้างคิวรูปที่ค้าง (ผู้ใช้กดเอง) — ใช้ตอนคิวค้าง/รูปเทสต์ค้าง
 async function clearPhotoQueue(){
   const n=await queueCount(); if(!n){ toast('ไม่มีรูปค้างในเครื่อง'); return }
@@ -2923,19 +2964,21 @@ async function clearPhotoQueue(){
 // กด badge = ลองส่งใหม่ทั้งหมด (รีเซ็ตตัวนับ retry)
 async function retryPhotoQueue(){
   try{ const items=await queueAll(); for(const r of items){ if(r.tries){ r.tries=0; await queuePut(r) } } }catch(e){}
-  toast('กำลังลองส่งรูปที่ค้างใหม่…'); syncQueue(true)
+  toast('กำลังลองส่งที่ค้างใหม่…'); syncQueue(true); syncEventQueue()
 }
-async function updatePendBadge(){ let n=0, stuck=0
+async function updatePendBadge(){ let n=0, stuck=0, ev=0
   try{ const items=await queueAll(); n=items.length; stuck=items.filter(r=>(r.tries||0)>=QMAXTRY).length }catch(e){ try{ n=await queueCount() }catch(e2){} }
+  try{ ev=await evqCount() }catch(e){}
+  const tot=n+ev, parts=[]; if(n) parts.push(n+' รูป'); if(ev) parts.push(ev+' ผลตรวจ')
   let el=$('pendBadge')
   if(!el){ el=document.createElement('div'); el.id='pendBadge'; el.className='pendbadge'; el.onclick=()=>retryPhotoQueue(); document.body.appendChild(el) }
-  el.style.display = n>0?'flex':'none'
-  el.classList.toggle('stuck', stuck>0 && stuck>=n)
-  el.innerHTML = n<=0 ? '' : (!navigator.onLine ? `📴 ${n} รูปรออัป (ออฟไลน์)`
-    : (stuck>0 && stuck>=n) ? `⚠️ ${n} รูปส่งไม่ขึ้น · แตะเพื่อลองใหม่` : `⤒ กำลังส่ง ${n} รูป…`) }
-window.addEventListener('online', ()=>syncQueue())
+  el.style.display = tot>0?'flex':'none'
+  el.classList.toggle('stuck', stuck>0 && stuck>=n && !ev)
+  el.innerHTML = tot<=0 ? '' : (!navigator.onLine ? `📴 ${parts.join(' + ')} รออัป (ออฟไลน์)`
+    : (stuck>0 && stuck>=n && !ev) ? `⚠️ ${n} รูปส่งไม่ขึ้น · แตะเพื่อลองใหม่` : `⤒ กำลังส่ง ${parts.join(' + ')}…`) }
+window.addEventListener('online', ()=>{ syncQueue(); syncEventQueue() })
 window.addEventListener('offline', ()=>updatePendBadge())
-setInterval(()=>{ if(navigator.onLine) syncQueue() }, 30000)
+setInterval(()=>{ if(navigator.onLine){ syncQueue(); syncEventQueue() } }, 30000)
 function _timeout(p, ms, label){ return Promise.race([ Promise.resolve(p), new Promise((_,rej)=>setTimeout(()=>rej(new Error((label||'op')+' timeout '+ms+'ms')), ms)) ]) }
 async function loadImage(file){
   // มือถือ (โดยเฉพาะ iOS) event onload ยิง "ก่อน" รูป decode เสร็จ → drawImage ลง canvas ได้ภาพดำ
