@@ -44,6 +44,7 @@ fontSize:{"hero-display":["44px",{lineHeight:"44px",letterSpacing:"-0.02em",font
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="2"><span class="material-symbols-outlined text-[20px]">engineering</span><span>ติดตามงานก่อสร้าง (9 งวด)</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="3"><span class="material-symbols-outlined text-[20px]">rule</span><span>ตรวจรับร้าน Set-Up</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="4"><span class="material-symbols-outlined text-[20px]">analytics</span><span>วิเคราะห์ผู้รับเหมา</span></a>
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="6"><span class="material-symbols-outlined text-[20px]">engineering</span><span>วิเคราะห์ CM (ตรงเวลา)</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="5"><span class="material-symbols-outlined text-[20px]">picture_as_pdf</span><span>รายงาน (Reports)</span></a>
     </nav>
   </div>
@@ -104,7 +105,7 @@ let _ovStage='all', _cph='all', _sf='all', _ctf='all', _ctSort='score'
 let myUid=null, myRole='', scopeAll=true, allowedViews=['1','2','3','4','5']
 const HQ_ROLE_TH={cm:'CM',head_cm:'หัวหน้า CM',head_construction:'Head Construction',setup:'Set-Up (NSA)',head_setup:'หัวหน้า Set-Up',accounting:'บัญชี',admin:'Admin',pending:'รออนุมัติ'}
 const HQ_HEAD=['head_cm','head_construction','head_setup','accounting','admin']
-const HQ_VIEWS={admin:['1','2','3','4','5'],accounting:['1','2','3','4','5'],head_construction:['1','2','4','5'],head_cm:['1','2','4','5'],cm:['1','2','5'],head_setup:['1','3','5'],setup:['1','3','5']}
+const HQ_VIEWS={admin:['1','2','3','4','6','5'],accounting:['1','2','3','4','6','5'],head_construction:['1','2','4','6','5'],head_cm:['1','2','4','6','5'],cm:['1','2','5'],head_setup:['1','3','5'],setup:['1','3','5']}
 async function fetchAll(table,cols,order,filt){ let out=[],from=0,size=1000
   for(;;){ let q=sb.from(table).select(cols).order(order).range(from,from+size-1); if(filt) q=filt(q)
     const {data,error}=await q; if(error){console.warn(table,error.message);break}; out=out.concat(data||[]); if(!data||data.length<size) break; from+=size } return out }
@@ -412,17 +413,19 @@ function gradeCol(g){ return g==='A'?{bg:'#12271B',fg:'#7EE6B0'}:g==='B'?{bg:'#1
 // ============ VIEW 4 : CONTRACTOR QA ============
 function renderContractor(){
   const byC={}
-  stores.forEach(s=>{ const c=s.contractor; if(!c) return; const g=byC[c]||(byC[c]={name:c,stores:[],fail:0,pass:0,doneG:0,setupSum:0,setupN:0})
+  stores.forEach(s=>{ const c=s.contractor; if(!c) return; const g=byC[c]||(byC[c]={name:c,stores:[],fail:0,pass:0,doneG:0,setupSum:0,setupN:0,rfDef:0,rfDefMax:0})
     g.stores.push(s)
     PHASES.forEach(([p])=>{ const st=phaseStat(s.code,p); if(st.total){ g.fail+=st.fail; if(st.key==='pass')g.pass++; g.doneG++ } })
-    const sc=computeSetupScore(s.code); if(sc.doneItems){ g.setupSum+=sc.total; g.setupN++ } })
+    const sc=computeSetupScore(s.code); if(sc.doneItems){ g.setupSum+=sc.total; g.setupN++ }
+    autoFlagsForStore(s.code).forEach(f=>{ if(f.kind==='defect'){ g.rfDef++; g.rfDefMax=Math.max(g.rfDefMax,f.days) } }) })
   let list=Object.values(byC).map(g=>{ const defDensity=g.stores.length?g.fail/g.stores.length:0
     const setupAvg=g.setupN?g.setupSum/g.setupN:null
     const passRate=g.doneG?g.pass/g.doneG*100:0
-    // score: 60% pass-rate + 40% setup (เท่าที่มีข้อมูลจริง)
-    const score= setupAvg!=null? passRate*0.6+setupAvg*0.4 : passRate
+    // score: 60% pass-rate + 40% setup − หักธงแดงค้างแก้ (สูงสุด 20)
+    const base= setupAvg!=null? passRate*0.6+setupAvg*0.4 : passRate
+    const score=Math.max(0, base - Math.min(g.rfDef*2,20))
     return {...g,defDensity,setupAvg,passRate,score,grade: score>95?'A':score>=90?'B':score>=80?'C':'D'} }).sort((a,b)=>b.score-a.score)
-  const watch=list.filter(g=>g.score<80||g.defDensity>=3)
+  const watch=list.filter(g=>g.score<80||g.defDensity>=3||g.rfDef>0)
   const avgDef=list.length?(list.reduce((n,g)=>n+g.defDensity,0)/list.length):0
   let h=pageHead('วิเคราะห์ผู้รับเหมา (CONTRACTOR QA)','การประเมินและวิเคราะห์ประสิทธิภาพผู้รับเหมา','จัดอันดับผู้รับเหมาก่อสร้างจากคะแนนตรวจงวด (Pass Rate), อัตราข้อบกพร่อง (Defect Density) และคะแนนตรวจรับ Set-Up NSA — คำนวณจากข้อมูลจริงในระบบ')
   h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
@@ -442,15 +445,16 @@ function renderContractor(){
   h+=filterBar({store:false,count:disp.length,total:list.length,unit:'ราย',chips:ctfChips,chipLabel:'เกรด',sortId:'fltCtSort',sortCur:_ctSort,sortOpts:[['score','เรียง: คะแนนสูงสุด'],['worst','คะแนนต่ำสุด'],['defect','Defect มากสุด'],['stores','สาขามากสุด']]})
   h+=`<div class="grid grid-cols-1 lg:grid-cols-12 gap-5"><div class="lg:col-span-8"><div class="bg-surface-card rounded-xl shadow-md overflow-hidden">
     <div class="p-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-container text-[20px]">leaderboard</span><h3 class="font-title-sm text-title-sm">ตารางประเมินผู้รับเหมา · ${disp.length} ราย</h3></div>
-    <div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">อันดับ &amp; ผู้รับเหมา</th><th class="py-3 px-2 text-center">สาขา</th><th class="py-3 px-2 text-center">คะแนนรวม</th><th class="py-3 px-2 text-center">ผ่านงวด</th><th class="py-3 px-2 text-center">Defect/สาขา</th><th class="py-3 px-2 text-center">Set-Up</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
+    <div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">อันดับ &amp; ผู้รับเหมา</th><th class="py-3 px-2 text-center">สาขา</th><th class="py-3 px-2 text-center">คะแนนรวม</th><th class="py-3 px-2 text-center">ผ่านงวด</th><th class="py-3 px-2 text-center">Defect/สาขา</th><th class="py-3 px-2 text-center">🔧 ค้างแก้</th><th class="py-3 px-2 text-center">Set-Up</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
   disp.forEach((g,i)=>{ const gc=gradeCol(g.grade), crit=g.score<80
     h+=`<tr class="hover:bg-surface-elevated/30 ${crit?'':''}" ${crit?'style="background:rgba(36,20,22,.4)"':''}><td class="py-2.5 px-4"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded flex items-center justify-center font-data-mono font-bold text-[13px] shrink-0" style="background:${i===0?'#f5c518':'#141416'};color:${i===0?'#1A1500':'#9A9A93'}">${i+1}</div><div class="min-w-0"><div class="font-title-sm text-[13px] font-bold truncate ${crit?'text-status-fail':'text-ink-primary'}" style="max-width:220px">${esc(g.name)}</div><div class="font-label-micro text-label-micro text-ink-faint">${g.stores.length} สาขาในความดูแล</div></div></div></td>
       <td class="py-2.5 px-2 text-center font-data-mono font-bold">${g.stores.length}</td>
       <td class="py-2.5 px-2 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded" style="background:${gc.bg}"><span class="font-data-mono text-[13px] font-bold" style="color:${gc.fg}">${g.score.toFixed(1)}</span><span class="font-data-mono text-[10px] font-extrabold" style="color:${gc.fg}">${g.grade}</span></span></td>
       <td class="py-2.5 px-2 text-center font-data-mono" style="color:${g.passRate>=90?'#7EE6B0':g.passRate>=80?'#D9B84A':'#FF5C5C'}">${g.passRate.toFixed(0)}%</td>
       <td class="py-2.5 px-2 text-center font-data-mono" style="color:${g.defDensity<2?'#7EE6B0':g.defDensity<3?'#D9B84A':'#FF5C5C'}">${g.defDensity.toFixed(1)}</td>
+      <td class="py-2.5 px-2 text-center font-data-mono" style="color:${g.rfDef?'#FF5C5C':'#7EE6B0'}">${g.rfDef?g.rfDef+(g.rfDefMax?` <span style="color:#67675F;font-size:10px">(สูงสุด ${g.rfDefMax}ว)</span>`:''):'—'}</td>
       <td class="py-2.5 px-2 text-center font-data-mono text-ink-muted">${g.setupAvg!=null?g.setupAvg.toFixed(0):'—'}</td></tr>` })
-  if(!disp.length) h+=`<tr><td colspan="6" class="py-8 text-center text-ink-muted">ยังไม่มีผู้รับเหมาในระบบ (สาขายังไม่ระบุ ผรม.)</td></tr>`
+  if(!disp.length) h+=`<tr><td colspan="7" class="py-8 text-center text-ink-muted">ยังไม่มีผู้รับเหมาในระบบ (สาขายังไม่ระบุ ผรม.)</td></tr>`
   h+=`</tbody></table></div></div></div>`
   // right: criteria + watchlist
   h+=`<div class="lg:col-span-4 flex flex-col gap-4">
@@ -463,6 +467,51 @@ function renderContractor(){
     </div>`
   if(watch.length){ h+=`<div class="rounded-xl p-4 shadow-md" style="background:#241416"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-status-fail text-[22px]">crisis_alert</span><h3 class="font-title-sm text-title-sm text-ink-fail font-bold">เฝ้าระวังผู้รับเหมาวิกฤต</h3></div>`
     h+=watch.slice(0,4).map(g=>`<div class="rounded p-3 mb-2" style="background:rgba(20,20,22,.6)"><div class="flex items-center justify-between"><span class="font-title-sm text-[13px] font-bold">${esc(g.name)}</span><span class="font-data-mono text-[11px] font-bold text-status-fail">${g.score.toFixed(0)} คะแนน</span></div><div class="font-body-sm text-body-sm text-ink-fail mt-1">${g.fail} จุด Defect · ${g.defDensity.toFixed(1)} จุด/สาขา · ${g.stores.length} สาขา</div></div>`).join('')
+    h+=`</div>` }
+  h+=`</div></div>`
+  return h
+}
+
+// ===== วิเคราะห์ CM — ความตรงเวลาในการตรวจ (ธงแดง ⏰ ตรวจล่าช้า / 🔧 ค้างแก้) =====
+function renderCmAnalysis(){
+  const byCm={}   // uid -> {stores:Set, overdue, maxLate, defect}
+  stores.forEach(s=>{ const m=cur[s.code]||{}; const cnt={}; Object.values(m).forEach(e=>{ if(e.by) cnt[e.by]=(cnt[e.by]||0)+1 })
+    let cm=null,mx=0; Object.keys(cnt).forEach(u=>{ if(cnt[u]>mx){mx=cnt[u];cm=u} }); if(!cm) return   // ไม่มีคนตรวจ = ไม่ระบุ CM
+    const g=byCm[cm]||(byCm[cm]={uid:cm,name:nameOf(cm),stores:new Set(),overdue:0,maxLate:0,defect:0})
+    g.stores.add(s.code)
+    autoFlagsForStore(s.code).forEach(f=>{ if(f.kind==='overdue'){ g.overdue++; g.maxLate=Math.max(g.maxLate,f.days) } else if(f.kind==='defect'){ g.defect++ } }) })
+  let list=Object.values(byCm).map(g=>{ const nStore=g.stores.size, onTimePct=nStore?Math.round(Math.max(0,nStore-g.overdue)/nStore*100):100
+    const score=Math.max(0,100-g.overdue*8-g.defect*3)
+    return {...g,nStore,onTimePct,score,grade: score>90?'A':score>=80?'B':score>=70?'C':'D'} })
+    .filter(g=>!_q||g.name.toLowerCase().includes(_q))
+    .sort((a,b)=> (b.overdue-a.overdue) || (b.defect-a.defect) || (a.score-b.score))   // ล่าช้ามากสุดก่อน
+  const totLate=list.reduce((n,g)=>n+g.overdue,0), totDef=list.reduce((n,g)=>n+g.defect,0), watch=list.filter(g=>g.overdue>0)
+  let h=pageHead('วิเคราะห์ CM (ความตรงเวลาในการตรวจ)','ประเมินผู้ควบคุมงาน (CM) จากความตรงเวลาตรวจงวดตาม Timeline','จัดอันดับ CM จากจำนวนงวดที่ตรวจล่าช้าเกินเส้นตาย (⏰) + จุดค้างแก้ (🔧) — CM ที่ปล่อยงานล่าช้าเยอะควรถูกติดตาม · คิดจาก CM ที่เป็นผู้ตรวจหลักของสาขา (ข้อมูลจริง)')
+  h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+    ${kpi('#F5F5F2','#353436','engineering','CM ที่มีงานในระบบ',list.length,'คน','ผู้ตรวจหลักของสาขา')}
+    ${kpi('#FF5C5C','#241416','schedule','งวดตรวจล่าช้ารวม',totLate,'งวด','⏰ เกินเส้นตาย Timeline')}
+    ${kpi('#E0A800','#1C1608','build','จุดค้างแก้รวม',totDef,'งวด','🔧 จุดไม่ผ่านยังไม่แก้')}
+    ${kpi('#FF9F1C','#1C1608','priority_high','CM ที่มีงานล่าช้า',watch.length,'คน','ต้องติดตาม')}
+  </div>`
+  h+=`<div class="grid grid-cols-1 lg:grid-cols-12 gap-5"><div class="lg:col-span-8"><div class="bg-surface-card rounded-xl shadow-md overflow-hidden">
+    <div class="p-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-container text-[20px]">leaderboard</span><h3 class="font-title-sm text-title-sm">ตารางประเมิน CM · ${list.length} คน (เรียงล่าช้ามากสุดก่อน)</h3></div>
+    <div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">อันดับ &amp; CM</th><th class="py-3 px-2 text-center">สาขาดูแล</th><th class="py-3 px-2 text-center">⏰ ตรวจล่าช้า</th><th class="py-3 px-2 text-center">ล่าช้าสูงสุด</th><th class="py-3 px-2 text-center">🔧 ค้างแก้</th><th class="py-3 px-2 text-center">ตรงเวลา</th><th class="py-3 px-2 text-center">คะแนน</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
+  list.forEach((g,i)=>{ const gc=gradeCol(g.grade), crit=g.overdue>0
+    h+=`<tr class="hover:bg-surface-elevated/30" ${crit?'style="background:rgba(36,20,22,.4)"':''}><td class="py-2.5 px-4"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded flex items-center justify-center font-data-mono font-bold text-[13px] shrink-0" style="background:${g.overdue>0?'#241416':'#141416'};color:${g.overdue>0?'#FF5C5C':'#9A9A93'}">${i+1}</div><div class="min-w-0"><div class="font-title-sm text-[13px] font-bold truncate ${crit?'text-status-fail':'text-ink-primary'}" style="max-width:220px">${esc(g.name)}</div><div class="font-label-micro text-label-micro text-ink-faint">${g.nStore} สาขาในความดูแล</div></div></div></td>
+      <td class="py-2.5 px-2 text-center font-data-mono font-bold">${g.nStore}</td>
+      <td class="py-2.5 px-2 text-center font-data-mono font-bold" style="color:${g.overdue?'#FF5C5C':'#7EE6B0'}">${g.overdue||'—'}</td>
+      <td class="py-2.5 px-2 text-center font-data-mono text-ink-muted">${g.maxLate?g.maxLate+' วัน':'—'}</td>
+      <td class="py-2.5 px-2 text-center font-data-mono" style="color:${g.defect?'#E0A800':'#7EE6B0'}">${g.defect||'—'}</td>
+      <td class="py-2.5 px-2 text-center font-data-mono" style="color:${g.onTimePct>=90?'#7EE6B0':g.onTimePct>=70?'#D9B84A':'#FF5C5C'}">${g.onTimePct}%</td>
+      <td class="py-2.5 px-2 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded" style="background:${gc.bg}"><span class="font-data-mono text-[13px] font-bold" style="color:${gc.fg}">${g.score.toFixed(0)}</span><span class="font-data-mono text-[10px] font-extrabold" style="color:${gc.fg}">${g.grade}</span></span></td></tr>` })
+  if(!list.length) h+=`<tr><td colspan="7" class="py-8 text-center text-ink-muted">ยังไม่มีข้อมูล CM (ยังไม่มีสาขาที่ตรวจแล้ว)</td></tr>`
+  h+=`</tbody></table></div></div></div>`
+  h+=`<div class="lg:col-span-4 flex flex-col gap-4">
+    <div class="bg-surface-card rounded-xl p-4 shadow-md"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-primary-container text-[20px]">tune</span><h3 class="font-title-sm text-title-sm">เกณฑ์คะแนนตรงเวลา</h3></div>
+      <div class="mt-2 p-3 bg-surface-control rounded font-label-micro text-label-micro text-ink-faint leading-relaxed">เริ่ม 100 · หัก <b class="text-status-fail">8</b>/งวดตรวจล่าช้า (⏰) · หัก <b class="text-ink-warning">3</b>/จุดค้างแก้ (🔧)<br>⏰ นับเฉพาะสาขาที่<b class="text-ink-muted">ยังไม่เปิด</b>และเลยเส้นตายตรวจ · CM = ผู้ตรวจหลักของสาขา (จาก by ของการตรวจ)</div>
+    </div>`
+  if(watch.length){ h+=`<div class="rounded-xl p-4 shadow-md" style="background:#241416"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-status-fail text-[22px]">crisis_alert</span><h3 class="font-title-sm text-title-sm text-ink-fail font-bold">CM ที่ตรวจล่าช้า — ต้องติดตาม</h3></div>`
+    h+=watch.slice(0,5).map(g=>`<div class="rounded p-3 mb-2" style="background:rgba(20,20,22,.6)"><div class="flex items-center justify-between"><span class="font-title-sm text-[13px] font-bold">${esc(g.name)}</span><span class="font-data-mono text-[11px] font-bold text-status-fail">⏰ ${g.overdue} งวด</span></div><div class="font-body-sm text-body-sm text-ink-fail mt-1">ล่าช้าสูงสุด ${g.maxLate} วัน · ค้างแก้ ${g.defect} · ${g.nStore} สาขา</div></div>`).join('')
     h+=`</div>` }
   h+=`</div></div>`
   return h
@@ -736,22 +785,28 @@ window._openCp=openCheckpointDetail
 // ============ VIEW 5 : REPORTS ============
 function _openSort(a,b){ const va=a.cs.days==null?99999:(a.cs.key==='opened'?90000+a.cs.days:a.cs.days); const vb=b.cs.days==null?99999:(b.cs.key==='opened'?90000+b.cs.days:b.cs.days); return va-vb }
 function renderReports(){
+  const rfMap=rfAllMap()
   let all=stores.filter(passGlobal).map(s=>{ const sc=computeSetupScore(s.code); const conDone=[...PRECON,...PHASES].some(([p])=>phaseStat(s.code,p).done>0); return {s,sc,conDone,hasSetup:sc.doneItems>0} })
   const anyN=all.filter(x=>x.conDone||x.hasSetup).length
+  const rfN=all.filter(x=>rfMap[x.s.code]&&rfMap[x.s.code].length).length
   let list=all.slice()
   if(_rf==='inspected') list=list.filter(x=>x.conDone||x.hasSetup)
   else if(_rf==='con') list=list.filter(x=>x.conDone)
   else if(_rf==='setup') list=list.filter(x=>x.hasSetup)
   else if(_rf==='fail') list=list.filter(x=>x.sc.failItems>0)
-  list.sort((a,b)=>cmpStore(a.s,b.s))
+  else if(_rf==='redflag') list=list.filter(x=>rfMap[x.s.code]&&rfMap[x.s.code].length)
+  if(_rf==='redflag') list.sort((a,b)=>(rfMap[b.s.code].length)-(rfMap[a.s.code].length))
+  else list.sort((a,b)=>cmpStore(a.s,b.s))
   let h=pageHead('รายงาน (Reports)','ศูนย์รายงานทุกสาขา','เปิด/พิมพ์/บันทึก PDF ใบรับรองงานก่อสร้าง · ใบส่งมอบ Set-Up · ใบรายการงานต้องแก้ไข — เปิดในหน้าใหม่ พิมพ์ได้เลย')
-  const rfChips=[['inspected','มีข้อมูลตรวจ ('+anyN+')'],['con','ก่อสร้าง'],['setup','ตรวจรับ Set-Up'],['fail','มีงานต้องแก้'],['all','ทั้งหมด ('+stores.length+')']].map(x=>fchip('rf',x[0],_rf,x[1])).join('')
+  const rfChips=[['inspected','มีข้อมูลตรวจ ('+anyN+')'],['redflag','🚩 ธงแดง ('+rfN+')'],['con','ก่อสร้าง'],['setup','ตรวจรับ Set-Up'],['fail','มีงานต้องแก้'],['all','ทั้งหมด ('+stores.length+')']].map(x=>fchip('rf',x[0],_rf,x[1])).join('')
   h+=filterBar({count:list.length,total:stores.length,chips:rfChips,chipLabel:'ประเภทใบ'})
   h+=`<div class="bg-surface-card rounded-xl shadow-md overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">สาขา</th><th class="py-3 px-3">ผู้รับเหมา</th><th class="py-3 px-2 text-center">กำหนดเปิด</th><th class="py-3 px-3 text-center">ก่อสร้าง</th><th class="py-3 px-3 text-center">Set-Up</th><th class="py-3 px-3 text-center">งานที่ต้องแก้</th><th class="py-3 px-2 text-center">รายละเอียด</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
   list.forEach(({s,sc,conDone,hasSetup})=>{ const dtxt=s.cs.days==null?'—':s.cs.key==='opened'?'เปิดแล้ว':(s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days); const dcol=s.cs.days!=null&&s.cs.days<=7&&s.cs.key!=='opened'?'#FF5C5C':s.cs.key==='opened'?'#7EE6B0':'#D9B84A'
     const btn=(kind,label,color,on)=> on?`<button data-rep="${kind}" data-code="${esc(s.code)}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-control hover:bg-surface-elevated font-label-micro text-label-micro" style="color:${color}"><span class="material-symbols-outlined text-[15px]">picture_as_pdf</span>${label}</button>`:`<span class="font-label-micro text-label-micro text-ink-faint">—</span>`
     const conFail=[...PHASES,...PRECON].some(([p])=>phaseStat(s.code,p).fail>0)
-    h+=`<tr class="hover:bg-surface-elevated/30"><td class="py-2.5 px-4"><div data-store="${esc(s.code)}" class="font-title-sm text-[13px] font-bold truncate cursor-pointer hover:text-primary-container" style="max-width:200px" title="ดูรายละเอียดการตรวจทุกข้อ + รูป/วิดีโอ">${esc(s.name||s.code)}</div><div class="font-data-mono text-[10px] text-ink-faint">${esc(s.code)}${s.province?' · '+esc(s.province):''}</div></td>
+    const _rfIt=rfMap[s.code]||[]; let _o=0,_d=0,_m=0; _rfIt.forEach(f=>f.kind==='overdue'?_o++:f.kind==='defect'?_d++:_m++)
+    const _rfBadge=_rfIt.length?`<div style="margin-top:3px"><span style="display:inline-block;background:#241416;color:#FF9B9B;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:800">${[_m?'🚩'+_m:'',_o?'⏰'+_o:'',_d?'🔧'+_d:''].filter(Boolean).join(' · ')}</span></div>`:''
+    h+=`<tr class="hover:bg-surface-elevated/30"><td class="py-2.5 px-4"><div data-store="${esc(s.code)}" class="font-title-sm text-[13px] font-bold truncate cursor-pointer hover:text-primary-container" style="max-width:200px" title="ดูรายละเอียดการตรวจทุกข้อ + รูป/วิดีโอ">${esc(s.name||s.code)}</div><div class="font-data-mono text-[10px] text-ink-faint">${esc(s.code)}${s.province?' · '+esc(s.province):''}</div>${_rfBadge}</td>
       <td class="py-2.5 px-3 font-body-sm text-[12px] text-ink-muted truncate" style="max-width:150px">${s.contractor?esc(s.contractor):'—'}</td>
       <td class="py-2.5 px-2 text-center font-data-mono text-[12px] font-bold" style="color:${dcol}">${dtxt}</td>
       <td class="py-2.5 px-3 text-center"><div class="inline-flex items-center gap-1 justify-center flex-wrap">${btn('con','ใบก่อสร้าง','#F5C518',conDone)}${conFail?btn('conpunch','งานต้องแก้','#FF5C5C',true):''}</div></td>
@@ -773,6 +828,7 @@ function render(){
   else if(_view==='2') html+=renderConstruction()
   else if(_view==='3') html+=renderSetup()
   else if(_view==='4') html+=renderContractor()
+  else if(_view==='6') html+=renderCmAnalysis()
   else if(_view==='5') html+=renderReports()
   $('hqBody').innerHTML=html
   const si=$('hqSearch'); if(si){ si.oninput=e=>{ _q=e.target.value.toLowerCase(); const p=si.selectionStart; render(); const n=$('hqSearch'); if(n){n.focus(); try{n.setSelectionRange(p,p)}catch(e){}} } }
