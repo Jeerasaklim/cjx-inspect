@@ -3724,7 +3724,8 @@ async function generateSetupReport(code){
   const failCards = suFail.length ? `<div class="sect"><div class="st"><span class="sbar" style="background:#DC2626"></span>จุดที่ไม่ผ่าน / ต้องแก้ไข (${suFail.length} จุด)</div><span class="cap" style="color:#DC2626;font-weight:600">พร้อมรูปหลักฐานจุดที่มีปัญหา</span></div>`
     + suFail.map(({c,e,name})=>{ const ims=(mediaByCp[String(c.id)]||[])
       const tag = e.status==='fixed'?'<span style="font-size:10px;font-weight:700;color:#8d4b00;background:#ffdcc3;padding:2px 8px;border-radius:6px;white-space:nowrap">CM แก้แล้ว · รอตรวจซ้ำ</span>':'<span style="font-size:10px;font-weight:700;color:#991B1B;background:#ffdad6;padding:2px 8px;border-radius:6px;white-space:nowrap">ไม่ผ่าน</span>'
-      return `<div style="background:#fff;border-radius:6px;border-left:4px solid ${e.status==='fixed'?'#E67E22':'#DC2626'};padding:12px;margin-bottom:8px;page-break-inside:avoid"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div style="font-weight:600;font-size:12.5px;color:#111827">${esc(c.label)} <span style="color:#8d4b00;font-size:11px">[${esc(name)}]</span></div>${tag}</div>${e.note?`<div style="color:#DC2626;font-size:12px;margin:5px 0">✕ ${esc(e.note)}</div>`:''}${ims.length?`<div class="figrid">${ims.map(repImg).join('')}</div>`:'<div style="color:#DC2626;font-size:11px;margin-top:5px">— ยังไม่มีรูป —</div>'}</div>`
+      const supTag = c.supplier?`<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;margin-left:4px;${c.supplier==='ซัพย่อย'?'color:#a5701a;background:#fff6e8':'color:#2d5bb8;background:#eef4ff'}">${c.supplier==='ซัพย่อย'?'ผรม.รอง':'ผรม.หลัก'}</span>`:''
+      return `<div style="background:#fff;border-radius:6px;border-left:4px solid ${e.status==='fixed'?'#E67E22':'#DC2626'};padding:12px;margin-bottom:8px;page-break-inside:avoid"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div style="font-weight:600;font-size:12.5px;color:#111827">${esc(c.label)} <span style="color:#8d4b00;font-size:11px">[${esc(name)}]</span>${supTag}</div>${tag}</div>${e.note?`<div style="color:#DC2626;font-size:12px;margin:5px 0">✕ ${esc(e.note)}</div>`:''}${ims.length?`<div class="figrid">${ims.map(repImg).join('')}</div>`:'<div style="color:#DC2626;font-size:11px;margin-top:5px">— ยังไม่มีรูป —</div>'}</div>`
     }).join('') : ''
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${approved?'ใบส่งมอบร้าน':'รายงานสรุปผลตรวจรับ (ร่าง)'} ${esc(s.name||code)}</title><style>
@@ -3826,25 +3827,28 @@ async function generateSetupPunch(code){
   const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
   const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543} ${p2(dd.getHours())}:${p2(dd.getMinutes())}`
-  let failN=0, fixN=0, body=''
+  let failN=0, fixN=0
+  // แยกเป็น 2 กลุ่มใหญ่: ผรม.หลัก (ซัพหลัก) vs ผรม.รอง (ซัพย่อย) — ให้รู้ว่าใครต้องแก้
+  const G={ main:{lbl:'🏗️ งานของ ผรม.หลัก (ซัพหลัก)', col:'#2d5bb8', items:[]}, sub:{lbl:'🔌 งานของ ผรม.รอง (ซัพย่อย)', col:'#a5701a', items:[]} }
   SETUP_SECTIONS.forEach(([pn,name])=>{
     const cps=checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort)
-    const rows=[]
     cps.forEach(c=>{ const e=cur[String(c.id)]; if(!e||(e.status!=='fail'&&e.status!=='fixed')) return
       if(e.status==='fail') failN++; else fixN++
       const ims=(mediaByCp[String(c.id)]||[])
-      const sup=c.supplier==='ซัพย่อย'?'<span class="sup y">ซัพย่อย</span>':(c.supplier?'<span class="sup m">ซัพหลัก</span>':'')
+      const gk=c.supplier==='ซัพย่อย'?'sub':'main'
       const tag=e.status==='fixed'?'<span class="tg fx">CM แก้แล้ว · รอ Set-Up ตรวจซ้ำ</span>':'<span class="tg fl">ต้องแก้</span>'
       const imgBlock = e.status==='fixed'
         ? baHtml(ims, e.by)   // CM แก้แล้ว → เทียบ ก่อน/หลัง (รูป CM = ผู้ส่ง fixed)
         : `<div class="ims">${ims.map(repImg).join('')||'<span class="noimg">— ไม่มีรูป —</span>'}</div>`
-      rows.push(`<div class="it"><div class="ith"><div class="itl">${c.group_title?`<span class="grp">${esc(c.group_title)}</span> `:''}${esc(c.label)} ${sup}</div>${tag}</div>
+      G[gk].items.push(`<div class="it"><div class="ith"><div class="itl"><span class="grp">${esc(name)}</span> ${esc(c.label)}</div>${tag}</div>
         ${e.note?`<div class="rsn">✕ เหตุที่ตีกลับ: ${esc(e.note)}</div>`:''}
         <div class="by">โดย ${esc(nameOf(e.by))} · ${fmtDate(e.created_at)}</div>
         ${imgBlock}</div>`)
     })
-    if(rows.length) body+=`<h2 class="ph">${esc(name)} <span class="cnt">${rows.length} จุด</span></h2>${rows.join('')}`
   })
+  const mainN=G.main.items.length, subN=G.sub.items.length
+  const body=['main','sub'].map(k=>{ const g=G[k]; if(!g.items.length) return ''
+    return `<h2 class="ph">${g.lbl} <span style="color:${g.col};font-size:15px">●</span> <span class="cnt">${g.items.length} จุด</span></h2>${g.items.join('')}` }).join('')
   const total=failN+fixN
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>งานที่ต้องแก้ ${esc(s.name||code)}</title><style>${REPORT_CSS} ${REP_IMG_CSS} ${BA_CSS}
     h2.ph::before{background:#DC2626}
@@ -3860,7 +3864,7 @@ async function generateSetupPunch(code){
     <div class="paper">
       <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="eyebrow">CJX Inspect • รายการงานต้องแก้ไข (Set-Up)</span><span class="appvpill f"><i></i>รอแก้ไข</span></div><h2>รายงานงานที่ต้องแก้ไข (Set-Up ตีกลับ)</h2><div class="en">Defect Rework List for Contractor</div></div></div>
         <div class="metacard"><div class="metarow"><span>เลขที่เอกสาร:</span><b>CJX-PL-${dd.getFullYear()+543}-${esc(code)}</b></div><div class="metarow"><span>วันที่ออกเอกสาร:</span><b>${today}</b></div><div class="metarow"><span>ผู้ออก:</span><b>${esc(profile.name||profile.email||'—')}</b></div></div></div>
-      <div class="strip"><div><div class="lb">รหัสและชื่อสาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ผู้รับเหมา (ผรม.)</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">ผู้ต้องแก้งาน</div></div><div><div class="lb">ต้องแก้</div><div class="vl" style="color:#DC2626">${failN} จุด</div><div class="sub">ไม่ผ่าน</div></div><div><div class="lb">รอตรวจซ้ำ</div><div class="vl" style="color:#b15f00">${fixN} จุด</div><div class="sub">CM แก้แล้ว</div></div></div>
+      <div class="strip"><div><div class="lb">รหัสและชื่อสาขา</div><div class="vl">${esc(s.name||code)} (${esc(code)})</div><div class="sub">${esc(s.province||'—')}</div></div><div><div class="lb">ผู้รับเหมา (ผรม.)</div><div class="vl">${esc(s.contractor||'—')}</div><div class="sub">🏗️ หลัก ${mainN} · 🔌 รอง ${subN} จุด</div></div><div><div class="lb">ต้องแก้</div><div class="vl" style="color:#DC2626">${failN} จุด</div><div class="sub">ไม่ผ่าน</div></div><div><div class="lb">รอตรวจซ้ำ</div><div class="vl" style="color:#b15f00">${fixN} จุด</div><div class="sub">CM แก้แล้ว</div></div></div>
       ${total?body:'<p style="color:#005137;font-weight:600">✓ ไม่มีจุดที่ต้องแก้ — ผ่านทั้งหมด</p>'}
       ${total?`<div class="legal"><span style="flex:none">🔧</span><p style="margin:0"><b>ขั้นตอนให้ CM แก้งาน:</b> 1) เปิดแอป → หน้าสาขานี้ → แตะหมวดที่มี "ไม่ผ่าน" · 2) แก้งานจริงแล้ว <b>แนบรูปที่แก้แล้ว</b> · 3) กด <b>"ส่งให้ Set-Up ตรวจซ้ำ"</b> เพื่อปิดจุดนั้น</p></div>`:''}
     </div>
