@@ -524,6 +524,16 @@ function renderContractor(){
 }
 
 // ===== วิเคราะห์ CM — ความตรงเวลาในการตรวจ (ธงแดง ⏰ ตรวจล่าช้า / 🔧 ค้างแก้) =====
+let _cmMap={}
+window._cmShow=function(uid){ const cm=_cmMap[uid]; if(!cm) return
+  const codes=cm.stores.slice().sort((a,b)=>{ const A=stores.find(z=>z.code===a)||{},B=stores.find(z=>z.code===b)||{}; return (A.name||a).localeCompare(B.name||b) })
+  const rows=codes.map(code=>{ const s=stores.find(z=>z.code===code)||{code}
+    const af=autoFlagsForStore(code); let o=0,d=0; af.forEach(f=>f.kind==='overdue'?o++:d++)
+    const done=PHASES.filter(([p])=>phaseStat(code,p).key==='pass').length, pct=Math.round(done/9*100)
+    const status=[o?`<span style="color:#E0A800">⏰ เกินตรวจ ${o}</span>`:'', d?`<span style="color:#FF5C5C">🔧 ค้าง ${d}</span>`:''].filter(Boolean).join(' · ')||'<span style="color:#7EE6B0">ปกติ</span>'
+    const dtxt=s.cs?(s.cs.key==='opened'?'เปิดแล้ว':s.cs.days!=null?(s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days):'—'):'—'
+    return `<div onclick="window._openStore('${esc(code)}')" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#141416;border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer"><div style="min-width:0"><div style="font-weight:700;color:#F5F5F2;font-size:13px">${esc(s.name||code)} <span style="color:#67675F;font-size:11px">${esc(code)}${s.province?' · '+esc(s.province):''}</span></div><div style="font-size:11.5px;margin-top:2px">${status} · <span style="color:#8FB4FF">ก่อสร้าง ${pct}%</span> · <span style="color:#9A9A93">${dtxt}</span></div></div><span class="material-symbols-outlined" style="color:#8a7766">chevron_right</span></div>` }).join('')
+  showOverlay(ovHead('👷 '+esc(cm.name)+' — สาขาในความดูแล ('+cm.stores.length+')','⏰ เกินกำหนดตรวจ '+cm.overdue+' งวด · 🔧 ค้างแก้ '+cm.defect+' งวด · แตะสาขาเพื่อดูรายละเอียด+รูป')+`<div style="padding:14px 16px;max-height:70vh;overflow:auto">${rows||'<div style="color:#9A9A93;text-align:center;padding:20px">ไม่มีสาขา</div>'}</div>`) }
 function renderCmAnalysis(){
   const roleByUid={}; profiles.forEach(p=>roleByUid[p.id]=p.role)
   const isCM=u=>roleByUid[u]==='cm'   // เฉพาะ role CM (ไม่เอา admin/หัวหน้า)
@@ -539,6 +549,7 @@ function renderCmAnalysis(){
     .filter(g=>!_q||g.name.toLowerCase().includes(_q))
     .sort((a,b)=> (b.overdue-a.overdue) || (b.defect-a.defect) || (a.score-b.score))   // ล่าช้ามากสุดก่อน
   const totLate=list.reduce((n,g)=>n+g.overdue,0), totDef=list.reduce((n,g)=>n+g.defect,0), watch=list.filter(g=>g.overdue>0)
+  _cmMap={}; list.forEach(g=>{ _cmMap[g.uid]={name:g.name,stores:[...g.stores],overdue:g.overdue,defect:g.defect,maxLate:g.maxLate} })   // เก็บไว้ให้ overlay กดดูสาขา
   let h=pageHead('วิเคราะห์ CM (ความตรงเวลาในการตรวจ)','ประเมินผู้ควบคุมงาน (CM) จากความตรงเวลาตรวจงวดตาม Timeline','จัดอันดับ CM จากจำนวนงวดที่ตรวจล่าช้าเกินเส้นตาย (⏰) + จุดค้างแก้ (🔧) — CM ที่ปล่อยงานล่าช้าเยอะควรถูกติดตาม · คิดจาก CM ที่เป็นผู้ตรวจหลักของสาขา (ข้อมูลจริง)')
   h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
     ${kpi('#F5F5F2','#353436','engineering','CM ที่มีงานในระบบ',list.length,'คน','ผู้ตรวจหลักของสาขา')}
@@ -550,7 +561,7 @@ function renderCmAnalysis(){
     <div class="p-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary-container text-[20px]">leaderboard</span><h3 class="font-title-sm text-title-sm">ตารางประเมิน CM · ${list.length} คน (เรียงล่าช้ามากสุดก่อน)</h3></div>
     <div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">อันดับ &amp; CM</th><th class="py-3 px-2 text-center">สาขาดูแล</th><th class="py-3 px-2 text-center">⏰ ตรวจล่าช้า</th><th class="py-3 px-2 text-center">ล่าช้าสูงสุด</th><th class="py-3 px-2 text-center">🔧 ค้างแก้</th><th class="py-3 px-2 text-center">ตรงเวลา</th><th class="py-3 px-2 text-center">คะแนน</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
   list.forEach((g,i)=>{ const gc=gradeCol(g.grade), crit=g.overdue>0
-    h+=`<tr class="hover:bg-surface-elevated/30" ${crit?'style="background:rgba(36,20,22,.4)"':''}><td class="py-2.5 px-4"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded flex items-center justify-center font-data-mono font-bold text-[13px] shrink-0" style="background:${g.overdue>0?'#241416':'#141416'};color:${g.overdue>0?'#FF5C5C':'#9A9A93'}">${i+1}</div><div class="min-w-0"><div class="font-title-sm text-[13px] font-bold truncate ${crit?'text-status-fail':'text-ink-primary'}" style="max-width:220px">${esc(g.name)}</div><div class="font-label-micro text-label-micro text-ink-faint">${g.nStore} สาขาในความดูแล</div></div></div></td>
+    h+=`<tr class="hover:bg-surface-elevated/30" onclick="window._cmShow('${g.uid}')" style="cursor:pointer${crit?';background:rgba(36,20,22,.4)':''}" title="แตะดูรายชื่อสาขาของ CM คนนี้"><td class="py-2.5 px-4"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded flex items-center justify-center font-data-mono font-bold text-[13px] shrink-0" style="background:${g.overdue>0?'#241416':'#141416'};color:${g.overdue>0?'#FF5C5C':'#9A9A93'}">${i+1}</div><div class="min-w-0"><div class="font-title-sm text-[13px] font-bold truncate ${crit?'text-status-fail':'text-ink-primary'}" style="max-width:220px">${esc(g.name)}</div><div class="font-label-micro text-label-micro text-primary-container">${g.nStore} สาขา · แตะดูรายชื่อ ›</div></div></div></td>
       <td class="py-2.5 px-2 text-center font-data-mono font-bold">${g.nStore}</td>
       <td class="py-2.5 px-2 text-center font-data-mono font-bold" style="color:${g.overdue?'#FF5C5C':'#7EE6B0'}">${g.overdue||'—'}</td>
       <td class="py-2.5 px-2 text-center font-data-mono text-ink-muted">${g.maxLate?g.maxLate+' วัน':'—'}</td>
