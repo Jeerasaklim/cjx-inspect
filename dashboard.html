@@ -594,7 +594,8 @@ function _drDayNav(dir){ if(dir==='today'){ _drDate=''; return } const d=_drDate
 function _drBuild(){
   const ref=_drDateObj(); const y=new Date(ref); y.setDate(y.getDate()-1); const yKey=_drKeyOfDate(y)
   const roleByUid={}; profiles.forEach(p=>roleByUid[p.id]=p.role)
-  const cmOf={}; stores.forEach(s=>{ const m=cur[s.code]||{},cnt={}; Object.values(m).forEach(e=>{ if(e.by&&roleByUid[e.by]==='cm')cnt[e.by]=(cnt[e.by]||0)+1 }); let cm=null,mx=0; Object.keys(cnt).forEach(u=>{if(cnt[u]>mx){mx=cnt[u];cm=u}}); cmOf[s.code]=cm })
+  const _pick=o=>{ let u=null,mx=0; Object.keys(o).forEach(k=>{ if(o[k]>mx){mx=o[k];u=k} }); return u }
+  const cmOf={}; stores.forEach(s=>{ const m=cur[s.code]||{},cCm={},cAny={}; Object.values(m).forEach(e=>{ if(!e.by)return; cAny[e.by]=(cAny[e.by]||0)+1; if(roleByUid[e.by]==='cm')cCm[e.by]=(cCm[e.by]||0)+1 }); cmOf[s.code]=_pick(cCm)||_pick(cAny) })   // CM ผู้ตรวจหลัก · ถ้าไม่มี role cm ใช้ผู้ตรวจหลัก(ทุก role)
   const codeByIns={}; insps.forEach(i=>codeByIns[i.id]=i.store_code)
   const cpById={}; checkpoints.forEach(c=>cpById[String(c.id)]=c)
   const byCode={}; stores.forEach(s=>byCode[s.code]=s)
@@ -693,7 +694,7 @@ function renderDailyReport(){ const D=_drBuild()
   const insp=fq(D.inspected),todo=fq(D.todo),soon=fq(D.soon),pend=fq(D.pending)
   const passN=insp.filter(x=>x.status==='pass').length,failN=insp.filter(x=>x.status==='fail'||x.status==='fixed').length
   let h=pageHead('Daily Report (สรุปงานประจำวัน)','สรุปให้หัวหน้า — เมื่อวานตรวจอะไร (ผล) · วันนี้ต้องตรวจอะไร · ค้างแก้ (ตาม ผรม.)','อ้างอิงจากวันเปิดสาขา + Timeline นับถอยหลังต่อ checkpoint (เลขน้ำเงิน/หน้าฝน) · ข้อมูลจริงในระบบ · กดปริ้น หรือคัดลอกส่ง LINE/เมลได้')
-  h+=`<div class="flex items-center flex-wrap gap-2 mb-4"><div class="flex items-center gap-1 bg-surface-card rounded-lg p-1"><button data-drday="prev" class="w-8 h-8 rounded hover:bg-surface-elevated flex items-center justify-center text-ink-muted"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button><span class="px-2 font-title-sm text-title-sm">${_drFmtThai(D.ref)}${isToday?' <span class="font-label-micro text-label-micro text-primary-container">(วันนี้)</span>':''}</span><button data-drday="next" class="w-8 h-8 rounded hover:bg-surface-elevated flex items-center justify-center text-ink-muted"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>${!isToday?`<button data-drday="today" class="ml-1 px-2 h-8 rounded bg-surface-control hover:bg-surface-elevated font-label-micro text-label-micro text-primary-container">วันนี้</button>`:''}</div><div class="ml-auto flex items-center gap-2"><button id="drCopy" class="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-surface-card hover:bg-surface-elevated font-body-sm text-body-sm text-ink-primary"><span class="material-symbols-outlined text-[18px] text-role-setup">content_copy</span>คัดลอกส่ง LINE/เมล</button><button id="drPrint" class="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-surface-card hover:bg-surface-elevated font-body-sm text-body-sm text-ink-primary"><span class="material-symbols-outlined text-[18px] text-role-head-const">picture_as_pdf</span>พิมพ์รายงาน</button></div></div>`
+  h+=`<div class="flex items-center flex-wrap gap-2 mb-4"><div class="flex items-center gap-1 bg-surface-card rounded-lg p-1"><button data-drday="prev" class="w-8 h-8 rounded hover:bg-surface-elevated flex items-center justify-center text-ink-muted"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button><span class="px-2 font-title-sm text-title-sm">${_drFmtThai(D.ref)}${isToday?' <span class="font-label-micro text-label-micro text-primary-container">(วันนี้)</span>':''}</span><button data-drday="next" class="w-8 h-8 rounded hover:bg-surface-elevated flex items-center justify-center text-ink-muted"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>${!isToday?`<button data-drday="today" class="ml-1 px-2 h-8 rounded bg-surface-control hover:bg-surface-elevated font-label-micro text-label-micro text-primary-container">วันนี้</button>`:''}</div><div class="ml-auto flex items-center gap-2"><button id="drXls" class="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-primary-container text-ink-on-yellow font-body-sm text-body-sm font-bold"><span class="material-symbols-outlined text-[18px]">download</span>โหลด Report (Excel)</button><button id="drPrint" class="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-surface-card hover:bg-surface-elevated font-body-sm text-body-sm text-ink-primary"><span class="material-symbols-outlined text-[18px] text-role-head-const">picture_as_pdf</span>PDF</button><button id="drCopy" class="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-surface-card hover:bg-surface-elevated font-body-sm text-body-sm text-ink-primary"><span class="material-symbols-outlined text-[18px] text-role-setup">content_copy</span>LINE/เมล</button></div></div>`
   h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
     ${kpi('#7EE6B0','#12271B','fact_check','ตรวจเมื่อวาน',insp.length,'ข้อ','✓ ผ่าน '+passN+' · ✗ ไม่ผ่าน '+failN)}
     ${kpi('#FF9F1C','#1C1608','pending_actions','ต้องตรวจ (ถึงกำหนด)',todo.length,'งวด',[...new Set(todo.map(x=>x.code))].length+' สาขา')}
@@ -725,6 +726,25 @@ function _drPrintGroup(title,ci,ct,cp){ let s=`<h2 class="ph">${title}</h2>`
   if(cp.length) s+=`<div style="font-weight:700;margin:12px 0 2px;color:#DC2626">🔧 ค้างแก้ไข</div>`+_drPTpend(cp)
   if(ci.length) s+=`<div style="font-weight:700;margin:12px 0 2px;color:#006948">✅ ตรวจเมื่อวาน</div>`+_drPTinsp(ci)
   return s }
+// ---- โหลดเป็นไฟล์ Excel (.xls) ----
+function _drXlsTable(title,headers,rows){ return `<h3 style="font-family:Tahoma;margin:14px 0 4px">${esc(title)}</h3><table border="1" cellspacing="0" cellpadding="4"><thead><tr>${headers.map(h=>`<th style="background:#1F2A44;color:#fff;text-align:left">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(r=>`<tr>${r.map(c=>`<td>${(typeof c==='number')?c:esc(c==null?'':c)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}">— ไม่มีรายการ —</td></tr>`}</tbody></table>` }
+function downloadDailyExcel(){ const D=_drBuild(); const A=_drAgg({inspected:D.inspected,todo:D.todo,soon:D.soon,pending:D.pending})
+  const codes=Object.keys(A).sort((a,b)=>{const da=A[a].days==null?9999:A[a].days,db=A[b].days==null?9999:A[b].days;return da-db})
+  const dlab=g=>g.okey==='opened'?'เปิดแล้ว':g.days==null?'-':g.days<=0?'ถึงกำหนด':'D-'+g.days
+  const master=_drXlsTable('สรุปรายสาขา',['สาขา','รหัส','จังหวัด','กำหนดเปิด','ตรวจเมื่อวาน:ผ่าน','ตรวจเมื่อวาน:ไม่ผ่าน','ต้องตรวจ(งวด)','ใกล้กำหนด(งวด)','ค้างแก้(จุด)','CM','ผรม.'],
+    codes.map(c=>{const g=A[c];return [g.name,g.code,g.prov,dlab(g),g.iP,g.iF,g.todo.length,g.soon.length,g.pend,nameOf(g.cm),g.ctr]}))
+  const todoT=_drXlsTable('ต้องตรวจ / ใกล้กำหนด (รายงวด)',['สาขา','กำหนดเปิด','งวด','สถานะกำหนด','CM','ผรม.'],
+    D.todo.concat(D.soon).sort((a,b)=>b.ov-a.ov).map(x=>[x.name,x.days==null?'-':x.days<=0?'ถึงกำหนด':'D-'+x.days,x.phaseName,_drOvText(x.ov),nameOf(x.cm),x.contractor]))
+  const pendT=_drXlsTable('ค้างแก้ (ตาม ผรม.)',['สาขา','งวด','จุดค้าง','รอแก้(วัน)','ผรม.','CM'],
+    D.pending.slice().sort((a,b)=>b.age-a.age).map(x=>[x.name,x.phaseName,x.count,x.age,x.contractor,nameOf(x.cm)]))
+  const inspT=_drXlsTable('ผลตรวจเมื่อวาน (รายข้อ)',['สาขา','งวด','ข้อตรวจ','ผล','ผู้ตรวจ','เวลา'],
+    D.inspected.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(x=>[x.name,x.phaseName,x.cpLabel,_drStatusTh(x.status),nameOf(x.by),fmtDate(x.at)]))
+  const passN=D.inspected.filter(x=>x.status==='pass').length,failN=D.inspected.filter(x=>x.status==='fail'||x.status==='fixed').length
+  const html='\ufeff<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><style>table{border-collapse:collapse;font-family:Tahoma,sans-serif;font-size:12px}th,td{border:1px solid #999;padding:4px 6px;mso-number-format:"\\@"}</style></head><body>'
+    +`<h2 style="font-family:Tahoma">CJX Daily Report — ${esc(_drFmtThai(D.ref))}</h2><div style="font-family:Tahoma;font-size:12px">ตรวจเมื่อวาน ${D.inspected.length} ข้อ (ผ่าน ${passN} / ไม่ผ่าน ${failN}) · ต้องตรวจ ${D.todo.length} งวด · ใกล้กำหนด ${D.soon.length} งวด · ค้างแก้ ${D.pending.reduce((n,x)=>n+x.count,0)} จุด</div>`
+    +master+todoT+pendT+inspT+'</body></html>'
+  const dd=D.ref,p=n=>String(n).padStart(2,'0'),fn=`cjx_daily_report_${dd.getFullYear()}${p(dd.getMonth()+1)}${p(dd.getDate())}.xls`
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'})); a.download=fn; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1500) }
 function _drPTstoreParts(g){ let s=''; const tot=g.iP+g.iF+(g.iN||0)
   if(g.todo.length) s+=`<div style="margin:3px 0"><b style="color:#a5701a">⏰ ต้องตรวจ:</b> ${g.todo.slice().sort((a,b)=>b.ov-a.ov).map(x=>esc(x.phaseName)+' ('+_drOvText(x.ov)+')').join(' · ')}</div>`
   if(g.soon.length) s+=`<div style="margin:3px 0"><b style="color:#2d5bb8">🔜 ใกล้กำหนด:</b> ${g.soon.slice().sort((a,b)=>b.ov-a.ov).map(x=>esc(x.phaseName)+' ('+_drOvText(x.ov)+')').join(' · ')}</div>`
@@ -1096,7 +1116,7 @@ function render(){
   $('hqBody').querySelectorAll('[data-ctf]').forEach(b=> b.onclick=()=>{ _ctf=b.dataset.ctf; render() })
   $('hqBody').querySelectorAll('[data-dr]').forEach(b=> b.onclick=()=>{ _drMode=b.dataset.dr; render() })
   $('hqBody').querySelectorAll('[data-drday]').forEach(b=> b.onclick=()=>{ _drDayNav(b.dataset.drday); render() })
-  { const dc=$('drCopy'); if(dc) dc.onclick=_drCopyText; const dp=$('drPrint'); if(dp) dp.onclick=buildDailyReport }
+  { const dc=$('drCopy'); if(dc) dc.onclick=_drCopyText; const dp=$('drPrint'); if(dp) dp.onclick=buildDailyReport; const dx=$('drXls'); if(dx) dx.onclick=downloadDailyExcel }
   const bindSel=(id,fn)=>{ const e=$(id); if(e) e.onchange=()=>{ fn(e.value); render() } }
   bindSel('fltTime',v=>_ft=v); bindSel('fltProv',v=>_fpv=v); bindSel('fltCtr',v=>_fct=v); bindSel('fltSort',v=>_sort=v); bindSel('fltCph',v=>_cph=v); bindSel('fltCtSort',v=>_ctSort=v)
   const fclr=$('fltClear'); if(fclr) fclr.onclick=()=>{ _q='';_ft='all';_fpv='all';_fct='all';_sort='open';_ovStage='all';_cf='all';_cph='all';_sf='all';_ctf='all';_ctSort='score';_rf='inspected'; render() }
