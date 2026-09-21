@@ -103,7 +103,7 @@ let cur={}, cpByPhase={}, nameByUid={}, _view='1', _q='', _cf='all', _rf='inspec
 let _ft='all', _fpv='all', _fct='all', _sort='open'
 // ตัวกรองเฉพาะหน้า
 let _ovStage='all', _cph='all', _sf='all', _ctf='all', _ctSort='score'
-let _drMode='cm', _drDate=''
+let _drMode='store', _drDate=''
 // สิทธิ์ตาม role (ล้อตาม app): pending=บล็อก · head_*/admin=ทุกสาขา · cm/setup=เฉพาะสาขาตัวเอง
 let myUid=null, myRole='', scopeAll=true, allowedViews=['1','2','3','4','5']
 const HQ_ROLE_TH={cm:'CM',head_cm:'หัวหน้า CM',head_construction:'Head Construction',setup:'Set-Up (NSA)',head_setup:'หัวหน้า Set-Up',accounting:'บัญชี',admin:'Admin',pending:'รออนุมัติ'}
@@ -717,7 +717,7 @@ function renderDailyReport(){ const D=_drBuild()
     ${kpi('#8FB4FF','#182233','update','ใกล้ถึงกำหนด ≤3 วัน',soon.length,'งวด',[...new Set(soon.map(x=>x.code))].length+' สาขา')}
     ${kpi('#FF5C5C','#241416','build','ค้างแก้ (ผรม.)',pend.reduce((n,x)=>n+x.count,0),'จุด',[...new Set(pend.map(x=>x.contractor).filter(Boolean))].length+' ผรม.')}
   </div>`
-  const modes=[['cm','ราย CM (ไล่งาน)'],['store','รายสาขา'],['all','รวม (สรุปทุก CM)']]
+  const modes=[['store','รายสาขา'],['cm','ราย CM (ไล่งาน)'],['all','รวม (สรุปทุก CM)']]
   h+=`<div class="flex items-center gap-1.5 flex-wrap mb-4"><span class="font-label-micro text-label-micro text-ink-faint uppercase mr-1">มุมมอง</span>${modes.map(x=>fchip('dr',x[0],_drMode,x[1])).join('')}</div>`
   if(_drMode==='store') h+=`<div class="mb-3 rounded-lg px-3 py-2 font-body-sm text-body-sm" style="background:#182233;color:#8FB4FF"><span class="material-symbols-outlined text-[16px] align-middle">touch_app</span> แตะสาขา หรือปุ่ม <b>📄 Report รายวัน</b> → ได้รายงานงานประจำวันของ CM ในสาขานั้น (วันนี้ต้องตรวจงวดไหน · ข้อไหนผ่าน/ไม่ผ่าน/<b>ยังไม่ตรวจ</b> + รูป)</div>`
   const items={inspected:insp,todo,soon,pending:pend}
@@ -727,7 +727,8 @@ function renderDailyReport(){ const D=_drBuild()
     else { const T=g=>Object.values(g.st).reduce((n,s)=>n+s.todo.length+s.pend,0); keys.sort((a,b)=>T(A[b])-T(A[a])); h+=keys.map(k=>_drCmCard(k,A[k])).join('') } }
   else if(_drMode==='store'){ const A=_drAgg(items); const codes=Object.keys(A)
     if(!codes.length) h+=empty
-    else { const dd=c=>A[c].days==null?9999:A[c].days; codes.sort((a,b)=>dd(a)-dd(b)); h+=codes.map(c=>_drStoreCard(A[c])).join('') } }
+    else { const rank=c=>A[c].okey==='opened'?[2,0]:[1,A[c].days==null?9999:A[c].days]   // ยังไม่เปิด(ใกล้เปิดก่อน) → เปิดแล้วล่างสุด
+      codes.sort((a,b)=>{const ra=rank(a),rb=rank(b);return ra[0]-rb[0]||ra[1]-rb[1]}); h+=codes.map(c=>_drStoreCard(A[c])).join('') } }
   else { const rows=_drCmSummary(items); if(!rows.length) h+=empty; else h+=_drCmSummaryTable(rows) }
   return h }
 // --- ตารางสำหรับรายงานพิมพ์ (ธีมสว่าง) ---
@@ -788,7 +789,7 @@ function buildDailyReport(fmode){ const D=_drBuild(),mode=(typeof fmode==='strin
     const T=g=>Object.values(g.st).reduce((n,s)=>n+s.todo.length+s.pend,0); keys.sort((a,b)=>T(A[b])-T(A[a]))
     body=keys.map(k=>{ const g=A[k]; const nm=k==='_none'?'ไม่ระบุ CM':esc(nameOf(g.uid)); const codes=Object.keys(g.st).sort((a,b)=>{const da=g.st[a].days==null?9999:g.st[a].days,db=g.st[b].days==null?9999:g.st[b].days;return da-db})
       return `<h2 class="ph">${nm} <span style="color:#9CA3AF;font-size:12px">(${codes.length} สาขา)</span></h2>`+codes.map(c=>{const s=g.st[c];const dtxt=s.okey==='opened'?'เปิดแล้ว':s.days==null?'—':s.days<=0?'ถึงกำหนด':'D-'+s.days;return `<div style="margin:6px 0 10px;padding-left:10px;border-left:3px solid #e5e7eb"><div style="font-weight:700">${esc(s.name)} <span style="color:#9CA3AF;font-size:11px">${dtxt}</span></div>${_drPTstoreParts(s)}</div>`}).join('') }).join('') }
-  else if(mode==='store'){ const A=_drAgg(items); const codes=Object.keys(A).sort((a,b)=>{const da=A[a].days==null?9999:A[a].days,db=A[b].days==null?9999:A[b].days;return da-db})
+  else if(mode==='store'){ const A=_drAgg(items); const rk=c=>A[c].okey==='opened'?[2,0]:[1,A[c].days==null?9999:A[c].days]; const codes=Object.keys(A).sort((a,b)=>{const ra=rk(a),rb=rk(b);return ra[0]-rb[0]||ra[1]-rb[1]})
     body=codes.map(c=>{ const g=A[c]; const dtxt=g.okey==='opened'?'เปิดแล้ว':g.days==null?'—':g.days<=0?'ถึงกำหนด':'D-'+g.days; return `<h2 class="ph">${esc(g.name)} <span style="color:#9CA3AF;font-size:12px">(${esc(g.code)}${g.ctr?' · ผรม.'+esc(g.ctr):''} · CM ${esc(nameOfCm(g.cm))} · ${dtxt})</span></h2>${_drPTstoreParts(g)}` }).join('') }
   else { const rows=_drCmSummary(items); body=`<table><thead><tr><th>CM</th><th>สาขาดูแล</th><th>ค้างตรวจ(เลยกำหนด)</th><th>วันนี้/ใกล้ต้องตรวจ</th><th>เมื่อวานตรวจ</th><th>ค้างแก้(จุด)</th></tr></thead><tbody>`+(rows.length?rows.map(g=>`<tr><td>${g.uid?esc(nameOf(g.uid)):'ไม่ระบุ'}</td><td>${g.nStore}</td><td style="color:${g.overdue?'#DC2626':'#006948'};font-weight:600">${g.overdue||'-'}</td><td style="color:#a5701a">${(g.dueToday+g.soon)||'-'}</td><td>${g.insp||'-'}</td><td style="color:${g.pend?'#DC2626':'#006948'};font-weight:600">${g.pend||'-'}</td></tr>`).join(''):'<tr><td colspan="6">— ไม่มีรายการ —</td></tr>')+`</tbody></table>` }
   const dd=new Date(),p2=n=>String(n).padStart(2,'0'),now=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543} ${p2(dd.getHours())}:${p2(dd.getMinutes())}`
