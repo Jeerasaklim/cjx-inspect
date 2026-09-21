@@ -904,7 +904,11 @@ function wrapReport(inner){ return `<!doctype html><html lang="th"><head><meta c
 img.zim{cursor:zoom-in;transition:transform .08s}img.zim:hover{transform:scale(1.03);box-shadow:0 3px 12px rgba(0,0,0,.25)}
 td.im img{width:150px !important;height:150px !important}
 .fimgs img,.fitem img{width:150px !important;height:150px !important}
-@media print{img.zim:hover{transform:none;box-shadow:none}}</style></head><body><div class="printbar"><button class="printbtn" onclick="print()">🖨️ พิมพ์ / บันทึก PDF</button><span style="float:left;color:#9CA3AF;font-size:12px;padding-top:11px">💡 คลิกที่รูปเพื่อดูขนาดเต็ม</span></div>${inner}<script>${REP_LB_JS}<\/script></body></html>` }
+.mediagrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+.mediagrid img{width:100%!important;height:150px!important;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;cursor:zoom-in}
+.vidrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.vidrow video{width:340px;max-width:100%;height:250px;object-fit:cover;border-radius:8px;background:#000;border:1px solid #e5e7eb}
+@media print{img.zim:hover{transform:none;box-shadow:none}.vidrow video{width:300px;height:220px}}</style></head><body><div class="printbar"><button class="printbtn" onclick="print()">🖨️ พิมพ์ / บันทึก PDF</button><span style="float:left;color:#9CA3AF;font-size:12px;padding-top:11px">💡 คลิกที่รูปเพื่อดูขนาดเต็ม</span></div>${inner}<script>${REP_LB_JS}<\/script></body></html>` }
 
 function buildSetupReport(s,mediaByCp,sg,sEvents){ const code=s.code, sc=computeSetupScore(code); sEvents=sEvents||[]
   const approved=sc.allDone&&!sc.failItems&&!sc.fixedItems, g=sc.doneItems?sc.curGrade:'—', pct=sc.totalItems?Math.round(sc.doneItems/sc.totalItems*100):0
@@ -1041,6 +1045,11 @@ window._openReport=openReport
 function _cmOfStore(code){ const roleByUid={}; profiles.forEach(p=>roleByUid[p.id]=p.role); const m=cur[code]||{},cCm={},cAny={}
   Object.values(m).forEach(e=>{ if(!e.by)return; cAny[e.by]=(cAny[e.by]||0)+1; if(roleByUid[e.by]==='cm')cCm[e.by]=(cCm[e.by]||0)+1 })
   const pick=o=>{let u=null,mx=0;Object.keys(o).forEach(k=>{if(o[k]>mx){mx=o[k];u=k}});return u}; return pick(cCm)||pick(cAny) }
+function _dailyMedia(list){ if(!list||!list.length) return ''
+  const vids=list.filter(m=>m.kind==='video'), imgs=list.filter(m=>m.kind!=='video'); let h=''
+  if(imgs.length) h+=`<div class="mediagrid">`+imgs.map(m=>{const u=m.turl||m.url||'';return `<img class="zim" src="${esc(u)}" data-full="${esc(m.url||u)}">`}).join('')+`</div>`
+  if(vids.length) h+=`<div class="vidrow">`+vids.map(m=>`<video controls preload="metadata" src="${esc(m.url||'')}"></video>`).join('')+`</div>`
+  return h }
 function buildStoreDaily(s,mediaByCp){ const code=s.code, m=cur[code]||{}
   const allP=PRECON.concat(PHASES)
   let secHtml='', tDone=0,tWait=0,tPass=0,tFail=0, shownPhases=0
@@ -1056,7 +1065,7 @@ function buildStoreDaily(s,mediaByCp){ const code=s.code, m=cur[code]||{}
       ? `<span style="color:#DC2626;font-weight:700">❌ ยังไม่ได้ตรวจ — ค้างทั้งงวด (${cps.length} ข้อ)</span>`
       : `ตรวจแล้ว <b>${inspected}/${cps.length}</b> ข้อ · <span style="color:#006948">ผ่าน ${pass}</span>${failItems.length?` · <span style="color:#DC2626">ไม่ผ่าน/รอแก้ ${failItems.length}</span>`:''}${notDone.length?` · <span style="color:#a5701a">⬜ ค้างตรวจ ${notDone.length}</span>`:''}`
     let detail=''
-    if(failItems.length) detail+=`<div style="margin:8px 0 3px;font-weight:700;color:#DC2626;font-size:12.5px">❌ จุดที่ไม่ผ่าน / ต้องแก้ (${failItems.length})</div>`+failItems.map(({c,e})=>`<div style="background:#fff;border-left:3px solid #DC2626;border-radius:4px;padding:8px;margin-bottom:6px"><div style="font-weight:600;font-size:12.5px">${esc(c.no?c.no+' ':'')}${esc(c.label||c.name||'')}${e.round>1?` <span style="color:#b15f00;font-size:11px">🔁 แก้รอบ ${e.round}</span>`:''} <span style="color:${e.status==='fail'?'#DC2626':'#b15f00'};font-size:11px;font-weight:700">${e.status==='fail'?'ไม่ผ่าน':'รอตรวจซ้ำ'}</span></div>${e.note?`<div style="color:#8d4b00;font-size:12px;margin-top:2px">📝 ${esc(e.note)}</div>`:''}<div style="margin-top:4px">${(mediaByCp[String(c.id)]||[]).map(repImg).join('')}</div></div>`).join('')
+    if(failItems.length) detail+=`<div style="margin:8px 0 3px;font-weight:700;color:#DC2626;font-size:12.5px">❌ จุดที่ไม่ผ่าน / ต้องแก้ (${failItems.length})</div>`+failItems.map(({c,e})=>`<div style="background:#fff;border-left:3px solid #DC2626;border-radius:4px;padding:8px;margin-bottom:6px"><div style="font-weight:600;font-size:12.5px">${esc(c.no?c.no+' ':'')}${esc(c.label||c.name||'')}${e.round>1?` <span style="color:#b15f00;font-size:11px">🔁 แก้รอบ ${e.round}</span>`:''} <span style="color:${e.status==='fail'?'#DC2626':'#b15f00'};font-size:11px;font-weight:700">${e.status==='fail'?'ไม่ผ่าน':'รอตรวจซ้ำ'}</span></div>${e.note?`<div style="color:#8d4b00;font-size:12px;margin-top:2px">📝 ${esc(e.note)}</div>`:''}${_dailyMedia(mediaByCp[String(c.id)]||[])}</div>`).join('')
     if(notDone.length) detail+=`<div style="margin:8px 0 3px;font-weight:700;color:#a5701a;font-size:12.5px">⬜ ข้อที่ CM ยังไม่ได้ตรวจ (${notDone.length})</div><div style="font-size:12px;color:#555f6f;line-height:1.8">${notDone.map(c=>esc((c.no?c.no+' ':'')+(c.label||c.name||''))).join(' · ')}</div>`
     secHtml+=`<div style="margin-bottom:16px"><h2 class="ph" style="margin-bottom:2px">${esc((cps[0]&&cps[0].phase_name)||nm)} ${_slaLine(code,pn)}</h2><div style="font-size:13px;margin:2px 0 4px">${statusLine}</div>${detail}</div>` })
   const cm=_cmOfStore(code)
