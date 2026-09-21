@@ -685,7 +685,7 @@ function _drStoreRow(g){ const dtxt=g.okey==='opened'?'เปิดแล้ว'
   const pend=g.pend?`<span class="text-status-fail font-bold">${g.pend} จุด</span>`:'<span class="text-ink-pass">✓</span>'
   return `<tr class="hover:bg-surface-elevated/30 cursor-pointer" data-drstore="${esc(g.code)}" title="แตะดูรายงานสาขานี้ (ทุกข้อ + รูป)"><td class="py-2.5 px-3"><div class="font-bold text-ink-primary">${esc(g.name)}</div><div class="font-label-micro text-label-micro text-ink-faint">${esc(g.code)}${g.prov?' · '+esc(g.prov):''}</div></td><td class="py-2.5 px-2 text-center font-data-mono text-[12px] font-bold" style="color:${dcol}">${dtxt}</td><td class="py-2.5 px-2 text-center">${ins}</td><td class="py-2.5 px-2 text-center">${todo}</td><td class="py-2.5 px-2 text-center">${pend}</td><td class="py-2.5 px-2 text-ink-muted">${esc(nameOfCm(g.cm))}</td><td class="py-2.5 px-2 text-ink-muted">${esc(g.ctr||'—')}</td><td class="py-2.5 px-3 text-center"><span class="material-symbols-outlined text-[18px] text-ink-faint">chevron_right</span></td></tr>` }
 function _drStoreCard(g){ const dtxt=g.okey==='opened'?'เปิดแล้ว':g.days==null?'—':g.days<=0?'ถึงกำหนด':'D-'+g.days
-  return `<div class="bg-surface-card rounded-xl shadow-md overflow-hidden mb-3"><div class="p-3 flex items-center justify-between gap-2" style="border-bottom:1px solid #201f20"><div class="min-w-0"><span data-drstore="${esc(g.code)}" class="font-title-sm text-title-sm font-bold cursor-pointer hover:text-primary-container">${esc(g.name)}</span><div class="font-label-micro text-label-micro text-ink-faint">${esc(g.code)}${g.prov?' · '+esc(g.prov):''}${g.ctr?' · ผรม.'+esc(g.ctr):''} · CM ${esc(nameOfCm(g.cm))}</div></div><div class="flex items-center gap-2 shrink-0"><span class="font-data-mono text-[12px] font-bold" style="color:#D9B84A">${dtxt}</span><button data-drstore="${esc(g.code)}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-control hover:bg-surface-elevated text-primary-container font-label-micro text-label-micro">ดูสถานะ<span class="material-symbols-outlined text-[15px]">visibility</span></button></div></div><div class="p-3 flex flex-col gap-1.5">${_drStoreParts(g)||'<div class="text-ink-faint font-body-sm text-body-sm">— ไม่มีรายการ —</div>'}</div></div>` }
+  return `<div class="bg-surface-card rounded-xl shadow-md overflow-hidden mb-3"><div class="p-3 flex items-center justify-between gap-2" style="border-bottom:1px solid #201f20"><div class="min-w-0"><span data-drstore="${esc(g.code)}" class="font-title-sm text-title-sm font-bold cursor-pointer hover:text-primary-container">${esc(g.name)}</span><div class="font-label-micro text-label-micro text-ink-faint">${esc(g.code)}${g.prov?' · '+esc(g.prov):''}${g.ctr?' · ผรม.'+esc(g.ctr):''} · CM ${esc(nameOfCm(g.cm))}</div></div><div class="flex items-center gap-2 shrink-0"><span class="font-data-mono text-[12px] font-bold" style="color:#D9B84A">${dtxt}</span><button data-drstore="${esc(g.code)}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-control hover:bg-surface-elevated text-primary-container font-label-micro text-label-micro">📄 Report รายวัน<span class="material-symbols-outlined text-[15px]">picture_as_pdf</span></button></div></div><div class="p-3 flex flex-col gap-1.5">${_drStoreParts(g)||'<div class="text-ink-faint font-body-sm text-body-sm">— ไม่มีรายการ —</div>'}</div></div>` }
 function _drCmSummary(items){ const m={}
   const E=uid=>{const k=uid||'_none';return m[k]||(m[k]={uid:uid||null,stores:new Set(),overdue:0,dueToday:0,soon:0,insp:0,pend:0})}
   items.inspected.forEach(x=>{const g=E(x.cm);g.stores.add(x.code);g.insp++})
@@ -717,6 +717,7 @@ function renderDailyReport(){ const D=_drBuild()
   </div>`
   const modes=[['cm','ราย CM (ไล่งาน)'],['store','รายสาขา'],['all','รวม (สรุปทุก CM)']]
   h+=`<div class="flex items-center gap-1.5 flex-wrap mb-4"><span class="font-label-micro text-label-micro text-ink-faint uppercase mr-1">มุมมอง</span>${modes.map(x=>fchip('dr',x[0],_drMode,x[1])).join('')}</div>`
+  if(_drMode==='store') h+=`<div class="mb-3 rounded-lg px-3 py-2 font-body-sm text-body-sm" style="background:#182233;color:#8FB4FF"><span class="material-symbols-outlined text-[16px] align-middle">touch_app</span> แตะสาขา หรือปุ่ม <b>📄 Report รายวัน</b> → ได้รายงานงานประจำวันของ CM ในสาขานั้น (วันนี้ต้องตรวจงวดไหน · ข้อไหนผ่าน/ไม่ผ่าน/<b>ยังไม่ตรวจ</b> + รูป)</div>`
   const items={inspected:insp,todo,soon,pending:pend}
   const empty=`<div class="bg-surface-card rounded-xl p-10 text-center text-ink-muted font-body-sm">🎉 ไม่มีงานค้าง/ต้องตรวจ และไม่มีการตรวจในวันดังกล่าว</div>`
   if(_drMode==='cm'){ const A=_drCmAgg(items); const keys=Object.keys(A)
@@ -1033,6 +1034,42 @@ async function openReport(code, kind){
 }
 window._openReport=openReport
 
+// ===== Report รายสาขา (Head ใช้กับ CM) : งานประจำวันของ CM ในสาขานั้น =====
+function _cmOfStore(code){ const roleByUid={}; profiles.forEach(p=>roleByUid[p.id]=p.role); const m=cur[code]||{},cCm={},cAny={}
+  Object.values(m).forEach(e=>{ if(!e.by)return; cAny[e.by]=(cAny[e.by]||0)+1; if(roleByUid[e.by]==='cm')cCm[e.by]=(cCm[e.by]||0)+1 })
+  const pick=o=>{let u=null,mx=0;Object.keys(o).forEach(k=>{if(o[k]>mx){mx=o[k];u=k}});return u}; return pick(cCm)||pick(cAny) }
+function buildStoreDaily(s,mediaByCp){ const code=s.code, m=cur[code]||{}
+  const allP=PRECON.concat(PHASES)
+  let secHtml='', tDone=0,tWait=0,tPass=0,tFail=0,tFix=0, shownPhases=0
+  allP.forEach(([pn,nm])=>{ const cps=(cpByPhase[pn]||[]).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); if(!cps.length) return
+    let inspected=0,allPass=true,anyDefect=false
+    cps.forEach(c=>{ const e=m[String(c.id)]; if(e){inspected++; if(e.status==='fail'||e.status==='fixed')anyDefect=true; if(!(e.status==='pass'||e.status==='na'))allPass=false} else allPass=false })
+    const complete=inspected>0&&allPass; if(complete) return
+    const ov=(pn>=1&&pn<=9)?_rfOverdue(s.opening_date,RF_DUE[pn]):null
+    const due=ov!=null&&ov>=-3, inProg=inspected>0
+    if(!(due||inProg||anyDefect)) return
+    shownPhases++
+    let rows='', waitN=0
+    cps.forEach(c=>{ const e=m[String(c.id)]; const ims=mediaByCp[String(c.id)]||[]; let st,stc
+      if(!e){st='⬜ ยังไม่ตรวจ';stc='#a5701a';tWait++;waitN++}
+      else{ tDone++; if(e.status==='pass'){st='✅ ผ่าน';stc='#006948';tPass++} else if(e.status==='fail'){st='❌ ไม่ผ่าน';stc='#DC2626';tFail++} else if(e.status==='fixed'){st='🔁 รอตรวจซ้ำ';stc='#b15f00';tFix++} else {st='— ไม่มีงาน';stc='#6b7280'} }
+      rows+=`<tr><td class="no">${esc(c.no||'')}</td><td><div style="font-weight:600;color:#111827">${esc(c.label||c.name||'')}</div>${c.hint?`<div style="color:#555f6f;font-size:11px;margin-top:2px">${esc(c.hint)}</div>`:''}${e&&e.note?`<div class="nt" style="${e.status==='fail'?'color:#DC2626;font-weight:600':''}">📝 ${esc(e.note)}</div>`:''}</td><td class="st" style="color:${stc};font-weight:600">${st}${e&&e.round>1?`<br><span style="font-size:10px;color:#b15f00">🔁 รอบ ${e.round}</span>`:''}</td><td class="mt">${e?esc(nameOf(e.by))+'<br>'+fmtDate(e.created_at):'—'}</td><td class="im">${ims.map(repImg).join('')||'—'}</td></tr>` })
+    secHtml+=`<h2 class="ph">${esc((cps[0]&&cps[0].phase_name)||nm)} ${_slaLine(code,pn)} <span style="font-size:12px;color:#555f6f;font-weight:400">· ตรวจแล้ว ${inspected}/${cps.length}${waitN>0?` · <b style="color:#a5701a">ค้างตรวจ ${waitN} ข้อ</b>`:''}</span></h2><table><thead><tr><th>ข้อ</th><th>รายการตรวจ</th><th>ผล</th><th>ผู้ตรวจ/เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>` })
+  const cm=_cmOfStore(code)
+  const dtxt=s.cs?(s.cs.key==='opened'?'เปิดแล้ว':s.cs.days==null?'—':s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days):'—'
+  return wrapReport(`<div class="paper">
+    <div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div style="min-width:0"><span class="eyebrow">CJX Inspect • รายงานงานประจำวัน (หัวหน้าติดตาม CM)</span><h2>รายงานงานประจำวัน — ${esc(s.name||code)}</h2><div class="en">Daily CM Work Report · ${esc(code)} · ${_today()}</div></div></div>
+      <div class="metacard"><div class="mrow"><span>CM ผู้ดูแล:</span><b>${esc(nameOfCm(cm))}</b></div><div class="mrow"><span>ผู้รับเหมา:</span><b>${esc(s.contractor||'—')}</b></div><div class="mrow"><span>กำหนดเปิด:</span><b>${dtxt}</b></div></div></div>
+    <div class="strip"><div><div class="lb">ตรวจแล้ว</div><div class="vl">${tDone} ข้อ</div></div><div><div class="lb">⬜ ค้างตรวจ</div><div class="vl" style="color:#a5701a">${tWait} ข้อ</div></div><div><div class="lb">✅ ผ่าน</div><div class="vl" style="color:#006948">${tPass}</div></div><div><div class="lb">❌ ไม่ผ่าน/รอแก้</div><div class="vl" style="color:#DC2626">${tFail+tFix}</div></div></div>
+    ${shownPhases?secHtml:'<p style="color:#006948;font-weight:600">✓ ไม่มีงวดที่ถึงกำหนดตรวจ/ค้างในตอนนี้</p>'}
+    <div class="legal"><span style="flex:none">📋</span><p style="margin:0"><b>สำหรับหัวหน้าติดตาม CM:</b> ข้อที่ขึ้น <b style="color:#a5701a">"ยังไม่ตรวจ"</b> = งานที่ CM ต้องเข้าไปตรวจในสาขานี้ · <b style="color:#DC2626">"ไม่ผ่าน"</b> = จุดที่ต้องให้ ผรม. แก้ · แสดงเฉพาะงวดที่ถึงกำหนด/กำลังตรวจ/ยังมีจุดค้าง</p></div>
+  </div>`) }
+async function openStoreDailyReport(code){ const s=stores.find(x=>x.code===code)||{code}
+  const w=window.open('','_blank'); if(w) w.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">กำลังสร้างรายงาน…</p>')
+  const byCp=await fetchStoreMedia(code); const html=buildStoreDaily(s,byCp)
+  if(w){ w.document.open(); w.document.write(html); w.document.close() } else { const b=new Blob([html],{type:'text/html'}); location.href=URL.createObjectURL(b) } }
+window._openStoreDailyReport=openStoreDailyReport
+
 // ============ DRILL-DOWN: รายสาขา + รายข้อตรวจ + เล่นสื่อ ============
 function showOverlay(html,wide){ let ov=$('hqOverlay'); if(!ov){ ov=document.createElement('div'); ov.id='hqOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);display:flex;justify-content:center;overflow:auto;padding:20px'; document.body.appendChild(ov); ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove() }) }
   ov.innerHTML=`<div class="bg-surface-card rounded-xl" style="width:100%;max-width:${wide?'1080px':'860px'};margin:auto 0;box-shadow:0 24px 70px -20px #000">${html}</div>` }
@@ -1156,7 +1193,7 @@ function render(){
   const fclr=$('fltClear'); if(fclr) fclr.onclick=()=>{ _q='';_ft='all';_fpv='all';_fct='all';_sort='open';_ovStage='all';_cf='all';_cph='all';_sf='all';_ctf='all';_ctSort='score';_rf='inspected'; render() }
   $('hqBody').querySelectorAll('[data-rep]').forEach(b=> b.onclick=()=>openReport(b.dataset.code, b.dataset.rep))
   $('hqBody').querySelectorAll('[data-store]').forEach(b=> b.onclick=()=>openStoreDetail(b.dataset.store))
-  $('hqBody').querySelectorAll('[data-drstore]').forEach(b=> b.onclick=()=>openStoreDetail(b.dataset.drstore))
+  $('hqBody').querySelectorAll('[data-drstore]').forEach(b=> b.onclick=()=>openStoreDailyReport(b.dataset.drstore))
 }
 function exportMatrixCsv(){ const rows=conStores()
   const head=['รหัส','สาขา','จังหวัด','ผู้รับเหมา'].concat(PHASES.map(([p])=>'P'+p)).concat(['คืบหน้า%'])
