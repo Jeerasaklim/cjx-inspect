@@ -41,6 +41,7 @@ fontSize:{"hero-display":["44px",{lineHeight:"44px",letterSpacing:"-0.02em",font
     <div class="px-3 py-2"><div class="px-2 py-1 font-label-caps text-label-caps text-ink-faint uppercase">Main Operations</div></div>
     <nav class="flex flex-col gap-1 px-2" id="hqNav">
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="1"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>ภาพรวมทุกสาขา (Overview)</span></a>
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="8"><span class="material-symbols-outlined text-[20px] text-role-setup">today</span><span>📋 Daily Report</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="7"><span class="material-symbols-outlined text-[20px] text-status-fail">flag</span><span>🚩 ธงแดง &amp; แจ้งเตือน</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="2"><span class="material-symbols-outlined text-[20px]">engineering</span><span>ติดตามงานก่อสร้าง (9 งวด)</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="3"><span class="material-symbols-outlined text-[20px]">rule</span><span>ตรวจรับร้าน Set-Up</span></a>
@@ -102,11 +103,12 @@ let cur={}, cpByPhase={}, nameByUid={}, _view='1', _q='', _cf='all', _rf='inspec
 let _ft='all', _fpv='all', _fct='all', _sort='open'
 // ตัวกรองเฉพาะหน้า
 let _ovStage='all', _cph='all', _sf='all', _ctf='all', _ctSort='score'
+let _drMode='all', _drDate=''
 // สิทธิ์ตาม role (ล้อตาม app): pending=บล็อก · head_*/admin=ทุกสาขา · cm/setup=เฉพาะสาขาตัวเอง
 let myUid=null, myRole='', scopeAll=true, allowedViews=['1','2','3','4','5']
 const HQ_ROLE_TH={cm:'CM',head_cm:'หัวหน้า CM',head_construction:'Head Construction',setup:'Set-Up (NSA)',head_setup:'หัวหน้า Set-Up',accounting:'บัญชี',admin:'Admin',pending:'รออนุมัติ'}
 const HQ_HEAD=['head_cm','head_construction','head_setup','accounting','admin']
-const HQ_VIEWS={admin:['1','7','2','3','4','6','5'],accounting:['1','7','2','3','4','6','5'],head_construction:['1','7','2','4','6','5'],head_cm:['1','7','2','4','6','5'],cm:['1','7','2','5'],head_setup:['1','7','3','5'],setup:['1','7','3','5']}
+const HQ_VIEWS={admin:['1','8','7','2','3','4','6','5'],accounting:['1','8','7','2','3','4','6','5'],head_construction:['1','8','7','2','4','6','5'],head_cm:['1','8','7','2','4','6','5'],cm:['1','8','7','2','5'],head_setup:['1','8','7','3','5'],setup:['1','8','7','3','5']}
 async function fetchAll(table,cols,order,filt){ let out=[],from=0,size=1000
   for(;;){ let q=sb.from(table).select(cols).order(order).range(from,from+size-1); if(filt) q=filt(q)
     const {data,error}=await q; if(error){console.warn(table,error.message);break}; out=out.concat(data||[]); if(!data||data.length<size) break; from+=size } return out }
@@ -581,6 +583,139 @@ function renderCmAnalysis(){
   return h
 }
 
+// ============ VIEW 8 : DAILY REPORT (สรุปงานประจำวันให้หัวหน้า) ============
+function _drKeyOfDate(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}` }
+function _drDayKey(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return ''; return _drKeyOfDate(d) }
+function _drDateObj(){ if(_drDate){ const d=new Date(_drDate+'T00:00:00'); if(!isNaN(d)){ d.setHours(0,0,0,0); return d } } const t=new Date(); t.setHours(0,0,0,0); return t }
+function _drFmtThai(d){ const p=n=>String(n).padStart(2,'0'); const wd=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์'][d.getDay()]; return `${wd} ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543}` }
+function _drStatusTh(s){ return {pass:'ผ่าน',fail:'ไม่ผ่าน',fixed:'รอตรวจซ้ำ',na:'ไม่มีงาน'}[s]||s }
+function _drOvText(ov){ return ov>0?('เลยกำหนด '+ov+' วัน'):ov===0?'ครบกำหนดวันนี้':('อีก '+(-ov)+' วัน') }
+function _drDayNav(dir){ if(dir==='today'){ _drDate=''; return } const d=_drDateObj(); d.setDate(d.getDate()+(dir==='next'?1:-1)); _drDate=_drKeyOfDate(d) }
+function _drBuild(){
+  const ref=_drDateObj(); const y=new Date(ref); y.setDate(y.getDate()-1); const yKey=_drKeyOfDate(y)
+  const roleByUid={}; profiles.forEach(p=>roleByUid[p.id]=p.role)
+  const cmOf={}; stores.forEach(s=>{ const m=cur[s.code]||{},cnt={}; Object.values(m).forEach(e=>{ if(e.by&&roleByUid[e.by]==='cm')cnt[e.by]=(cnt[e.by]||0)+1 }); let cm=null,mx=0; Object.keys(cnt).forEach(u=>{if(cnt[u]>mx){mx=cnt[u];cm=u}}); cmOf[s.code]=cm })
+  const codeByIns={}; insps.forEach(i=>codeByIns[i.id]=i.store_code)
+  const cpById={}; checkpoints.forEach(c=>cpById[String(c.id)]=c)
+  const byCode={}; stores.forEach(s=>byCode[s.code]=s)
+  // 1) ผลตรวจของวันก่อนหน้า (เมื่อวาน)
+  const inspected=[]
+  events.forEach(e=>{ if(_drDayKey(e.created_at)!==yKey) return; const code=codeByIns[e.inspection_id]; if(!code) return; const s=byCode[code]; if(!s) return
+    const c=cpById[String(e.checkpoint)]; const phase=c?c.phase:0
+    inspected.push({code,name:s.name||code,contractor:s.contractor||'',province:s.province||'',cm:cmOf[code],by:e.by,at:e.created_at,status:e.status,phase,phaseName:_rfPhName(phase),cpLabel:(c&&(c.label||c.name))||('ข้อ '+e.checkpoint),round:+e.round||1}) })
+  // 2) ต้องตรวจ (ถึงกำหนด/ใกล้กำหนด) + 3) ค้างแก้ — เฉพาะก่อสร้าง 9 งวด
+  const todo=[],soon=[],pending=[]
+  stores.forEach(s=>{ const code=s.code, m=cur[code]||{}, future=_rfFutureOpen(s.opening_date)
+    PHASES.forEach(([phase])=>{ const cps=cpByPhase[phase]||[]; if(!cps.length) return
+      let dcount=0,oldest=null,total=cps.length,allPassNa=true
+      cps.forEach(c=>{ const e=m[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')){dcount++; if(!oldest||(e.created_at||'')<oldest)oldest=e.created_at} if(!(e&&(e.status==='pass'||e.status==='na')))allPassNa=false })
+      const base={code,name:s.name||code,contractor:s.contractor||'',province:s.province||'',cm:cmOf[code],phase,phaseName:_rfPhName(phase),days:s.cs.days}
+      if(dcount>0){ pending.push({...base,count:dcount,age:_rfDaysSince(oldest)||0}); return }
+      if(total>0&&allPassNa) return
+      if(!future) return
+      const ov=_rfOverdue(s.opening_date,RF_DUE[phase]); if(ov==null) return
+      if(ov>=0) todo.push({...base,ov}); else if(ov>=-3) soon.push({...base,ov}) }) })
+  return {ref,y,yKey,inspected,todo,soon,pending,cmOf}
+}
+function _drItemLine(x,kind,withStore){ const sn=withStore?`<b class="text-ink-primary">${esc(x.name)}</b> · `:''
+  if(kind==='insp'){ const ok=x.status==='pass',bad=x.status==='fail'||x.status==='fixed'; const ic=ok?'✓':bad?'✗':'•',col=ok?'#7EE6B0':bad?'#FF5C5C':'#9A9A93'
+    return `<div class="font-body-sm text-[12.5px]"><span style="color:${col}">${ic}</span> ${sn}<span class="text-ink-muted">${esc(x.phaseName)}</span> · ${esc(x.cpLabel)}${x.round>1?' <span class="text-ink-faint">(รอบ '+x.round+')</span>':''} <span class="text-ink-faint">— ${esc(nameOf(x.by))} ${fmtDate(x.at)}</span></div>` }
+  if(kind==='todo') return `<div class="font-body-sm text-[12.5px]">⏰ ${sn}<span class="text-ink-muted">${esc(x.phaseName)}</span> <span style="color:${x.ov>0?'#FF5C5C':'#E0A800'};font-weight:600">${_drOvText(x.ov)}</span>${x.contractor?' <span class="text-ink-faint">· ผรม.'+esc(x.contractor)+'</span>':''}</div>`
+  if(kind==='soon') return `<div class="font-body-sm text-[12.5px]">🔜 ${sn}<span class="text-ink-muted">${esc(x.phaseName)}</span> <span style="color:#8FB4FF">${_drOvText(x.ov)}</span></div>`
+  return `<div class="font-body-sm text-[12.5px]">🔧 ${sn}<span class="text-ink-muted">${esc(x.phaseName)}</span> <span style="color:#FF5C5C;font-weight:600">${x.count} จุด</span> <span class="text-ink-faint">· รอแก้ ${x.age} วัน${x.contractor?' · ผรม.'+esc(x.contractor):''}</span></div>`
+}
+function _drMini(title,color,items,kind,withStore){ if(!items.length) return ''
+  const cnt=kind==='pend'?items.reduce((n,x)=>n+x.count,0)+' จุด':items.length
+  return `<div><div class="font-label-caps text-label-caps uppercase mb-1" style="color:${color}">${title} (${cnt})</div><div class="flex flex-col gap-1 pl-1">${items.map(x=>_drItemLine(x,kind==='pend'?'pend':kind,withStore)).join('')}</div></div>` }
+function _drStoreInner(ci,ct,cso,cp,withStore){ const b=[_drMini('ต้องตรวจ','#FF9F1C',ct,'todo',withStore),_drMini('ใกล้กำหนด','#8FB4FF',cso,'soon',withStore),_drMini('ค้างแก้','#FF5C5C',cp,'pend',withStore),_drMini('ตรวจเมื่อวาน','#7EE6B0',ci,'insp',withStore)].filter(Boolean); return b.join('<div style="height:6px"></div>')||'<div class="text-ink-faint font-body-sm text-body-sm">— ไม่มีรายการ —</div>' }
+function _drCard(icon,color,title,inner){ return `<div class="bg-surface-card rounded-xl shadow-md overflow-hidden mb-4"><div class="p-3 flex items-center gap-2" style="border-bottom:1px solid #201f20"><span class="material-symbols-outlined text-[20px]" style="color:${color}">${icon}</span><h3 class="font-title-sm text-title-sm">${title}</h3></div>${inner}</div>` }
+function _drAll(insp,todo,soon,pend,stTxt){ let h=''
+  const iBody=insp.length?`<div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-2 px-3">สาขา</th><th class="py-2 px-2">งวด / ข้อตรวจ</th><th class="py-2 px-2 text-center">ผล</th><th class="py-2 px-2">ผู้ตรวจ</th><th class="py-2 px-2">เวลา</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`+insp.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(x=>{const b=stTxt[x.status]||[x.status,'#9A9A93','#232327'];return `<tr class="hover:bg-surface-elevated/30"><td class="py-2 px-3"><span data-store="${esc(x.code)}" class="font-bold text-ink-primary cursor-pointer hover:text-primary-container">${esc(x.name)}</span></td><td class="py-2 px-2"><span class="text-ink-muted">${esc(x.phaseName)}</span> · ${esc(x.cpLabel)}${x.round>1?' <span class="text-ink-faint">(รอบ '+x.round+')</span>':''}</td><td class="py-2 px-2 text-center"><span class="inline-block px-2 py-0.5 rounded font-label-micro font-bold" style="background:${b[2]};color:${b[1]}">${b[0]}</span></td><td class="py-2 px-2 text-ink-muted">${esc(nameOf(x.by))}</td><td class="py-2 px-2 font-data-mono text-[11px] text-ink-faint">${fmtDate(x.at)}</td></tr>`}).join('')+`</tbody></table></div>`:`<div class="p-6 text-center text-ink-muted font-body-sm">— ไม่มีการตรวจในวันดังกล่าว —</div>`
+  h+=_drCard('fact_check','#7EE6B0','ผลตรวจเมื่อวาน — '+insp.length+' ข้อ',iBody)
+  const tAll=todo.slice().sort((a,b)=>b.ov-a.ov).concat(soon.slice().sort((a,b)=>b.ov-a.ov))
+  const tBody=tAll.length?`<div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-2 px-3">สาขา</th><th class="py-2 px-2 text-center">กำหนดเปิด</th><th class="py-2 px-2">งวดที่ต้องตรวจ</th><th class="py-2 px-2">สถานะกำหนด</th><th class="py-2 px-2">CM</th><th class="py-2 px-2">ผรม.</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`+tAll.map(x=>{const col=x.ov>0?'#FF5C5C':x.ov===0?'#E0A800':'#8FB4FF';const dtxt=x.days==null?'—':x.days<=0?'ถึงกำหนด':'D-'+x.days;return `<tr class="hover:bg-surface-elevated/30"><td class="py-2 px-3"><span data-store="${esc(x.code)}" class="font-bold text-ink-primary cursor-pointer hover:text-primary-container">${esc(x.name)}</span><div class="font-label-micro text-label-micro text-ink-faint">${esc(x.province||'')}</div></td><td class="py-2 px-2 text-center font-data-mono text-[12px] font-bold" style="color:#D9B84A">${dtxt}</td><td class="py-2 px-2 text-ink-muted">${esc(x.phaseName)}</td><td class="py-2 px-2 font-bold" style="color:${col}">${x.ov>=0?'⏰ ':'🔜 '}${_drOvText(x.ov)}</td><td class="py-2 px-2 text-ink-muted">${esc(nameOf(x.cm))}</td><td class="py-2 px-2 text-ink-muted">${esc(x.contractor||'—')}</td></tr>`}).join('')+`</tbody></table></div>`:`<div class="p-6 text-center text-ink-pass font-body-sm">✓ ไม่มีงวดที่ถึงกำหนดตรวจ</div>`
+  h+=_drCard('pending_actions','#FF9F1C','ต้องตรวจ — '+todo.length+' ถึงกำหนด · '+soon.length+' ใกล้กำหนด',tBody)
+  const pS=pend.slice().sort((a,b)=>b.age-a.age)
+  const pBody=pS.length?`<div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-2 px-3">สาขา</th><th class="py-2 px-2">งวด</th><th class="py-2 px-2 text-center">จุดค้าง</th><th class="py-2 px-2 text-center">รอแก้</th><th class="py-2 px-2">ผรม.</th><th class="py-2 px-2">CM</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`+pS.map(x=>`<tr class="hover:bg-surface-elevated/30"><td class="py-2 px-3"><span data-store="${esc(x.code)}" class="font-bold text-ink-primary cursor-pointer hover:text-primary-container">${esc(x.name)}</span></td><td class="py-2 px-2 text-ink-muted">${esc(x.phaseName)}</td><td class="py-2 px-2 text-center font-data-mono font-bold text-status-fail">${x.count}</td><td class="py-2 px-2 text-center font-data-mono" style="color:${x.age>=7?'#FF5C5C':'#D9B84A'}">${x.age} วัน</td><td class="py-2 px-2 text-ink-muted">${esc(x.contractor||'—')}</td><td class="py-2 px-2 text-ink-muted">${esc(nameOf(x.cm))}</td></tr>`).join('')+`</tbody></table></div>`:`<div class="p-6 text-center text-ink-pass font-body-sm">✓ ไม่มีจุดค้างแก้</div>`
+  h+=_drCard('build','#FF5C5C','ค้างแก้ไข (ตาม ผรม.) — '+pS.reduce((n,x)=>n+x.count,0)+' จุด',pBody)
+  return h }
+function _drByStore(insp,todo,soon,pend){ const codes=[...new Set([...todo,...soon,...pend,...insp].map(x=>x.code))]
+  const dd=c=>{const s=stores.find(z=>z.code===c);return s&&s.cs.days!=null?s.cs.days:9999}; codes.sort((a,b)=>dd(a)-dd(b))
+  if(!codes.length) return `<div class="bg-surface-card rounded-xl p-10 text-center text-ink-muted font-body-sm">— ไม่มีรายการ —</div>`
+  return codes.map(code=>{ const S=stores.find(z=>z.code===code)||{code}
+    const ci=insp.filter(x=>x.code===code),ct=todo.filter(x=>x.code===code),cso=soon.filter(x=>x.code===code),cp=pend.filter(x=>x.code===code)
+    const cm=(ct[0]||cso[0]||cp[0]||ci[0]||{}).cm
+    const dtxt=S.cs?(S.cs.key==='opened'?'เปิดแล้ว':S.cs.days==null?'—':S.cs.days<=0?'ถึงกำหนด':'D-'+S.cs.days):'—'
+    return `<div class="bg-surface-card rounded-xl shadow-md overflow-hidden mb-3"><div class="p-3 flex items-center justify-between gap-2" style="border-bottom:1px solid #201f20"><div class="min-w-0"><span data-store="${esc(code)}" class="font-title-sm text-title-sm font-bold cursor-pointer hover:text-primary-container">${esc(S.name||code)}</span><div class="font-label-micro text-label-micro text-ink-faint">${esc(code)}${S.province?' · '+esc(S.province):''}${S.contractor?' · ผรม.'+esc(S.contractor):''} · CM ${esc(nameOf(cm))}</div></div><span class="font-data-mono text-[12px] font-bold shrink-0" style="color:#D9B84A">${dtxt}</span></div><div class="p-3 flex flex-col gap-2">${_drStoreInner(ci,ct,cso,cp,false)}</div></div>` }).join('') }
+function _drByCm(insp,todo,soon,pend){ const groups={}; const add=(x,k)=>{ const key=x.cm||'_none'; (groups[key]||(groups[key]={uid:x.cm,insp:[],todo:[],soon:[],pend:[]}))[k].push(x) }
+  todo.forEach(x=>add(x,'todo')); soon.forEach(x=>add(x,'soon')); pend.forEach(x=>add(x,'pend')); insp.forEach(x=>add(x,'insp'))
+  const keys=Object.keys(groups); if(!keys.length) return `<div class="bg-surface-card rounded-xl p-10 text-center text-ink-muted font-body-sm">— ไม่มีรายการ —</div>`
+  keys.sort((a,b)=>(groups[b].todo.length+groups[b].pend.length)-(groups[a].todo.length+groups[a].pend.length))
+  return keys.map(k=>{ const G=groups[k]; const nStore=new Set([...G.todo,...G.soon,...G.pend,...G.insp].map(x=>x.code)).size
+    return `<div class="bg-surface-card rounded-xl shadow-md overflow-hidden mb-3"><div class="p-3 flex items-center justify-between gap-2" style="border-bottom:1px solid #201f20"><div class="min-w-0"><span class="font-title-sm text-title-sm font-bold">${k==='_none'?'<span class="text-ink-faint">ไม่ระบุ CM</span>':esc(nameOf(G.uid))}</span><div class="font-label-micro text-label-micro text-ink-faint">${nStore} สาขา · ⏰ ${G.todo.length} · 🔧 ${G.pend.reduce((n,x)=>n+x.count,0)} จุด</div></div></div><div class="p-3 flex flex-col gap-2">${_drStoreInner(G.insp,G.todo,G.soon,G.pend,true)}</div></div>` }).join('') }
+function renderDailyReport(){ const D=_drBuild()
+  const isToday=_drKeyOfDate(D.ref)===_drKeyOfDate(new Date())
+  const stTxt={pass:['ผ่าน','#7EE6B0','#12271B'],fail:['ไม่ผ่าน','#FF5C5C','#241416'],fixed:['รอตรวจซ้ำ','#D9B84A','#1C1608'],na:['ไม่มีงาน','#9A9A93','#232327']}
+  const fq=arr=>arr.filter(x=>!_q||[x.name,x.code,x.contractor,x.province,nameOf(x.cm)].some(v=>(v||'').toLowerCase().includes(_q)))
+  const insp=fq(D.inspected),todo=fq(D.todo),soon=fq(D.soon),pend=fq(D.pending)
+  const passN=insp.filter(x=>x.status==='pass').length,failN=insp.filter(x=>x.status==='fail'||x.status==='fixed').length
+  let h=pageHead('Daily Report (สรุปงานประจำวัน)','สรุปให้หัวหน้า — เมื่อวานตรวจอะไร (ผล) · วันนี้ต้องตรวจอะไร · ค้างแก้ (ตาม ผรม.)','อ้างอิงจากวันเปิดสาขา + Timeline นับถอยหลังต่อ checkpoint (เลขน้ำเงิน/หน้าฝน) · ข้อมูลจริงในระบบ · กดปริ้น หรือคัดลอกส่ง LINE/เมลได้')
+  h+=`<div class="flex items-center flex-wrap gap-2 mb-4"><div class="flex items-center gap-1 bg-surface-card rounded-lg p-1"><button data-drday="prev" class="w-8 h-8 rounded hover:bg-surface-elevated flex items-center justify-center text-ink-muted"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button><span class="px-2 font-title-sm text-title-sm">${_drFmtThai(D.ref)}${isToday?' <span class="font-label-micro text-label-micro text-primary-container">(วันนี้)</span>':''}</span><button data-drday="next" class="w-8 h-8 rounded hover:bg-surface-elevated flex items-center justify-center text-ink-muted"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>${!isToday?`<button data-drday="today" class="ml-1 px-2 h-8 rounded bg-surface-control hover:bg-surface-elevated font-label-micro text-label-micro text-primary-container">วันนี้</button>`:''}</div><div class="ml-auto flex items-center gap-2"><button id="drCopy" class="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-surface-card hover:bg-surface-elevated font-body-sm text-body-sm text-ink-primary"><span class="material-symbols-outlined text-[18px] text-role-setup">content_copy</span>คัดลอกส่ง LINE/เมล</button><button id="drPrint" class="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-surface-card hover:bg-surface-elevated font-body-sm text-body-sm text-ink-primary"><span class="material-symbols-outlined text-[18px] text-role-head-const">picture_as_pdf</span>พิมพ์รายงาน</button></div></div>`
+  h+=`<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+    ${kpi('#7EE6B0','#12271B','fact_check','ตรวจเมื่อวาน',insp.length,'ข้อ','✓ ผ่าน '+passN+' · ✗ ไม่ผ่าน '+failN)}
+    ${kpi('#FF9F1C','#1C1608','pending_actions','ต้องตรวจ (ถึงกำหนด)',todo.length,'งวด',[...new Set(todo.map(x=>x.code))].length+' สาขา')}
+    ${kpi('#8FB4FF','#182233','update','ใกล้ถึงกำหนด ≤3 วัน',soon.length,'งวด',[...new Set(soon.map(x=>x.code))].length+' สาขา')}
+    ${kpi('#FF5C5C','#241416','build','ค้างแก้ (ผรม.)',pend.reduce((n,x)=>n+x.count,0),'จุด',[...new Set(pend.map(x=>x.contractor).filter(Boolean))].length+' ผรม.')}
+  </div>`
+  const modes=[['all','รวม'],['store','แยกสาขา'],['cm','แยกคน (CM)']]
+  h+=`<div class="flex items-center gap-1.5 flex-wrap mb-4"><span class="font-label-micro text-label-micro text-ink-faint uppercase mr-1">มุมมอง</span>${modes.map(x=>fchip('dr',x[0],_drMode,x[1])).join('')}</div>`
+  if(_drMode==='store') h+=_drByStore(insp,todo,soon,pend)
+  else if(_drMode==='cm') h+=_drByCm(insp,todo,soon,pend)
+  else h+=_drAll(insp,todo,soon,pend,stTxt)
+  return h }
+// --- ตารางสำหรับรายงานพิมพ์ (ธีมสว่าง) ---
+function _drPTinsp(list){ if(!list.length) return '<p style="color:#005137;font-weight:600">— ไม่มีการตรวจ —</p>'
+  return `<table><thead><tr><th>สาขา</th><th>งวด / ข้อตรวจ</th><th>ผล</th><th>ผู้ตรวจ</th><th>เวลา</th></tr></thead><tbody>`+list.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phaseName)} · ${esc(x.cpLabel)}</td><td style="color:${x.status==='pass'?'#006948':(x.status==='fail'||x.status==='fixed')?'#DC2626':'#6b7280'};font-weight:600">${_drStatusTh(x.status)}</td><td>${esc(nameOf(x.by))}</td><td>${fmtDate(x.at)}</td></tr>`).join('')+`</tbody></table>` }
+function _drPTtodo(list){ if(!list.length) return '<p style="color:#005137;font-weight:600">✓ ไม่มีงวดถึงกำหนดตรวจ</p>'
+  return `<table><thead><tr><th>สาขา</th><th>กำหนดเปิด</th><th>งวด</th><th>สถานะกำหนด</th><th>CM</th><th>ผรม.</th></tr></thead><tbody>`+list.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.days==null?'—':x.days<=0?'ถึงกำหนด':'D-'+x.days}</td><td>${esc(x.phaseName)}</td><td style="color:${x.ov>0?'#DC2626':x.ov===0?'#a5701a':'#2d5bb8'};font-weight:600">${_drOvText(x.ov)}</td><td>${esc(nameOf(x.cm))}</td><td>${esc(x.contractor||'—')}</td></tr>`).join('')+`</tbody></table>` }
+function _drPTpend(list){ if(!list.length) return '<p style="color:#005137;font-weight:600">✓ ไม่มีจุดค้างแก้</p>'
+  return `<table><thead><tr><th>สาขา</th><th>งวด</th><th>จุดค้าง</th><th>รอแก้ (วัน)</th><th>ผรม.</th><th>CM</th></tr></thead><tbody>`+list.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phaseName)}</td><td>${x.count}</td><td>${x.age}</td><td>${esc(x.contractor||'—')}</td><td>${esc(nameOf(x.cm))}</td></tr>`).join('')+`</tbody></table>` }
+function _drPrintGroup(title,ci,ct,cp){ let s=`<h2 class="ph">${title}</h2>`
+  if(ct.length) s+=`<div style="font-weight:700;margin:8px 0 2px;color:#a5701a">⏰ ต้องตรวจ</div>`+_drPTtodo(ct)
+  if(cp.length) s+=`<div style="font-weight:700;margin:12px 0 2px;color:#DC2626">🔧 ค้างแก้ไข</div>`+_drPTpend(cp)
+  if(ci.length) s+=`<div style="font-weight:700;margin:12px 0 2px;color:#006948">✅ ตรวจเมื่อวาน</div>`+_drPTinsp(ci)
+  return s }
+function buildDailyReport(){ const D=_drBuild(),mode=_drMode
+  const passN=D.inspected.filter(x=>x.status==='pass').length,failN=D.inspected.filter(x=>x.status==='fail'||x.status==='fixed').length
+  const todoAll=D.todo.slice().sort((a,b)=>b.ov-a.ov).concat(D.soon.slice().sort((a,b)=>b.ov-a.ov)), pendAll=D.pending.slice().sort((a,b)=>b.age-a.age)
+  let body=''
+  if(mode==='store'){ const codes=[...new Set([...todoAll,...pendAll,...D.inspected].map(x=>x.code))]
+    const dd=c=>{const s=stores.find(z=>z.code===c);return s&&s.cs.days!=null?s.cs.days:9999}; codes.sort((a,b)=>dd(a)-dd(b))
+    body=codes.map(code=>{ const S=stores.find(z=>z.code===code)||{code}; return _drPrintGroup(esc(S.name||code)+' <span style="color:#9CA3AF;font-size:12px">('+esc(code)+(S.contractor?' · ผรม.'+esc(S.contractor):'')+')</span>',D.inspected.filter(x=>x.code===code),todoAll.filter(x=>x.code===code),pendAll.filter(x=>x.code===code)) }).join('') }
+  else if(mode==='cm'){ const keys=[...new Set([...todoAll,...pendAll,...D.inspected].map(x=>x.cm||'_none'))]
+    body=keys.map(k=>{ const nm=k==='_none'?'ไม่ระบุ CM':esc(nameOf(k)); const f=arr=>arr.filter(x=>(x.cm||'_none')===k); return _drPrintGroup(nm,f(D.inspected),f(todoAll),f(pendAll)) }).join('') }
+  else { body=`<div style="font-weight:700;margin:8px 0 2px;color:#a5701a">⏰ ต้องตรวจ (${D.todo.length} ถึงกำหนด · ${D.soon.length} ใกล้กำหนด)</div>`+_drPTtodo(todoAll)+`<div style="font-weight:700;margin:16px 0 2px;color:#DC2626">🔧 ค้างแก้ไข</div>`+_drPTpend(pendAll)+`<div style="font-weight:700;margin:16px 0 2px;color:#006948">✅ ผลตรวจเมื่อวาน</div>`+_drPTinsp(D.inspected.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''))) }
+  const dd=new Date(),p2=n=>String(n).padStart(2,'0'),now=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543} ${p2(dd.getHours())}:${p2(dd.getMinutes())}`
+  const modeTh={all:'รวมทุกสาขา',store:'แยกรายสาขา',cm:'แยกราย CM'}[mode]
+  const html=wrapReport(`<div class="paper"><div class="dh"><div class="dh-l"><div class="emblem">CJ<b>X</b></div><div><span class="eyebrow">CJX Inspect • Daily Report</span><h2>รายงานสรุปงานประจำวัน</h2><div class="en">${_drFmtThai(D.ref)} · มุมมอง${modeTh}</div></div></div><div class="metacard"><div class="mrow"><span>ออกเมื่อ:</span><b>${now}</b></div><div class="mrow"><span>ตรวจเมื่อวาน:</span><b>${D.inspected.length} ข้อ (ผ่าน ${passN}/ไม่ผ่าน ${failN})</b></div><div class="mrow"><span>ต้องตรวจ:</span><b>${D.todo.length} งวด</b></div><div class="mrow"><span>ค้างแก้:</span><b>${D.pending.reduce((n,x)=>n+x.count,0)} จุด</b></div></div></div>
+    <div class="strip"><div><div class="lb">✅ ตรวจเมื่อวาน</div><div class="vl" style="color:#006948">${D.inspected.length} ข้อ</div></div><div><div class="lb">⏰ ต้องตรวจ</div><div class="vl" style="color:#a5701a">${D.todo.length} งวด</div></div><div><div class="lb">🔜 ใกล้กำหนด</div><div class="vl" style="color:#2d5bb8">${D.soon.length} งวด</div></div><div><div class="lb">🔧 ค้างแก้</div><div class="vl" style="color:#DC2626">${D.pending.reduce((n,x)=>n+x.count,0)} จุด</div></div></div>
+    ${body}</div>`)
+  const w=window.open('','_blank'); if(w){ w.document.write(html); w.document.close() } else { const b=new Blob([html],{type:'text/html'}); location.href=URL.createObjectURL(b) } }
+function _drCopyFallback(txt){ const ta=document.createElement('textarea'); ta.value=txt; ta.style.cssText='position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');alert('คัดลอกแล้ว ✓ วางใน LINE/เมลได้เลย')}catch(e){alert('คัดลอกไม่ได้ — เลือกข้อความเองนะ')} ta.remove() }
+function _drCopyText(){ const D=_drBuild()
+  const passN=D.inspected.filter(x=>x.status==='pass').length,failN=D.inspected.filter(x=>x.status==='fail'||x.status==='fixed').length
+  const L=[]; L.push('📋 CJX Daily Report — '+_drFmtThai(D.ref)); L.push('────────────')
+  L.push('✅ ตรวจเมื่อวาน: '+D.inspected.length+' ข้อ (ผ่าน '+passN+' / ไม่ผ่าน '+failN+')')
+  const byS={}; D.inspected.forEach(x=>{ const g=byS[x.code]||(byS[x.code]={name:x.name,pass:0,fail:0}); if(x.status==='pass')g.pass++; else if(x.status==='fail'||x.status==='fixed')g.fail++ })
+  Object.values(byS).forEach(v=>L.push('  • '+v.name+': ผ่าน '+v.pass+(v.fail?' / ไม่ผ่าน '+v.fail:'')))
+  L.push(''); L.push('⏰ ต้องตรวจ (ถึงกำหนด): '+D.todo.length+' งวด')
+  D.todo.slice().sort((a,b)=>b.ov-a.ov).forEach(x=>L.push('  • '+x.name+' — '+x.phaseName+' ('+_drOvText(x.ov)+')'+(x.contractor?' ผรม.'+x.contractor:'')))
+  if(D.soon.length){ L.push(''); L.push('🔜 ใกล้กำหนด (≤3 วัน): '+D.soon.length+' งวด'); D.soon.slice().sort((a,b)=>b.ov-a.ov).forEach(x=>L.push('  • '+x.name+' — '+x.phaseName+' ('+_drOvText(x.ov)+')')) }
+  L.push(''); L.push('🔧 ค้างแก้ (ผรม.): '+D.pending.reduce((n,x)=>n+x.count,0)+' จุด')
+  D.pending.slice().sort((a,b)=>b.age-a.age).forEach(x=>L.push('  • '+x.name+' — '+x.phaseName+' '+x.count+' จุด · รอแก้ '+x.age+' วัน'+(x.contractor?' · ผรม.'+x.contractor:'')))
+  const txt=L.join('\n')
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(()=>alert('คัดลอกแล้ว ✓ วางใน LINE/เมลได้เลย')).catch(()=>_drCopyFallback(txt)); else _drCopyFallback(txt) }
+
 function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}` }
 function qMatch(s){ if(!_q) return true; return [s.name,s.code,s.province,s.contractor].some(v=>(v||'').toLowerCase().includes(_q)) }
 // ===== แถบ Filter มาตรฐาน (ใช้ทุกหน้า) — ค่าใน dropdown เติมจากข้อมูลจริงเท่านั้น =====
@@ -897,6 +1032,7 @@ function render(){
   else if(_view==='3') html+=renderSetup()
   else if(_view==='4') html+=renderContractor()
   else if(_view==='6') html+=renderCmAnalysis()
+  else if(_view==='8') html+=renderDailyReport()
   else if(_view==='7') html+=renderRedFlags()
   else if(_view==='5') html+=renderReports()
   $('hqBody').innerHTML=html
@@ -908,6 +1044,9 @@ function render(){
   $('hqBody').querySelectorAll('[data-ov]').forEach(b=> b.onclick=()=>{ _ovStage=b.dataset.ov; render() })
   $('hqBody').querySelectorAll('[data-sf]').forEach(b=> b.onclick=()=>{ _sf=b.dataset.sf; render() })
   $('hqBody').querySelectorAll('[data-ctf]').forEach(b=> b.onclick=()=>{ _ctf=b.dataset.ctf; render() })
+  $('hqBody').querySelectorAll('[data-dr]').forEach(b=> b.onclick=()=>{ _drMode=b.dataset.dr; render() })
+  $('hqBody').querySelectorAll('[data-drday]').forEach(b=> b.onclick=()=>{ _drDayNav(b.dataset.drday); render() })
+  { const dc=$('drCopy'); if(dc) dc.onclick=_drCopyText; const dp=$('drPrint'); if(dp) dp.onclick=buildDailyReport }
   const bindSel=(id,fn)=>{ const e=$(id); if(e) e.onchange=()=>{ fn(e.value); render() } }
   bindSel('fltTime',v=>_ft=v); bindSel('fltProv',v=>_fpv=v); bindSel('fltCtr',v=>_fct=v); bindSel('fltSort',v=>_sort=v); bindSel('fltCph',v=>_cph=v); bindSel('fltCtSort',v=>_ctSort=v)
   const fclr=$('fltClear'); if(fclr) fclr.onclick=()=>{ _q='';_ft='all';_fpv='all';_fct='all';_sort='open';_ovStage='all';_cf='all';_cph='all';_sf='all';_ctf='all';_ctSort='score';_rf='inspected'; render() }
