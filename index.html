@@ -2900,7 +2900,8 @@ const QMAXTRY=8   // รูปที่ส่งไม่ขึ้นเกิ�
 async function syncQueue(force){
   updatePendBadge()
   if(_syncing || !navigator.onLine) return
-  const { data:{ session } } = await sb.auth.getSession()
+  let session=(await sb.auth.getSession()).data.session
+  if(!session){ try{ session=(await sb.auth.refreshSession()).data.session }catch(e){} }   // ลองต่ออายุ session อัตโนมัติก่อน
   if(!session){ if(await queueCount().catch(()=>0)) toast('อัปรูปไม่ขึ้น: เซสชันหมดอายุ — ปิดแอปแล้วเปิดใหม่/ล็อกอินใหม่','err'); return }
   _syncing=true; _syncTouched=false; _lastUpErr=''
   try{
@@ -2931,7 +2932,8 @@ async function _qFail(r, why){ r.tries=(r.tries||0)+1; if(why) _lastUpErr=why; t
 let _evSyncing=false
 async function syncEventQueue(){
   if(_evSyncing || !navigator.onLine) return
-  const { data:{ session } } = await sb.auth.getSession()
+  let session=(await sb.auth.getSession()).data.session
+  if(!session){ try{ session=(await sb.auth.refreshSession()).data.session }catch(e){} }   // ลองต่ออายุ session อัตโนมัติก่อน จะได้ไม่ต้อง login ใหม่
   if(!session){ if(await evqCount().catch(()=>0)) toast('ผลตรวจยังไม่ขึ้นระบบ: เซสชันหมดอายุ — ปิดแอปแล้วเปิดใหม่/ล็อกอินใหม่','err'); updatePendBadge(); return }
   _evSyncing=true; let touched=false, failMsg=''
   try{
@@ -2940,7 +2942,7 @@ async function syncEventQueue(){
       try{
         const inspId=await _ensureInsp(r.storeCode, r.phase, cache)
         if(!inspId){ failMsg='สร้างรายการตรวจไม่ได้ (สิทธิ์/เน็ต)'; continue }
-        const { error } = await sb.from('check_events').insert({ inspection_id:inspId, checkpoint:r.cpId, round:r.round, status:r.status, note:r.note })
+        const { error } = await sb.from('check_events').insert({ inspection_id:inspId, checkpoint:r.cpId, round:r.round, status:r.status, note:r.note, ...(r.by?{by:r.by}:{}) })
         if(error){ failMsg=error.message||'บันทึกผลตรวจไม่สำเร็จ'; continue }
         await evqDel(r.id)
         if(pctx&&pctx.events){ const m=pctx.events.find(e=>e._qid===r.id); if(m){ m._pending=false; delete m._qid; touched=true } }
