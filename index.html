@@ -2486,11 +2486,12 @@ $('siteBack').onclick = goHome
 async function openPhase(code, phase){
   const s=stores.find(x=>x.code===code); await loadChecklist()
   const cps=checkpoints.filter(c=>c.phase===phase).sort((a,b)=>a.sort-b.sort)
-  const { data:insp } = await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).maybeSingle()
-  let inspId=insp?insp.id:null, events=[]
+  const { data:inspRows } = await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).order('id',{ascending:true})
+  const inspIds=(inspRows||[]).map(r=>r.id)
+  let inspId=inspIds[0]||null, events=[]   // เขียนลงตัวเล็กสุดเสมอ · อ่านจากทุกตัว (กัน inspection ซ้ำทำรูปหาย)
   let media=[]
-  if(inspId){ const {data}=await sb.from('check_events').select('checkpoint,round,status,note,by,created_at').eq('inspection_id',inspId); events=data||[]
-    const {data:m}=await sb.from('media').select('checkpoint,path,kind,thumb_path,by').eq('inspection_id',inspId); media=m||[]
+  if(inspIds.length){ const {data}=await sb.from('check_events').select('checkpoint,round,status,note,by,created_at').in('inspection_id',inspIds); events=data||[]
+    const {data:m}=await sb.from('media').select('checkpoint,path,kind,thumb_path,by').in('inspection_id',inspIds); media=m||[]
     if(media.length){
       const {data:fu}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600)
       const {data:tu}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.thumb_path||x.path),3600)
@@ -2889,9 +2890,11 @@ async function handlePhotos(cpId, files){
 async function _ensureInsp(code, phase, cache){
   const k=code+'|'+phase; if(cache[k]!==undefined) return cache[k]
   try{
-    const {data}=await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).maybeSingle()
-    let id=data?data.id:null
-    if(!id){ const {data:ins,error}=await sb.from('inspections').insert({store_code:code,phase}).select('id').single(); if(error){cache[k]=null;return null} id=ins.id }
+    const {data}=await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).order('id',{ascending:true}).limit(1)
+    let id=(data&&data[0])?data[0].id:null   // ใช้ตัวเล็กสุดเสมอ กัน duplicate
+    if(!id){ const {data:ins,error}=await sb.from('inspections').insert({store_code:code,phase}).select('id').single()
+      if(error){ const {data:d2}=await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).order('id',{ascending:true}).limit(1); id=(d2&&d2[0])?d2[0].id:null; if(!id){cache[k]=null;return null} }
+      else id=ins.id }
     if(pctx&&pctx.code===code&&pctx.phase===phase) pctx.inspId=id
     cache[k]=id; return id
   }catch(e){ cache[k]=null; return null }
