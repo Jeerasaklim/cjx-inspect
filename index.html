@@ -2351,7 +2351,9 @@ async function openSite(code){
       html += `<div class="sec">ตรวจรับร้าน (Set-Up)</div><div class="hint">ยังไม่ได้โหลด checklist ตรวจรับ — ไปที่ Admin › Checklist กด “โหลด checklist ตรวจรับ (Set-Up)”</div>`
     }
   }
+  html += `<button id="btnRecoverMedia" class="w-full rounded-lg bg-surface-control text-ink-muted font-body-sm text-body-sm flex items-center justify-center gap-2 mt-3 active:translate-y-px" style="height:44px"><span class="material-symbols-outlined text-[18px]">image_search</span>กู้รูปที่หาย (ดึงคืนจากคลาวด์)</button>`
   $('siteBody').innerHTML = html
+  { const brm=$('btnRecoverMedia'); if(brm) brm.onclick=()=>recoverStoreMedia(code) }
   $('siteBody').querySelectorAll('[data-phase]').forEach(el=> el.onclick=()=>openPhase(code, +el.dataset.phase))
   const brA=$('btnReport'); if(brA) brA.onclick=()=>generateReport(code)
   const bcpA=$('btnConPunch'); if(bcpA) bcpA.onclick=()=>generateConPunch(code)
@@ -2967,6 +2969,33 @@ async function clearPhotoQueue(){
 async function retryPhotoQueue(){
   try{ const items=await queueAll(); for(const r of items){ if(r.tries){ r.tries=0; await queuePut(r) } } }catch(e){}
   toast('กำลังลองส่งที่ค้างใหม่…'); syncQueue(true); syncEventQueue()
+}
+// ===== กู้รูปที่หาย (ผู้ใช้กดเอง) — สร้างแถว media ที่หลุด จากไฟล์ที่ยังอยู่ใน Storage (สโคปเฉพาะสาขานี้ · INSERT อย่างเดียว ไม่ลบ) =====
+async function _listFolder(prefix){ const out=[]; let offset=0
+  for(;;){ const {data,error}=await sb.storage.from('media').list(prefix,{limit:100,offset}); if(error||!data||!data.length) break; out.push(...data); if(data.length<100) break; offset+=100 } return out }
+async function recoverStoreMedia(code){
+  if(!navigator.onLine){ toast('ต้องมีเน็ตก่อนกู้รูป','err'); return }
+  toast('กำลังสแกนรูปในคลาวด์…')
+  try{
+    const { data:ins } = await sb.from('inspections').select('id').eq('store_code',code)
+    const idsRaw=(ins||[]).map(i=>i.id); if(!idsRaw.length){ toast('สาขานี้ยังไม่มีข้อมูลตรวจ','err'); return }
+    const existing=new Set()
+    for(let i=0;i<idsRaw.length;i+=100){ const {data:md}=await sb.from('media').select('path').in('inspection_id',idsRaw.slice(i,i+100)); (md||[]).forEach(m=>m.path&&existing.add(m.path)) }
+    const rows=[]
+    for(const id of idsRaw){ const sid=String(id)
+      const cpFolders=await _listFolder(sid)
+      for(const cf of cpFolders){ if(!cf||!cf.name) continue; const cp=cf.name
+        const files=(await _listFolder(sid+'/'+cp)).map(f=>f.name).filter(Boolean)
+        const thumbs=new Set(files.filter(n=>/_t\.jpg$/i.test(n)))
+        for(const n of files){ if(/_t\.jpg$/i.test(n)) continue
+          const path=`${sid}/${cp}/${n}`; if(existing.has(path)) continue
+          const base=n.replace(/\.(jpg|jpeg|png|mp4)$/i,''); const tname=base+'_t.jpg'
+          rows.push({inspection_id:id, checkpoint:cp, kind:/\.mp4$/i.test(n)?'video':'image', path, thumb_path: thumbs.has(tname)?`${sid}/${cp}/${tname}`:null}) } } }
+    if(!rows.length){ toast('รูปครบอยู่แล้ว — ไม่มีรูปที่ต้องกู้ ✓','ok'); return }
+    let ok=0; for(let i=0;i<rows.length;i+=100){ const {data,error}=await sb.from('media').insert(rows.slice(i,i+100)).select('path'); if(error){ _lastUpErr=error.message } else ok+=(data?data.length:0) }
+    toast(ok?('กู้รูปคืน '+ok+' รูป ✓'):'กู้ไม่สำเร็จ'+(_lastUpErr?': '+_lastUpErr:''), ok?'ok':'err')
+    if(ok) openSite(code)
+  }catch(e){ toast('กู้รูปไม่สำเร็จ: '+((e&&e.message)||e),'err') }
 }
 async function updatePendBadge(){ let n=0, stuck=0, ev=0
   try{ const items=await queueAll(); n=items.length; stuck=items.filter(r=>(r.tries||0)>=QMAXTRY).length }catch(e){ try{ n=await queueCount() }catch(e2){} }
