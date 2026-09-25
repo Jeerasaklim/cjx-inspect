@@ -2690,7 +2690,7 @@ function renderPhase(){
   html+=`<div class="summary ${scls}"><div class="big">${big}</div><div class="sub">${sub}</div>`
   if(failN){ html+=`<div class="punch"><div class="punchh">จุดที่ไม่ผ่าน ${failN} รายการ</div>`+cps.filter(c=>curStatus(c.id)==='fail').map(c=>{
     const pm=mediaOf(c.id), nt=curNote(c.id)
-    return `<div class="pi"><div class="pihd"><b>${esc(c.no||'•')}</b> ${esc(c.label)}</div>${nt?`<div class="pint">📝 ${esc(nt)}</div>`:''}${pm.length?`<div class="piph">${pm.map(m=>m.kind==='video'?`<video class="pithv" src="${m.url||''}" playsinline muted preload="metadata"></video>`:`<img class="th pith" src="${m.turl||m.url||''}" data-url="${m.url||''}">`).join('')}</div>`:'<div class="pinophoto">⚠ ยังไม่มีรูป</div>'}</div>`
+    return `<div class="pi"><div class="pihd"><b>${esc(c.no||'•')}</b> ${esc(c.label)}</div>${nt?`<div class="pint">📝 ${esc(nt)}</div>`:''}${pm.length?`<div class="piph">${pm.map(m=>m.kind==='video'?`<video class="pithv" src="${m.url||''}" playsinline muted preload="none"></video>`:`<img class="th pith" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">`).join('')}</div>`:'<div class="pinophoto">⚠ ยังไม่มีรูป</div>'}</div>`
   }).join('')+`</div>` }
   html+=`</div>`
   if(allPass && !suPhase){
