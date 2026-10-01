@@ -1019,8 +1019,8 @@ document.addEventListener('keydown',e=>{ if($('lightbox').classList.contains('hi
 let _lbSx=0
 $('lightbox').addEventListener('touchstart',e=>_lbSx=e.touches[0].clientX,{passive:true})
 $('lightbox').addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-_lbSx; if(Math.abs(dx)>45) lbStep(dx<0?1:-1) },{passive:true})
-const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', setup:'Set-Up (NSA)', head_setup:'หัวหน้า Set-Up', accounting:'บัญชี', admin:'Admin'}
-const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', setup:'#37D98B', head_setup:'#4FD1B5', accounting:'#C7A6FF', admin:'#37D98B'}
+const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', md:'Managing Director', setup:'Set-Up (NSA)', head_setup:'หัวหน้า Set-Up', accounting:'บัญชี', admin:'Admin'}
+const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', md:'#F0B429', setup:'#37D98B', head_setup:'#4FD1B5', accounting:'#C7A6FF', admin:'#37D98B'}
 const isSetup=()=>profile&&(profile.role==='setup'||profile.role==='head_setup')
 const PHASES = [[1,'นัดวางผัง'],[2,'ตอกเสาเข็ม'],[3,'งานโครงสร้างพื้น'],[4,'งานโครงเหล็ก'],
   [5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
@@ -1500,7 +1500,7 @@ const SETUP_SEED = (function(){
 
 let profile=null, myUid=null, stores=[], filter='building', query='', checkpoints=[], pctx=null
 let myStores=new Set(), profileNames={}, _tab='home', contractors=[]
-const HEAD_ROLES=['head_cm','head_construction','head_setup','admin']
+const HEAD_ROLES=['head_cm','head_construction','md','head_setup','admin']
 const isHead=()=>HEAD_ROLES.includes(profile&&profile.role)
 const canApprove=()=>isHead()
 const nameOf=uid=>uid&&profileNames[uid]?profileNames[uid]:'—'
@@ -1685,7 +1685,7 @@ async function recentThumbs(rows){
 }
 async function renderLanding(){
   const nm=profile.name||profile.email||'', admin=profile.role==='admin'
-  const RL={cm:['CM (ควบคุมงานก่อสร้าง)','#8FB4FF'],head_cm:['หัวหน้า CM','#FF9F1C'],head_construction:['หัวหน้าก่อสร้าง','#F5C518'],setup:['ทีมตรวจรับ Set-Up','#37D98B'],head_setup:['หัวหน้า Set-Up','#4FD1B5'],accounting:['บัญชี (ดูรายงานทุกสาขา)','#C7A6FF'],admin:['ผู้ดูแลระบบ','#C79BFF']}
+  const RL={cm:['CM (ควบคุมงานก่อสร้าง)','#8FB4FF'],head_cm:['หัวหน้า CM','#FF9F1C'],head_construction:['หัวหน้าก่อสร้าง','#F5C518'],md:['Managing Director (ดูทุกสาขา เหมือน Head ก่อสร้าง)','#F0B429'],setup:['ทีมตรวจรับ Set-Up','#37D98B'],head_setup:['หัวหน้า Set-Up','#4FD1B5'],accounting:['บัญชี (ดูรายงานทุกสาขา)','#C7A6FF'],admin:['ผู้ดูแลระบบ','#C79BFF']}
   const rl=RL[profile.role]||[String(profile.role||'-'),'#9A9A93']
   $('landBody').innerHTML = `
    <div class="flex flex-col w-full gap-space-xl">
@@ -1821,7 +1821,7 @@ async function loadFixWork(){
   const evAll = await fetchAllRows('check_events','inspection_id,checkpoint,round,status,created_at','created_at')
   const nameByCode={}; stores.forEach(s=>nameByCode[s.code]=s.name||s.code)
   const role=profile&&profile.role
-  const seeAll   = ['admin','head_construction','head_cm'].includes(role)   // เห็นทุกสาขา ทั้งก่อสร้าง+Set-Up
+  const seeAll   = ['admin','head_construction','md','head_cm'].includes(role)   // เห็นทุกสาขา ทั้งก่อสร้าง+Set-Up
   const setupAll = role==='head_setup'                                       // เห็นทุกสาขา เฉพาะ Set-Up
   const cur={}   // (สาขา||ข้อ) -> รอบล่าสุด + event ท้ายสุดในรอบนั้น
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
@@ -1936,7 +1936,7 @@ function homeCount(f){ if(f==='mine') return myStores.size; if(f==='all') return
   return stores.filter(s=>s.cs.key===f).length }
 function updateHomeStat(){
   const role=profile&&profile.role
-  const tofixLbl = ['admin','head_construction','head_cm'].includes(role)?'ทุกสาขาที่ยังมีจุดไม่ผ่าน · ต้องแก้'
+  const tofixLbl = ['admin','head_construction','md','head_cm'].includes(role)?'ทุกสาขาที่ยังมีจุดไม่ผ่าน · ต้องแก้'
     : role==='head_setup'?'ทุกสาขาที่ Set-Up ตรวจไม่ผ่าน · ต้องแก้'
     : 'สาขาที่คุณตรวจแล้วยังมีจุดไม่ผ่าน · ต้องแก้'
   const lbl={mine:'งานของฉัน · สาขาที่คุณตรวจ',tofix:tofixLbl,building:'สาขากำลังก่อสร้าง · ต้องเข้าตรวจ',notyet:'สาขายังไม่ก่อสร้าง',opened:'สาขาเปิดแล้ว',all:'สาขาทั้งหมด'}[filter]||''
@@ -2317,7 +2317,7 @@ async function openSite(code){
         const suLatest=(k)=>{ const a=signoffs.filter(x=>x.scope==='setup'&&x.kind===k); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
         const nsaS=suLatest('setup_nsa'), suCmS=suLatest('setup_cm'), cmName=setupCmName(signoffs)
         const isSetupSide=['setup','head_setup','admin'].includes(profile.role)   // ฝั่งผู้ตรวจรับ (NSA)
-        const isConSide=['cm','head_cm','head_construction','admin'].includes(profile.role)   // ฝั่งก่อสร้าง (CM)
+        const isConSide=['cm','head_cm','head_construction','md','admin'].includes(profile.role)   // ฝั่งก่อสร้าง (CM)
         const bothSigned=!!nsaS&&!!suCmS
         const slot=(kind,sig,label,labelCls,canSign,nameShown,waitTxt)=>{
           const bg=sig?'bg-surface-pass':'bg-surface-control'
@@ -2506,7 +2506,7 @@ async function openPhase(code, phase){
 // สถานะธงแดงระดับงวด: active = signoff ล่าสุดของ scope 'rfp:<งวด>' เป็น kind 'redflag' (ยังไม่ถูกปิดด้วย 'redflag_done')
 function rfPhaseState(){ const a=(pctx.redflags||[]); if(!a.length) return null; const last=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p))
   return { active:last.kind==='redflag', reason:last.note||'', by:last.by, at:last.created_at, kind:last.kind } }
-function canClearRf(){ return profile && ['head_cm','head_construction','admin'].includes(profile.role) }
+function canClearRf(){ return profile && ['head_cm','head_construction','md','admin'].includes(profile.role) }
 async function reloadRedflags(){ const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,note').eq('store_code',pctx.code).eq('scope','rfp:'+pctx.phase); pctx.redflags=data||[] }
 function openRedFlag(){
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
@@ -3372,7 +3372,7 @@ $('btnUsersCsv').onclick = async ()=>{
 }
 function drawUsers(){
   if(!_users.length){ $('usersBox').innerHTML='<div class="uhint">ยังไม่มีผู้ใช้ — สร้างที่ Supabase → Authentication → Users แล้วกลับมาโหลดใหม่</div>'; return }
-  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['admin','Admin']]
+  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['md','Managing Director'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['admin','Admin']]
   const q=_userQ.trim().toLowerCase()
   const list=_users.filter(u=>!q||[u.name,u.email].some(v=>(v||'').toLowerCase().includes(q)))
   const rows = list.map(u=>{ const rc=ROLE_COLOR[u.role]||'#9AA7B2'; const self=u.id===myUid
@@ -3406,7 +3406,7 @@ function drawUsers(){
 $('btnPendLogout').onclick = async ()=>{ await sb.auth.signOut(); profile=null; showAuth() }
 
 // ---- ทะเบียนสิทธิ์ (roster) — กำหนดล่วงหน้า + กันคนนอก ----
-const _ROSTER_ROLES=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['admin','Admin']]
+const _ROSTER_ROLES=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['md','Managing Director'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['admin','Admin']]
 let _roster=[]
 function _rosOpts(sel){ return _ROSTER_ROLES.map(([k,l])=>`<option value="${k}" ${sel===k?'selected':''}>${l}</option>`).join('') }
 async function _rosterSet(email,name,role){

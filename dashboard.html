@@ -106,9 +106,9 @@ let _ovStage='all', _cph='all', _sf='all', _ctf='all', _ctSort='score'
 let _drMode='today', _drDate=''
 // สิทธิ์ตาม role (ล้อตาม app): pending=บล็อก · head_*/admin=ทุกสาขา · cm/setup=เฉพาะสาขาตัวเอง
 let myUid=null, myRole='', scopeAll=true, allowedViews=['1','2','3','4','5']
-const HQ_ROLE_TH={cm:'CM',head_cm:'หัวหน้า CM',head_construction:'Head Construction',setup:'Set-Up (NSA)',head_setup:'หัวหน้า Set-Up',accounting:'บัญชี',admin:'Admin',pending:'รออนุมัติ'}
-const HQ_HEAD=['head_cm','head_construction','head_setup','accounting','admin']
-const HQ_VIEWS={admin:['1','8','7','2','3','4','6','5'],accounting:['1','8','7','2','3','4','6','5'],head_construction:['1','8','7','2','4','6','5'],head_cm:['1','8','7','2','4','6','5'],cm:['1','8','7','2','5'],head_setup:['1','8','7','3','5'],setup:['1','8','7','3','5']}
+const HQ_ROLE_TH={cm:'CM',head_cm:'หัวหน้า CM',head_construction:'Head Construction',md:'Managing Director',setup:'Set-Up (NSA)',head_setup:'หัวหน้า Set-Up',accounting:'บัญชี',admin:'Admin',pending:'รออนุมัติ'}
+const HQ_HEAD=['head_cm','head_construction','md','head_setup','accounting','admin']
+const HQ_VIEWS={admin:['1','8','7','2','3','4','6','5'],accounting:['1','8','7','2','3','4','6','5'],head_construction:['1','8','7','2','4','6','5'],md:['1','8','7','2','4','6','5'],head_cm:['1','8','7','2','4','6','5'],cm:['1','8','7','2','5'],head_setup:['1','8','7','3','5'],setup:['1','8','7','3','5']}
 async function fetchAll(table,cols,order,filt){ let out=[],from=0,size=1000
   for(;;){ let q=sb.from(table).select(cols).order(order).range(from,from+size-1); if(filt) q=filt(q)
     const {data,error}=await q; if(error){console.warn(table,error.message);break}; out=out.concat(data||[]); if(!data||data.length<size) break; from+=size } return out }
