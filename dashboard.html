@@ -47,6 +47,7 @@ fontSize:{"hero-display":["44px",{lineHeight:"44px",letterSpacing:"-0.02em",font
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="3"><span class="material-symbols-outlined text-[20px]">rule</span><span>ตรวจรับร้าน Set-Up</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="4"><span class="material-symbols-outlined text-[20px]">analytics</span><span>วิเคราะห์ผู้รับเหมา</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="6"><span class="material-symbols-outlined text-[20px]">engineering</span><span>วิเคราะห์ CM (ตรงเวลา)</span></a>
+      <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="9"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>📅 ปฏิทินส่งงาน CM</span></a>
       <a class="navlink flex items-center gap-3 px-3 py-2.5 rounded font-body-sm text-body-sm text-ink-muted hover:bg-surface-elevated hover:text-ink-primary transition-colors cursor-pointer" data-view="5"><span class="material-symbols-outlined text-[20px]">picture_as_pdf</span><span>รายงาน (Reports)</span></a>
     </nav>
   </div>
@@ -108,7 +109,7 @@ let _drMode='today', _drDate=''
 let myUid=null, myRole='', scopeAll=true, allowedViews=['1','2','3','4','5']
 const HQ_ROLE_TH={cm:'CM',head_cm:'หัวหน้า CM',head_construction:'Head Construction',md:'Managing Director',setup:'Set-Up (NSA)',head_setup:'หัวหน้า Set-Up',accounting:'บัญชี',admin:'Admin',pending:'รออนุมัติ'}
 const HQ_HEAD=['head_cm','head_construction','md','head_setup','accounting','admin']
-const HQ_VIEWS={admin:['1','8','7','2','3','4','6','5'],accounting:['1','8','7','2','3','4','6','5'],head_construction:['1','8','7','2','4','6','5'],md:['1','8','7','2','4','6','5'],head_cm:['1','8','7','2','4','6','5'],cm:['1','8','7','2','5'],head_setup:['1','8','7','3','5'],setup:['1','8','7','3','5']}
+const HQ_VIEWS={admin:['1','8','7','2','3','4','6','9','5'],accounting:['1','8','7','2','3','4','6','9','5'],head_construction:['1','8','7','2','4','6','9','5'],md:['1','8','7','2','4','6','9','5'],head_cm:['1','8','7','2','4','6','9','5'],cm:['1','8','7','2','5'],head_setup:['1','8','7','3','5'],setup:['1','8','7','3','5']}
 async function fetchAll(table,cols,order,filt){ let out=[],from=0,size=1000
   for(;;){ let q=sb.from(table).select(cols).order(order).range(from,from+size-1); if(filt) q=filt(q)
     const {data,error}=await q; if(error){console.warn(table,error.message);break}; out=out.concat(data||[]); if(!data||data.length<size) break; from+=size } return out }
@@ -536,6 +537,40 @@ window._cmShow=function(uid){ const cm=_cmMap[uid]; if(!cm) return
     const dtxt=s.cs?(s.cs.key==='opened'?'เปิดแล้ว':s.cs.days!=null?(s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days):'—'):'—'
     return `<div onclick="window._openStore('${esc(code)}')" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#141416;border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer"><div style="min-width:0"><div style="font-weight:700;color:#F5F5F2;font-size:13px">${esc(s.name||code)} <span style="color:#67675F;font-size:11px">${esc(code)}${s.province?' · '+esc(s.province):''}</span></div><div style="font-size:11.5px;margin-top:2px">${status} · <span style="color:#8FB4FF">ก่อสร้าง ${pct}%</span> · <span style="color:#9A9A93">${dtxt}</span></div></div><span class="material-symbols-outlined" style="color:#8a7766">chevron_right</span></div>` }).join('')
   showOverlay(ovHead('👷 '+esc(cm.name)+' — สาขาในความดูแล ('+cm.stores.length+')','⏰ เกินกำหนดตรวจ '+cm.overdue+' งวด · 🔧 ค้างแก้ '+cm.defect+' งวด · แตะสาขาเพื่อดูรายละเอียด+รูป')+`<div style="padding:14px 16px;max-height:70vh;overflow:auto">${rows||'<div style="color:#9A9A93;text-align:center;padding:20px">ไม่มีสาขา</div>'}</div>`) }
+// ===== ปฏิทินส่งงาน CM (view 9) — ตารางวันที่ × CM (heatmap) กดดูรายละเอียด =====
+let _cmCalMap={}
+function _calBg(n){ if(n<=0) return {bg:'#2a1416',fg:'#7a4a4a'}; if(n<=1) return {bg:'#143a24',fg:'#9fe0b8'}; if(n<=3) return {bg:'#1b6b3a',fg:'#d6ffe6'}; if(n<=6) return {bg:'#2f9e52',fg:'#ffffff'}; return {bg:'#41e091',fg:'#06351d'} }
+function renderCmCalendar(){
+  const roleByUid={}; profiles.forEach(p=>roleByUid[p.id]=p.role)
+  const p2=n=>String(n).padStart(2,'0'); const N=14
+  const t=new Date(); t.setHours(0,0,0,0); const days=[]; for(let i=N-1;i>=0;i--){ const d=new Date(t); d.setDate(d.getDate()-i); days.push(d) }
+  const keyOf=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`
+  const codeByIns={}; insps.forEach(i=>codeByIns[i.id]=i.store_code)
+  const cnt={}; _cmCalMap={}
+  events.forEach(e=>{ if(!e.by||roleByUid[e.by]!=='cm')return; const d=new Date(e.created_at); if(isNaN(d))return; const dk=keyOf(d); const k=e.by+'|'+dk; cnt[k]=(cnt[k]||0)+1; (_cmCalMap[k]||(_cmCalMap[k]=[])).push(e) })
+  const totIn={}; profiles.forEach(p=>{ if(p.role==='cm'){ let s=0; days.forEach(d=>{ s+=cnt[p.id+'|'+keyOf(d)]||0 }); totIn[p.id]=s } })
+  let cms=profiles.filter(p=>p.role==='cm').sort((a,b)=>(totIn[b.id]-totIn[a.id])||((nameOf(a.id)||'').localeCompare(nameOf(b.id)||'')))
+  if(_q) cms=cms.filter(p=>(nameOf(p.id)||'').toLowerCase().includes(_q))
+  const wd=['อา','จ','อ','พ','พฤ','ศ','ส']
+  let h=pageHead('ปฏิทินส่งงาน CM (Calendar)','ดูว่า CM แต่ละคนส่งงานวันไหนบ้าง — เขียวเข้ม=ส่งเยอะ · แดง=ไม่มีส่ง','นับจากผลตรวจที่ CM บันทึก (check_events) ต่อวัน ย้อนหลัง '+N+' วัน · แตะเซลล์เขียวเพื่อดูว่าวันนั้นส่งอะไรบ้าง')
+  h+=`<div class="flex items-center gap-1.5 mb-3 flex-wrap font-label-micro text-label-micro text-ink-muted"><span>น้อย</span>${[1,2,4,7,12].map(n=>{const c=_calBg(n);return `<span style="width:20px;height:14px;border-radius:3px;background:${c.bg};display:inline-block"></span>`}).join('')}<span>มาก</span><span class="ml-3"><span style="width:14px;height:14px;background:#2a1416;border-radius:3px;display:inline-block;vertical-align:middle"></span> ไม่มีส่ง</span></div>`
+  h+=`<div class="bg-surface-card rounded-xl shadow-md overflow-x-auto"><table class="text-center" style="border-collapse:separate;border-spacing:3px"><thead><tr><th class="text-left px-3 py-2 font-label-caps text-label-caps text-ink-faint uppercase" style="min-width:150px;position:sticky;left:0;background:#141416;z-index:1">CM</th>${days.map(d=>`<th class="font-label-micro text-label-micro ${keyOf(d)===keyOf(t)?'text-primary-container':'text-ink-faint'}" style="min-width:40px">${wd[d.getDay()]}<br>${d.getDate()}/${d.getMonth()+1}</th>`).join('')}<th class="font-label-micro text-label-micro text-ink-faint px-2">รวม</th></tr></thead><tbody>`
+  if(!cms.length) h+=`<tr><td colspan="${N+2}" class="py-8 text-ink-muted">ยังไม่มี CM ในระบบ${_q?' (กรอง)':''}</td></tr>`
+  cms.forEach(p=>{ h+=`<tr><td class="text-left px-3 py-1 font-body-sm text-body-sm font-bold text-ink-primary" style="position:sticky;left:0;background:#141416;z-index:1">${esc(nameOf(p.id))}</td>`
+    days.forEach(d=>{ const dk=keyOf(d); const n=cnt[p.id+'|'+dk]||0; const c=_calBg(n)
+      h+=`<td><div ${n>0?`data-calcell="${esc(p.id)}|${dk}" style="cursor:pointer;`:'style="'}width:38px;height:28px;border-radius:5px;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;margin:auto" title="${esc(nameOf(p.id))} · ${d.getDate()}/${d.getMonth()+1} · ${n?n+' งาน':'ไม่มีส่ง'}">${n||''}</div></td>` })
+    h+=`<td class="font-data-mono font-bold px-2" style="color:${totIn[p.id]?'#7EE6B0':'#67675F'}">${totIn[p.id]||0}</td></tr>` })
+  h+=`</tbody></table></div>`
+  return h
+}
+window._cmCalShow=function(key){ const items=_cmCalMap[key]||[]; const sp=key.split('|'), uid=sp[0], dk=sp[1]
+  const codeByIns={}; insps.forEach(i=>codeByIns[i.id]=i.store_code)
+  const stTxt={pass:['ผ่าน','#7EE6B0'],fail:['ไม่ผ่าน','#FF5C5C'],fixed:['รอตรวจซ้ำ','#D9B84A'],na:['ไม่มีงาน','#9A9A93']}
+  const byStore={}; items.forEach(e=>{ const code=codeByIns[e.inspection_id]||'?'; const c=checkpoints.find(x=>String(x.id)===String(e.checkpoint)); const ph=c?c.phase:0; (byStore[code]||(byStore[code]=[])).push({phaseName:_rfPhName(ph),cpLabel:(c&&(c.label||c.name))||('ข้อ '+e.checkpoint),status:e.status,at:e.created_at}) })
+  const body=Object.keys(byStore).map(code=>{ const s=stores.find(z=>z.code===code)||{code}
+    const rows=byStore[code].slice().sort((a,b)=>(a.at||'').localeCompare(b.at||'')).map(x=>{const b=stTxt[x.status]||[x.status,'#9A9A93'];return `<div class="flex items-center justify-between gap-2 py-1" style="border-top:1px solid #201f20"><span class="font-body-sm text-body-sm"><span class="text-ink-muted">${esc(x.phaseName)}</span> · ${esc(x.cpLabel)}</span><span class="shrink-0 font-label-micro text-label-micro"><span style="color:${b[1]};font-weight:700">${b[0]}</span> <span class="text-ink-faint">${fmtDate(x.at)}</span></span></div>`}).join('')
+    return `<div class="mb-3"><div class="font-title-sm text-title-sm font-bold"><span onclick="window._openStore('${esc(code)}')" class="cursor-pointer hover:text-primary-container">${esc(s.name||code)}</span> <span class="font-label-micro text-label-micro text-ink-faint">(${byStore[code].length} ข้อ)</span></div>${rows}</div>` }).join('')
+  showOverlay(ovHead(esc(nameOf(uid))+' · วันที่ '+esc(dk),'ส่งงานวันนี้ '+items.length+' ข้อ · แตะชื่อสาขาเพื่อดูรายละเอียด')+`<div style="padding:16px;max-height:70vh;overflow:auto">${body||'<div class="text-ink-muted">—</div>'}</div>`) }
 function renderCmAnalysis(){
   const roleByUid={}; profiles.forEach(p=>roleByUid[p.id]=p.role)
   const isCM=u=>roleByUid[u]==='cm'   // เฉพาะ role CM (ไม่เอา admin/หัวหน้า)
@@ -1272,6 +1307,7 @@ function render(){
   else if(_view==='3') html+=renderSetup()
   else if(_view==='4') html+=renderContractor()
   else if(_view==='6') html+=renderCmAnalysis()
+  else if(_view==='9') html+=renderCmCalendar()
   else if(_view==='8') html+=renderDailyReport()
   else if(_view==='7') html+=renderRedFlags()
   else if(_view==='5') html+=renderReports()
@@ -1285,6 +1321,7 @@ function render(){
   $('hqBody').querySelectorAll('[data-sf]').forEach(b=> b.onclick=()=>{ _sf=b.dataset.sf; render() })
   $('hqBody').querySelectorAll('[data-ctf]').forEach(b=> b.onclick=()=>{ _ctf=b.dataset.ctf; render() })
   $('hqBody').querySelectorAll('[data-dr]').forEach(b=> b.onclick=()=>{ _drMode=b.dataset.dr; render() })
+  $('hqBody').querySelectorAll('[data-calcell]').forEach(b=> b.onclick=()=>window._cmCalShow(b.dataset.calcell))
   $('hqBody').querySelectorAll('[data-drday]').forEach(b=> b.onclick=()=>{ _drDayNav(b.dataset.drday); render() })
   $('hqBody').querySelectorAll('[data-drtoday]').forEach(b=> b.onclick=()=>buildTodayReport(b.dataset.drtoday))
   $('hqBody').querySelectorAll('[data-drexport]').forEach(b=> b.onclick=(ev)=>{ ev.stopPropagation(); const p=b.dataset.drexport.split('|'); buildTodayReport(p[0],p.slice(1).join('|')) })
