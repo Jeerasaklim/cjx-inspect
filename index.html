@@ -1025,6 +1025,7 @@ const isSetup=()=>profile&&(profile.role==='setup'||profile.role==='head_setup')
 const PHASES = [[1,'นัดวางผัง'],[2,'ตอกเสาเข็ม'],[3,'งานโครงสร้างพื้น'],[4,'งานโครงเหล็ก'],
   [5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
 const PRECON = [[101,'สำรวจพื้นที่'],[102,'เข้าพื้นที่พร้อม ผรม.'],[103,'ติดตามงาน Pre-Con'],[104,'ตรวจรับ Pre-Con']]
+const FEAS_PHASE = 100   // ประเมิน Feasibility (ก่อน Pre-Con) · สถานะ เรียบร้อย(pass)/ไม่เรียบร้อย(fail)
 const CONSTRUCTION_DAYS = 40
 const CHECKLIST_SEED = (function(){
   const rows=[]; let sort=0
@@ -2230,6 +2231,13 @@ async function openSite(code){
       if(autoOver) parts.push(`⏰ เกินกำหนดตรวจ ${autoOver} งวด`)
       if(autoDef) parts.push(`🔧 ค้างแก้ไข ${autoDef} งวด`)
       html += `<div class="rfstore"><span class="rfflag">🚩</span><div style="flex:1;min-width:0"><b>${parts.join(' · ')}</b><div style="font-size:11px;opacity:.9;margin-top:1px">แตะงวดที่มีสัญลักษณ์เพื่อดู · 🚩=แจ้งเอง · ⏰=เลยเส้นตายตรวจ · 🔧=จุดไม่ผ่านยังไม่แก้</div></div></div>` }
+    // ---- ประเมิน Feasibility (ก่อน Pre-Con) ----
+    if(checkpoints.some(c=>c.phase===FEAS_PHASE)){ const fst=phaseStatus(FEAS_PHASE, inspByPhase[FEAS_PHASE], events)
+      const pass=fst.key==='pass', fail=fst.key==='fail', lbl=pass?'✓ ประเมินเรียบร้อย':fail?'✕ ไม่เรียบร้อย':(fst.done?'กำลังประเมิน':'ยังไม่ประเมิน')
+      const bg=pass?'bg-surface-pass text-ink-pass':fail?'bg-surface-fail text-ink-fail':'bg-surface-control text-ink-faint'
+      html += `<div class="flex flex-col gap-space-sm">
+        <div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-head-const text-[18px]">travel_explore</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">ประเมินความเป็นไปได้ (ก่อน Pre-Con)</h2></div>
+        <div class="rounded-xl bg-surface-card p-space-md flex items-center justify-between gap-space-sm shadow-sm cursor-pointer" data-phase="${FEAS_PHASE}"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">travel_explore</span></div><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm text-ink-primary font-bold">ประเมิน Feasibility</span><div class="font-body-sm text-body-sm truncate ${pass?'text-ink-pass':fail?'text-ink-fail':'text-ink-faint'}">ถ่ายรูป/คลิปสภาพพื้นที่ · ${lbl}</div></div></div><span class="material-symbols-outlined text-ink-faint text-[20px] shrink-0">chevron_right</span></div></div>` }
     html += `<div class="flex flex-col gap-space-sm">
       <div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-setup text-[18px]">verified</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">PRE-CON · งานเตรียมพื้นที่ก่อนก่อสร้าง</h2></div><span class="font-label-caps text-label-caps px-2 py-0.5 rounded-full ${prePass===PRECON.length?'bg-surface-pass text-ink-pass':'bg-surface-warning text-ink-warning'}">${prePass===PRECON.length?'ผ่านครบ':'ผ่าน'} ${prePass}/${PRECON.length}</span></div>
       <div class="rounded-xl bg-surface-card p-space-md shadow-sm"><div class="grid grid-cols-4 gap-space-xs text-center">
@@ -2604,11 +2612,12 @@ function renderPhase(){
   const allPass = total>0 && done===total && failN===0
   const approved = pctx.signoffs.find(x=>x.kind==='approve')
   const locked = phaseLocked(), editable = phaseEditable()
-  const phaseName=(cps[0]&&cps[0].phase_name)||(phase>200?('ตรวจรับ Set-Up '+(phase-200)):phase>100?('Pre-Con '+(phase-100)):('ครั้งที่ '+phase))
+  const feas = phase===FEAS_PHASE
+  const phaseName=(cps[0]&&cps[0].phase_name)||(feas?'ประเมิน Feasibility':phase>200?('ตรวจรับ Set-Up '+(phase-200)):phase>100?('Pre-Con '+(phase-100)):('ครั้งที่ '+phase))
   const suPhase = phase>=201 && phase<=208
   const cmRespond = suPhase && profile.role==='cm'   // CM เข้ามาแก้ข้อที่ Set-Up ตีกลับ
   const fixedN=cps.filter(c=>curStatus(c.id)==='fixed').length
-  const _bt = (phase>=201&&phase<=208)?`ตรวจรับ Set-Up ${phase-200} จาก 8`:(phase>=101&&phase<=104)?`Pre-Con ${phase-100} จาก 4`:`งวดที่ ${phase} จาก 9`
+  const _bt = feas?'ก่อน Pre-Con · ประเมินความเป็นไปได้':(phase>=201&&phase<=208)?`ตรวจรับ Set-Up ${phase-200} จาก 8`:(phase>=101&&phase<=104)?`Pre-Con ${phase-100} จาก 4`:`งวดที่ ${phase} จาก 9`
   let html=`<a class="phback inline-flex items-center gap-space-xs text-ink-muted cursor-pointer" style="margin:0 0 4px -4px;padding:4px 0"><span class="material-symbols-outlined text-[20px]">chevron_left</span><span class="font-body-sm text-body-sm font-semibold">กลับไปหน้าสาขา</span></a>
   <div class="flex items-start justify-between gap-space-md" style="margin-bottom:14px">
     <div class="min-w-0"><div class="inline-flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-surface-elevated text-role-head-const font-label-micro text-label-micro uppercase tracking-wider" style="margin-bottom:6px"><span class="w-1.5 h-1.5 rounded-full bg-role-head-const"></span>${_bt}</div><h1 class="font-headline-md text-headline-md text-ink-primary font-extrabold tracking-tight">${esc(phaseName)}</h1><p class="font-body-sm text-body-sm text-ink-muted mt-0.5">สาขา ${esc(storeName)} (${esc(pctx.code)})</p></div>
@@ -2621,7 +2630,7 @@ function renderPhase(){
   html+=`<div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.3)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px"><span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;color:#F5F5F2"><span class="material-symbols-outlined" style="font-size:18px;color:#F5C518">verified</span>ตรวจแล้ว ${done}/${total} ข้อ</span><span class="mono" style="font-size:14px;font-weight:800;color:#F5C518">${pct}%</span></div>
     <div style="display:flex;height:9px;border-radius:99px;overflow:hidden;background:#141416"><div style="background:#37D98B;width:${_pp}%"></div><div style="background:#FF5C5C;width:${_pf}%"></div></div>
-    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10.5px;font-weight:700"><span style="color:#37D98B">● ผ่าน ${passN}</span><span style="color:#FF5C5C">● ไม่ผ่าน ${failN}</span><span style="color:#9A9A93">○ รอตรวจ ${total-done}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10.5px;font-weight:700"><span style="color:#37D98B">● ${feas?'เรียบร้อย':'ผ่าน'} ${passN}</span><span style="color:#FF5C5C">● ${feas?'ไม่เรียบร้อย':'ไม่ผ่าน'} ${failN}</span><span style="color:#9A9A93">○ ${feas?'ยังไม่ประเมิน':'รอตรวจ'} ${total-done}</span></div>
   </div>`
   let lastGrp='__none__', first=true
   cps.forEach(c=>{
@@ -2652,15 +2661,17 @@ function renderPhase(){
       act = `${note?`<div class="chint">📝 ${esc(note)}</div>`:''}${editable?`<div class="editlink" data-edit="${c.id}"><span class="material-symbols-outlined" style="font-size:15px">edit</span> แก้ผลการตรวจ</div>`:''}`
     } else {
       const suRecheck = suPhase && cur==='fixed' ? `<div class="chint" style="color:var(--build)">🔧 CM แก้แล้ว มีรูปใหม่ — โปรดตรวจซ้ำ</div>` : ''
-      const defBox = cur==='fail' ? `<div class="defbox"><span class="material-symbols-outlined defico">report_problem</span><div style="min-width:0"><div class="deft">บันทึกข้อบกพร่อง (Defect):</div><p class="defp"${note?'':' style="color:var(--muted)"'}>${note?esc(note):'— ระบุรายละเอียดจุดบกพร่องในช่องหมายเหตุด้านล่าง —'}</p></div></div><div class="waitbadge"><span class="material-symbols-outlined" style="font-size:15px">build</span> รอ ผรม. แก้ไขและส่งตรวจซ้ำ</div>` : ''
+      const defBox = (cur==='fail'&&feas) ? `<div class="defbox"><span class="material-symbols-outlined defico">report_problem</span><div style="min-width:0"><div class="deft">ประเมินแล้ว: ไม่เรียบร้อย</div><p class="defp"${note?'':' style="color:var(--muted)"'}>${note?esc(note):'— ระบุเหตุผลที่ประเมินว่าไม่เรียบร้อยในช่องหมายเหตุด้านล่าง —'}</p></div></div>`
+        : cur==='fail' ? `<div class="defbox"><span class="material-symbols-outlined defico">report_problem</span><div style="min-width:0"><div class="deft">บันทึกข้อบกพร่อง (Defect):</div><p class="defp"${note?'':' style="color:var(--muted)"'}>${note?esc(note):'— ระบุรายละเอียดจุดบกพร่องในช่องหมายเหตุด้านล่าง —'}</p></div></div><div class="waitbadge"><span class="material-symbols-outlined" style="font-size:15px">build</span> รอ ผรม. แก้ไขและส่งตรวจซ้ำ</div>` : ''
       const evTxt = ph.length ? ('✓ มี'+(isVid?'วิดีโอ':'รูป')+' '+ph.length+(ph.some(m=>m.pending)?' · กำลังอัปเบื้องหลัง':(ph.some(m=>m.err)?' · บางอันอัปไม่ขึ้น':'')))
+        : feas ? 'ต้องแนบรูป/คลิปสภาพพื้นที่สาขาก่อนบันทึก'
         : (needEvid ? ('ต้องแนบ'+(isVid?'วิดีโอ':'รูป')+'ก่อนกดผ่าน/ไม่ผ่าน') : '“ผ่าน” ติ๊กได้เลย · “ไม่ผ่าน” ต้องแนบรูปจุดที่มีปัญหา')
-      act=`${suRecheck}${defBox}${cur==='fail'?'<div class="reqph" style="margin-top:11px">แก้แล้วตรวจซ้ำ (แนบรูปที่แก้ก่อนกดผ่าน):</div>':`<div class="reqph ${ph.length?'ok':(needEvid?'':'opt')}">${evTxt}</div>`}
-      <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">ผ่าน</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">ไม่ผ่าน</b>${c.na?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
+      act=`${suRecheck}${defBox}${(cur==='fail'&&!feas)?'<div class="reqph" style="margin-top:11px">แก้แล้วตรวจซ้ำ (แนบรูปที่แก้ก่อนกดผ่าน):</div>':`<div class="reqph ${ph.length?'ok':(needEvid?'':'opt')}">${evTxt}</div>`}
+      <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">${feas?'ประเมินเรียบร้อย':'ผ่าน'}</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">${feas?'ไม่เรียบร้อย':'ไม่ผ่าน'}</b>${(c.na&&!feas)?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
       ${cur?'<div class="ptip">แตะตัวเลือกเดิมซ้ำ = เอาการติ๊กออก</div>':''}
       <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(note)}">`
     }
-    const _bd={pass:['#12271B','#7EE6B0','check_circle','ผ่าน'],fail:['#241416','#FF9B9B','cancel','ไม่ผ่าน'],fixed:['#1C1608','#D9B84A','build','แก้แล้ว'],na:['#232327','#9A9A93','block','ไม่มีงานนี้']}[cur]||['#232327','#67675F','hourglass_empty','รอตรวจ']
+    const _bd=(feas?{pass:['#12271B','#7EE6B0','check_circle','เรียบร้อย'],fail:['#241416','#FF9B9B','cancel','ไม่เรียบร้อย']}:{pass:['#12271B','#7EE6B0','check_circle','ผ่าน'],fail:['#241416','#FF9B9B','cancel','ไม่ผ่าน'],fixed:['#1C1608','#D9B84A','build','แก้แล้ว'],na:['#232327','#9A9A93','block','ไม่มีงานนี้']})[cur]||['#232327','#67675F','hourglass_empty',feas?'รอประเมิน':'รอตรวจ']
     const badge=`<span style="display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;padding:4px 10px;border-radius:999px;background:${_bd[0]};color:${_bd[1]};font-size:11px;font-weight:700"><span class="material-symbols-outlined" style="font-size:14px">${_bd[2]}</span>${_bd[3]}</span>`
     html+=`<div class="cp ${cls}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
@@ -2763,7 +2774,8 @@ async function saveTick(cpId, status){
   const _cp=pctx.cps.find(c=>String(c.id)===String(cpId))
   const mustEvid = (status==='fail') || cpEvid(_cp)   // "ไม่ผ่าน" = ต้องแนบรูปจุดที่มีปัญหาเสมอ (แม้ข้อนั้นไม่บังคับตอนผ่าน)
   if((status==='pass'||status==='fail') && mustEvid && !mediaOf(cpId).length){
-    alert(status==='fail'
+    alert(_cp&&_cp.phase===FEAS_PHASE ? 'ต้องแนบรูป/คลิปสภาพพื้นที่สาขาก่อนบันทึกผลประเมิน'
+      : status==='fail'
       ? (cpVideo(_cp)?'“ไม่ผ่าน” — ต้องแนบวิดีโอจุดที่มีปัญหาก่อน':'“ไม่ผ่าน” — ต้องแนบรูปจุดที่มีปัญหาก่อน')
       : (cpVideo(_cp)?'ข้อนี้ต้องแนบวิดีโอก่อนกดผ่าน':'ข้อนี้ต้องแนบรูปก่อนกดผ่าน')); return }
   const inp=$('phaseBody').querySelector(`.cmt[data-cp="${cpId}"]`)

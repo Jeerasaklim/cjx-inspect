@@ -88,6 +88,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 
 const PHASES=[[1,'นัดวางผัง'],[2,'ตอกเสาเข็ม'],[3,'โครงสร้างพื้น'],[4,'งานโครงเหล็ก'],[5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
 const PRECON=[[101,'สำรวจพื้นที่'],[102,'เข้าพื้นที่พร้อม ผรม.'],[103,'ติดตาม Pre-Con'],[104,'ตรวจรับ Pre-Con']]
+const FEAS=[[100,'ประเมิน Feasibility']]   // ก่อน Pre-Con · เรียบร้อย(pass)/ไม่เรียบร้อย(fail)
 const SETUP_SECTIONS=[[201,'ป้ายไฟ / Tower Sign',5],[202,'ภายนอกร้าน',10],[203,'พื้นที่ขาย',30],[204,'พื้นที่สต๊อก',30],[205,'ห้องผู้จัดการ',5],[206,'ห้องน้ำ',10],[207,'จุดซักล้าง',5],[208,'ประปา/สุขาภิบาล',5]]
 const CDAYS=40
 function cs(open){ if(!open) return {key:'unknown',label:'ไม่ระบุ',days:null}
@@ -145,7 +146,7 @@ async function loadAll(){
 const nameOf=u=>nameByUid[u]||'—'
 // ---- Red Flag (ธงแดง) : manual (signoffs rfp:) + auto (เกินกำหนดตรวจ/ค้างแก้ไข) ----
 const RF_DUE={1:48,2:46,3:33,4:28,5:24,6:20,7:13,8:8,9:6}   // ยึดเลขน้ำเงิน(หน้าฝน) · งวด 7-9 ใช้ดำ
-function _rfPhName(p){ const c=(cpByPhase[p]||[])[0]; return (c&&c.phase_name)||(p>200?'Set-Up '+(p-200):p>100?'Pre-Con '+(p-100):'งวดที่ '+p) }
+function _rfPhName(p){ const c=(cpByPhase[p]||[])[0]; return (c&&c.phase_name)||(p===100?'ประเมิน Feasibility':p>200?'Set-Up '+(p-200):p>100?'Pre-Con '+(p-100):'งวดที่ '+p) }
 function _rfDaysSince(iso){ if(!iso)return null; const d=new Date(iso); if(isNaN(d))return null; d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
 function _rfOverdue(openingISO,off){ if(!openingISO||off==null)return null; const d=new Date(openingISO); if(isNaN(d))return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
 function _rfFutureOpen(openingISO){ if(!openingISO)return false; const d=new Date(openingISO); if(isNaN(d))return false; d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return d>t }
@@ -1093,7 +1094,7 @@ function _slaLine(code,phase){ if(!(phase>=1&&phase<=9)) return ''
   return `<span style="font-size:11px;font-weight:600;color:#006948">· ✓ ตรวจตรงเวลา (ภายใน ${dlTxt})</span>` }
 function buildConReport(s,mediaByCp,sg){ const code=s.code
   let totIn=0,totPass=0,totFail=0, body=''
-  const allP=PRECON.concat(PHASES)
+  const allP=FEAS.concat(PRECON).concat(PHASES)
   allP.forEach(([pn,nm])=>{ const cps=(cpByPhase[pn]||[]).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); const m=cur[code]||{}
     const inspected=cps.filter(c=>m[String(c.id)]).length; if(!inspected) return
     let rows=''; cps.forEach(c=>{ const e=m[String(c.id)]; if(e){totIn++; if(e.status==='pass')totPass++; else if(e.status==='fail')totFail++}
@@ -1174,7 +1175,7 @@ function _dailyMedia(list){ if(!list||!list.length) return ''
   if(vids.length) h+=`<div class="vidrow">`+vids.map(m=>`<video controls preload="metadata" src="${esc(m.url||'')}"></video>`).join('')+`</div>`
   return h }
 function buildStoreDaily(s,mediaByCp){ const code=s.code, m=cur[code]||{}
-  const allP=PRECON.concat(PHASES)
+  const allP=FEAS.concat(PRECON).concat(PHASES)
   let secHtml='', tDone=0,tWait=0,tPass=0,tFail=0, shownPhases=0
   allP.forEach(([pn,nm])=>{ const cps=(cpByPhase[pn]||[]).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); if(!cps.length) return
     let inspected=0,pass=0; const notDone=[],failItems=[]
@@ -1233,7 +1234,7 @@ async function openStoreDetail(code){ const s=stores.find(x=>x.code===code)||{co
       cps.forEach(c=>{ const e=m[String(c.id)]; const media=byCp[String(c.id)]||[]; const b=e?(STB[e.status]||['#232327','#9A9A93',e.status]):['#201f20','#67675F','ยังไม่ตรวจ']
         inner+=`<div class="rounded-lg bg-surface-control p-3 mb-2"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><span class="font-data-mono text-[11px] text-ink-faint">${esc(c.no||'')}</span> <span class="font-body-sm text-body-sm text-ink-primary">${esc(c.label)}</span>${c.media==='video'?' <span title="บังคับวิดีโอ">🎥</span>':''}${e&&e.note?`<div class="font-label-micro text-label-micro text-ink-muted mt-1">📝 ${esc(e.note)}</div>`:''}${e?`<div class="font-label-micro text-label-micro text-ink-faint mt-1">ผู้ตรวจ ${esc(nameOf(e.by))} · ${e.created_at?fmtDate(e.created_at):''}</div>`:''}</div><span class="shrink-0 font-label-micro text-label-micro font-bold px-2 py-0.5 rounded" style="background:${b[0]};color:${b[1]}">${b[2]}</span></div>${media.length?`<div class="mt-2">${mediaTiles(media)}</div>`:''}</div>` }) })
     return any?`<div class="font-label-caps text-label-caps text-ink-faint uppercase mt-4 mb-1">${label}</div>`+inner:'' }
-  const body=secBlock(PRECON,'Pre-Con')+secBlock(PHASES,'งานก่อสร้าง 9 งวด')+secBlock(SETUP_SECTIONS.map(x=>[x[0],x[1]]),'ตรวจรับ Set-Up')
+  const body=secBlock(FEAS,'ประเมิน Feasibility')+secBlock(PRECON,'Pre-Con')+secBlock(PHASES,'งานก่อสร้าง 9 งวด')+secBlock(SETUP_SECTIONS.map(x=>[x[0],x[1]]),'ตรวจรับ Set-Up')
   showOverlay(ovHead(esc(s.name||code)+' <span style="font-family:monospace;font-size:12px;color:#9A9A93">('+esc(code)+')</span>',(esc(s.province||''))+(s.contractor?' · ผรม. '+esc(s.contractor):''))+`<div style="padding:16px;max-height:calc(100vh - 130px);overflow:auto">${body||'<div style="text-align:center;color:#9A9A93;padding:30px">ยังไม่มีข้อมูลการตรวจ</div>'}</div>`,true) }
 window._openStore=openStoreDetail
 async function openCheckpointSearch(){
