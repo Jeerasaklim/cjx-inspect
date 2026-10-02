@@ -1019,8 +1019,8 @@ document.addEventListener('keydown',e=>{ if($('lightbox').classList.contains('hi
 let _lbSx=0
 $('lightbox').addEventListener('touchstart',e=>_lbSx=e.touches[0].clientX,{passive:true})
 $('lightbox').addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-_lbSx; if(Math.abs(dx)>45) lbStep(dx<0?1:-1) },{passive:true})
-const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', md:'Managing Director', setup:'Set-Up (NSA)', head_setup:'หัวหน้า Set-Up', accounting:'บัญชี', admin:'Admin'}
-const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', md:'#F0B429', setup:'#37D98B', head_setup:'#4FD1B5', accounting:'#C7A6FF', admin:'#37D98B'}
+const ROLE_TH = {cm:'CM', head_cm:'หัวหน้า CM', head_construction:'Head Construction', md:'Managing Director', setup:'Set-Up (NSA)', head_setup:'หัวหน้า Set-Up', accounting:'บัญชี', member:'Member (ดูอย่างเดียว)', admin:'Admin'}
+const ROLE_COLOR = {cm:'#8FB4FF', head_cm:'#FF9F1C', head_construction:'#F5C518', md:'#F0B429', setup:'#37D98B', head_setup:'#4FD1B5', accounting:'#C7A6FF', member:'#9AA4B2', admin:'#37D98B'}
 const isSetup=()=>profile&&(profile.role==='setup'||profile.role==='head_setup')
 const PHASES = [[1,'นัดวางผัง'],[2,'ตอกเสาเข็ม'],[3,'งานโครงสร้างพื้น'],[4,'งานโครงเหล็ก'],
   [5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
@@ -1501,9 +1501,10 @@ const SETUP_SEED = (function(){
 
 let profile=null, myUid=null, stores=[], filter='building', query='', checkpoints=[], pctx=null
 let myStores=new Set(), profileNames={}, _tab='home', contractors=[]
-const HEAD_ROLES=['head_cm','head_construction','md','head_setup','admin']
+const HEAD_ROLES=['head_cm','head_construction','md','head_setup','member','admin']   // member อยู่ในนี้เพื่อให้เห็นทุกสาขา (แต่ view-only ล็อกแก้ไขแยก)
+const isViewer=()=>!!(profile&&profile.role==='member')   // ดูอย่างเดียว ห้ามแก้ไข
 const isHead=()=>HEAD_ROLES.includes(profile&&profile.role)
-const canApprove=()=>isHead()
+const canApprove=()=>isHead()&&!isViewer()
 const nameOf=uid=>uid&&profileNames[uid]?profileNames[uid]:'—'
 
 // ---- construction status from opening date ----
@@ -1686,7 +1687,7 @@ async function recentThumbs(rows){
 }
 async function renderLanding(){
   const nm=profile.name||profile.email||'', admin=profile.role==='admin'
-  const RL={cm:['CM (ควบคุมงานก่อสร้าง)','#8FB4FF'],head_cm:['หัวหน้า CM','#FF9F1C'],head_construction:['หัวหน้าก่อสร้าง','#F5C518'],md:['Managing Director (ดูทุกสาขา เหมือน Head ก่อสร้าง)','#F0B429'],setup:['ทีมตรวจรับ Set-Up','#37D98B'],head_setup:['หัวหน้า Set-Up','#4FD1B5'],accounting:['บัญชี (ดูรายงานทุกสาขา)','#C7A6FF'],admin:['ผู้ดูแลระบบ','#C79BFF']}
+  const RL={cm:['CM (ควบคุมงานก่อสร้าง)','#8FB4FF'],head_cm:['หัวหน้า CM','#FF9F1C'],head_construction:['หัวหน้าก่อสร้าง','#F5C518'],md:['Managing Director (ดูทุกสาขา เหมือน Head ก่อสร้าง)','#F0B429'],setup:['ทีมตรวจรับ Set-Up','#37D98B'],head_setup:['หัวหน้า Set-Up','#4FD1B5'],accounting:['บัญชี (ดูรายงานทุกสาขา)','#C7A6FF'],member:['Member (ดูอย่างเดียว ทุกสาขา)','#9AA4B2'],admin:['ผู้ดูแลระบบ','#C79BFF']}
   const rl=RL[profile.role]||[String(profile.role||'-'),'#9A9A93']
   $('landBody').innerHTML = `
    <div class="flex flex-col w-full gap-space-xl">
@@ -1822,7 +1823,7 @@ async function loadFixWork(){
   const evAll = await fetchAllRows('check_events','inspection_id,checkpoint,round,status,created_at','created_at')
   const nameByCode={}; stores.forEach(s=>nameByCode[s.code]=s.name||s.code)
   const role=profile&&profile.role
-  const seeAll   = ['admin','head_construction','md','head_cm'].includes(role)   // เห็นทุกสาขา ทั้งก่อสร้าง+Set-Up
+  const seeAll   = ['admin','head_construction','md','head_cm','member'].includes(role)   // เห็นทุกสาขา ทั้งก่อสร้าง+Set-Up
   const setupAll = role==='head_setup'                                       // เห็นทุกสาขา เฉพาะ Set-Up
   const cur={}   // (สาขา||ข้อ) -> รอบล่าสุด + event ท้ายสุดในรอบนั้น
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
@@ -2482,6 +2483,7 @@ function setupCmName(signoffs){ const u=setupCmUid(signoffs); return u?nameOf(u)
 function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso), p=n=>String(n).padStart(2,'0')
   return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543} ${p(d.getHours())}:${p(d.getMinutes())}` }
 async function doSignoff(code, scope, kind, after){
+  if(isViewer()){ toast('สิทธิ์ดูอย่างเดียว (Member) — เซ็น/อนุมัติไม่ได้','err'); return }
   if(!confirm(kind==='handover'?'ยืนยันรับมอบงาน/ปิดงานสาขานี้?':'ยืนยันอนุมัติงวดงานนี้?')) return
   const note=kind==='handover'?prompt('หมายเหตุ (ถ้ามี)')||null:null
   const { error } = await sb.from('signoffs').insert({ store_code:code, scope:String(scope), kind, note })
@@ -2514,9 +2516,10 @@ async function openPhase(code, phase){
 // สถานะธงแดงระดับงวด: active = signoff ล่าสุดของ scope 'rfp:<งวด>' เป็น kind 'redflag' (ยังไม่ถูกปิดด้วย 'redflag_done')
 function rfPhaseState(){ const a=(pctx.redflags||[]); if(!a.length) return null; const last=a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p))
   return { active:last.kind==='redflag', reason:last.note||'', by:last.by, at:last.created_at, kind:last.kind } }
-function canClearRf(){ return profile && ['head_cm','head_construction','md','admin'].includes(profile.role) }
+function canClearRf(){ return profile && !isViewer() && ['head_cm','head_construction','md','admin'].includes(profile.role) }
 async function reloadRedflags(){ const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,note').eq('store_code',pctx.code).eq('scope','rfp:'+pctx.phase); pctx.redflags=data||[] }
 function openRedFlag(){
+  if(isViewer()){ toast('สิทธิ์ดูอย่างเดียว (Member) — ปักธงแดงไม่ได้','err'); return }
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
   ov.innerHTML=`<div style="background:#191A1D;border-top:3px solid #DC2626;border-radius:16px 16px 0 0;width:100%;max-width:412px;box-sizing:border-box;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgba(0,0,0,.5)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:20px">🚩</span><b style="font-size:15px;color:#F5F5F2">ปักธงแดง — แจ้งสิ่งผิดปกติ/ควรเฝ้าระวัง</b></div>
@@ -2555,7 +2558,7 @@ function whenOf(id){ const e=latestEvent(id); return e?e.created_at:null }
 function latestSignoff(kind){ const a=pctx.signoffs.filter(x=>x.kind===kind); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
 // ล็อกงวด: เซ็นครบ 2 ฝ่าย (ผู้ตรวจ + ผรม.) แล้ว = ปิด ใครก็แก้/ตรวจซ้ำไม่ได้ (ยกเว้น Admin)
 function phaseLocked(){ return pctx.signoffs.some(x=>x.kind==='sign_cm') && pctx.signoffs.some(x=>x.kind==='sign_contractor') }
-function phaseEditable(){ return !phaseLocked() || (profile&&profile.role==='admin') }
+function phaseEditable(){ if(isViewer()) return false; return !phaseLocked() || (profile&&profile.role==='admin') }
 async function reloadSignoffs(){ const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',pctx.code).eq('scope',String(pctx.phase)); pctx.signoffs=data||[] }
 async function saveSignature(kind, img){
   if(phaseLocked() && !(profile&&profile.role==='admin')){ alert('งวดนี้ปิดแล้ว — เซ็นซ้ำไม่ได้'); return }
@@ -2667,9 +2670,9 @@ function renderPhase(){
         : feas ? 'ต้องแนบรูป/คลิปสภาพพื้นที่สาขาก่อนบันทึก'
         : (needEvid ? ('ต้องแนบ'+(isVid?'วิดีโอ':'รูป')+'ก่อนกดผ่าน/ไม่ผ่าน') : '“ผ่าน” ติ๊กได้เลย · “ไม่ผ่าน” ต้องแนบรูปจุดที่มีปัญหา')
       act=`${suRecheck}${defBox}${(cur==='fail'&&!feas)?'<div class="reqph" style="margin-top:11px">แก้แล้วตรวจซ้ำ (แนบรูปที่แก้ก่อนกดผ่าน):</div>':`<div class="reqph ${ph.length?'ok':(needEvid?'':'opt')}">${evTxt}</div>`}
-      <div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">${feas?'ประเมินเรียบร้อย':'ผ่าน'}</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">${feas?'ไม่เรียบร้อย':'ไม่ผ่าน'}</b>${(c.na&&!feas)?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
+      ${editable?`<div class="seg3" data-cp="${c.id}"><b class="${cur==='pass'?'on-p':''}" data-s="pass">${feas?'ประเมินเรียบร้อย':'ผ่าน'}</b><b class="${cur==='fail'?'on-f':''}" data-s="fail">${feas?'ไม่เรียบร้อย':'ไม่ผ่าน'}</b>${(c.na&&!feas)?`<b class="${cur==='na'?'on-n':''}" data-s="na">ไม่มีงานนี้</b>`:''}</div>
       ${cur?'<div class="ptip">แตะตัวเลือกเดิมซ้ำ = เอาการติ๊กออก</div>':''}
-      <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(note)}">`
+      <input class="cmt" data-cp="${c.id}" placeholder="หมายเหตุ (ถ้ามี)" value="${esc(note)}">`:`<div class="reqph" style="margin-top:9px">👁️ Member · ดูอย่างเดียว — ตรวจ/แก้ไขไม่ได้</div>`}`
     }
     const _bd=(feas?{pass:['#12271B','#7EE6B0','check_circle','เรียบร้อย'],fail:['#241416','#FF9B9B','cancel','ไม่เรียบร้อย']}:{pass:['#12271B','#7EE6B0','check_circle','ผ่าน'],fail:['#241416','#FF9B9B','cancel','ไม่ผ่าน'],fixed:['#1C1608','#D9B84A','build','แก้แล้ว'],na:['#232327','#9A9A93','block','ไม่มีงานนี้']})[cur]||['#232327','#67675F','hourglass_empty',feas?'รอประเมิน':'รอตรวจ']
     const badge=`<span style="display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;padding:4px 10px;border-radius:999px;background:${_bd[0]};color:${_bd[1]};font-size:11px;font-weight:700"><span class="material-symbols-outlined" style="font-size:14px">${_bd[2]}</span>${_bd[3]}</span>`
@@ -2770,6 +2773,7 @@ function renderPhase(){
   window.scrollTo(0,_keepY)   // คืนตำแหน่งเลื่อนหน้าเดิม (ไม่เด้งขึ้นบน)
 }
 async function saveTick(cpId, status){
+  if(isViewer()){ toast('สิทธิ์ดูอย่างเดียว (Member) — ตรวจ/แก้ไขไม่ได้','err'); return }
   if(!phaseEditable()){ alert('งวดนี้ปิดแล้ว (เซ็นครบ 2 ฝ่าย) — แก้ไข/ตรวจซ้ำไม่ได้'); return }
   const _cp=pctx.cps.find(c=>String(c.id)===String(cpId))
   const mustEvid = (status==='fail') || cpEvid(_cp)   // "ไม่ผ่าน" = ต้องแนบรูปจุดที่มีปัญหาเสมอ (แม้ข้อนั้นไม่บังคับตอนผ่าน)
@@ -2818,6 +2822,7 @@ async function clearTick(cpId){
 }
 // ---- CM ส่งงานที่แก้แล้วให้ Set-Up ตรวจซ้ำ (status='fixed', เก็บเป็นรอบใหม่ ไม่ทับของเดิม) ----
 async function saveFix(cpId){
+  if(isViewer()){ toast('สิทธิ์ดูอย่างเดียว (Member) — แก้ไขไม่ได้','err'); return }
   if(!mediaOf(cpId).length){ alert('ต้องแนบรูปที่แก้แล้วก่อนส่งให้ Set-Up ตรวจซ้ำ'); return }
   const inp=$('phaseBody').querySelector(`.cmt[data-cp="${cpId}"]`)
   const note = inp && inp.value.trim() ? inp.value.trim() : null
@@ -3384,7 +3389,7 @@ $('btnUsersCsv').onclick = async ()=>{
 }
 function drawUsers(){
   if(!_users.length){ $('usersBox').innerHTML='<div class="uhint">ยังไม่มีผู้ใช้ — สร้างที่ Supabase → Authentication → Users แล้วกลับมาโหลดใหม่</div>'; return }
-  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['md','Managing Director'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['admin','Admin']]
+  const roles=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['md','Managing Director'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['member','Member (ดูอย่างเดียว)'],['admin','Admin']]
   const q=_userQ.trim().toLowerCase()
   const list=_users.filter(u=>!q||[u.name,u.email].some(v=>(v||'').toLowerCase().includes(q)))
   const rows = list.map(u=>{ const rc=ROLE_COLOR[u.role]||'#9AA7B2'; const self=u.id===myUid
@@ -3418,7 +3423,7 @@ function drawUsers(){
 $('btnPendLogout').onclick = async ()=>{ await sb.auth.signOut(); profile=null; showAuth() }
 
 // ---- ทะเบียนสิทธิ์ (roster) — กำหนดล่วงหน้า + กันคนนอก ----
-const _ROSTER_ROLES=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['md','Managing Director'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['admin','Admin']]
+const _ROSTER_ROLES=[['cm','CM'],['head_cm','หัวหน้า CM'],['head_construction','Head Construction'],['md','Managing Director'],['setup','Set-Up (NSA)'],['head_setup','หัวหน้า Set-Up'],['accounting','บัญชี'],['member','Member (ดูอย่างเดียว)'],['admin','Admin']]
 let _roster=[]
 function _rosOpts(sel){ return _ROSTER_ROLES.map(([k,l])=>`<option value="${k}" ${sel===k?'selected':''}>${l}</option>`).join('') }
 async function _rosterSet(email,name,role){
@@ -3676,6 +3681,7 @@ async function generateReport(code, phase){
   frame.onload=null   // ความสูงคงที่ + scroll ภายใน iframe (เมาส์บนคอมเลื่อนได้)
 }
 async function saveSetupSig(code, kind, img){
+  if(isViewer()){ toast('สิทธิ์ดูอย่างเดียว (Member) — เซ็นไม่ได้','err'); return }
   const { error } = await sb.from('signoffs').insert({ store_code:code, scope:'setup', kind, image:img })
   if(error) return alert('บันทึกลายเซ็นไม่สำเร็จ: '+error.message)
   toast('บันทึกลายเซ็นแล้ว'); openSite(code)
