@@ -1263,11 +1263,9 @@ window._openCp=openCheckpointDetail
 
 // ============ VIEW 5 : REPORTS ============
 function _openSort(a,b){ const va=a.cs.days==null?99999:(a.cs.key==='opened'?90000+a.cs.days:a.cs.days); const vb=b.cs.days==null?99999:(b.cs.key==='opened'?90000+b.cs.days:b.cs.days); return va-vb }
-function renderReports(){
+function _reportList(){
   const rfMap=rfAllMap()
-  let all=stores.filter(passGlobal).map(s=>{ const sc=computeSetupScore(s.code); const conDone=[...PRECON,...PHASES].some(([p])=>phaseStat(s.code,p).done>0); return {s,sc,conDone,hasSetup:sc.doneItems>0} })
-  const anyN=all.filter(x=>x.conDone||x.hasSetup).length
-  const rfN=all.filter(x=>rfMap[x.s.code]&&rfMap[x.s.code].length).length
+  const all=stores.filter(passGlobal).map(s=>{ const sc=computeSetupScore(s.code); const conDone=[...PRECON,...PHASES].some(([p])=>phaseStat(s.code,p).done>0); return {s,sc,conDone,hasSetup:sc.doneItems>0} })
   let list=all.slice()
   if(_rf==='inspected') list=list.filter(x=>x.conDone||x.hasSetup)
   else if(_rf==='con') list=list.filter(x=>x.conDone)
@@ -1276,8 +1274,33 @@ function renderReports(){
   else if(_rf==='redflag') list=list.filter(x=>rfMap[x.s.code]&&rfMap[x.s.code].length)
   if(_rf==='redflag') list.sort((a,b)=>(rfMap[b.s.code].length)-(rfMap[a.s.code].length))
   else list.sort((a,b)=>cmpStore(a.s,b.s))
+  return {rfMap, list, anyN:all.filter(x=>x.conDone||x.hasSetup).length, rfN:all.filter(x=>rfMap[x.s.code]&&rfMap[x.s.code].length).length }
+}
+async function openAllReports(){
+  const {list}=_reportList()
+  if(!list.length){ alert('ไม่มีสาขาในตัวกรองนี้'); return }
+  if(!confirm('โหลดรายงานรวม '+list.length+' สาขา เป็นไฟล์เดียว?\n(ไฟล์ใหญ่ · ใช้เวลาดึงรูปสักครู่ · เปิดเสร็จกดพิมพ์/บันทึก PDF ได้เลย)')) return
+  const w=window.open('','_blank'); if(w) w.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">กำลังรวมรายงาน 0/'+list.length+' สาขา…</p>')
+  const papers=[]; let done=0
+  for(const it of list){ const code=it.s.code
+    try{
+      const byCp=await fetchStoreMedia(code)
+      const {data:sgF}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code); const sg=sgF||[]
+      const sIds=new Set(insps.filter(i=>i.store_code===code).map(i=>i.id)); const sEvents=events.filter(e=>sIds.has(e.inspection_id))
+      const htmls=[]; if(it.conDone) htmls.push(buildConReport(it.s,byCp,sg)); if(it.hasSetup) htmls.push(buildSetupReport(it.s,byCp,sg,sEvents))
+      for(const full of htmls){ const d=new DOMParser().parseFromString(full,'text/html'); const p=d.querySelector('.paper'); if(p) papers.push(p.outerHTML) }
+    }catch(e){ papers.push(`<div class="paper"><p style="color:#DC2626">สร้างรายงาน ${esc(it.s.name||code)} ไม่สำเร็จ: ${esc((e&&e.message)||e)}</p></div>`) }
+    done++; if(w){ try{ w.document.body.firstChild.textContent='กำลังรวมรายงาน '+done+'/'+list.length+' สาขา…' }catch(e){} }
+  }
+  const html=wrapReport(papers.join('<div style="page-break-before:always;height:0"></div>'))
+  if(w){ w.document.open(); w.document.write(html); w.document.close() } else { const b=new Blob([html],{type:'text/html'}); location.href=URL.createObjectURL(b) }
+}
+window._openAllReports=openAllReports
+function renderReports(){
+  const {rfMap,list,anyN,rfN}=_reportList()
   let h=pageHead('รายงาน (Reports)','ศูนย์รายงานทุกสาขา','เปิด/พิมพ์/บันทึก PDF ใบรับรองงานก่อสร้าง · ใบส่งมอบ Set-Up · ใบรายการงานต้องแก้ไข — เปิดในหน้าใหม่ พิมพ์ได้เลย')
   const rfChips=[['inspected','มีข้อมูลตรวจ ('+anyN+')'],['redflag','🚩 ธงแดง ('+rfN+')'],['con','ก่อสร้าง'],['setup','ตรวจรับ Set-Up'],['fail','มีงานต้องแก้'],['all','ทั้งหมด ('+stores.length+')']].map(x=>fchip('rf',x[0],_rf,x[1])).join('')
+  h+=`<div class="flex justify-end mb-3"><button id="btnAllRep" class="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary-container text-ink-on-yellow font-body-sm text-body-sm font-bold"><span class="material-symbols-outlined text-[18px]">download</span>โหลดรายงานทั้งหมด (${list.length} สาขา)</button></div>`
   h+=filterBar({count:list.length,total:stores.length,chips:rfChips,chipLabel:'ประเภทใบ'})
   h+=`<div class="bg-surface-card rounded-xl shadow-md overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left font-body-sm text-body-sm"><thead class="bg-surface-control font-label-caps text-label-caps text-ink-faint uppercase"><tr><th class="py-3 px-4">สาขา</th><th class="py-3 px-3">ผู้รับเหมา</th><th class="py-3 px-2 text-center">กำหนดเปิด</th><th class="py-3 px-3 text-center">ก่อสร้าง</th><th class="py-3 px-3 text-center">Set-Up</th><th class="py-3 px-3 text-center">งานที่ต้องแก้</th><th class="py-3 px-2 text-center">รายละเอียด</th></tr></thead><tbody class="divide-y divide-surface-elevated/40">`
   list.forEach(({s,sc,conDone,hasSetup})=>{ const dtxt=s.cs.days==null?'—':s.cs.key==='opened'?'เปิดแล้ว':(s.cs.days<=0?'ถึงกำหนด':'D-'+s.cs.days); const dcol=s.cs.days!=null&&s.cs.days<=7&&s.cs.key!=='opened'?'#FF5C5C':s.cs.key==='opened'?'#7EE6B0':'#D9B84A'
@@ -1331,6 +1354,7 @@ function render(){
   bindSel('fltTime',v=>_ft=v); bindSel('fltProv',v=>_fpv=v); bindSel('fltCtr',v=>_fct=v); bindSel('fltSort',v=>_sort=v); bindSel('fltCph',v=>_cph=v); bindSel('fltCtSort',v=>_ctSort=v)
   const fclr=$('fltClear'); if(fclr) fclr.onclick=()=>{ _q='';_ft='all';_fpv='all';_fct='all';_sort='open';_ovStage='all';_cf='all';_cph='all';_sf='all';_ctf='all';_ctSort='score';_rf='inspected'; render() }
   $('hqBody').querySelectorAll('[data-rep]').forEach(b=> b.onclick=()=>openReport(b.dataset.code, b.dataset.rep))
+  { const bar=$('btnAllRep'); if(bar) bar.onclick=openAllReports }
   $('hqBody').querySelectorAll('[data-store]').forEach(b=> b.onclick=()=>openStoreDetail(b.dataset.store))
   $('hqBody').querySelectorAll('[data-drstore]').forEach(b=> b.onclick=(ev)=>{ ev.stopPropagation(); openStoreDailyReport(b.dataset.drstore) })
 }
