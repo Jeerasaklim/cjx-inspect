@@ -129,7 +129,8 @@ async function loadAll(){
   nameByUid={}; profiles.forEach(p=>nameByUid[p.id]=p.name||p.email||'')
   cpByPhase={}; checkpoints.forEach(c=>{ (cpByPhase[c.phase]||(cpByPhase[c.phase]=[])).push(c) })
   const inspById={}; insps.forEach(i=>inspById[i.id]=i)
-  cur={}; events.forEach(e=>{ const ins2=inspById[e.inspection_id]; if(!ins2) return; const code=ins2.store_code
+  cur={}; _oldEvtStores=new Set(); events.forEach(e=>{ const ins2=inspById[e.inspection_id]; if(!ins2) return; const code=ins2.store_code
+    if(e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) _oldEvtStores.add(code)   // เคยตรวจก่อน cutoff = ร้านเดิม
     const m=cur[code]||(cur[code]={}); const p=m[e.checkpoint]
     if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) m[e.checkpoint]={...e,store_code:code} })
   // โหลด+เซ็นรูป thumbnail เฉพาะข้อที่ไม่ผ่าน/รอตรวจซ้ำ (สำหรับคิว Defect)
@@ -144,17 +145,21 @@ async function loadAll(){
   }catch(e){ console.warn('media',e.message) }
 }
 const nameOf=u=>nameByUid[u]||'—'
-// ---- checklist versioning: ข้อตรวจมีผลตาม effective_from เทียบวันเปิดสาขา (สาขาเก่าไม่เห็นข้อใหม่) ----
-function cpActive(c, store){ if(!c||c.effective_from==null) return true; const op=store&&store.opening_date; if(!op) return true; return String(op).slice(0,10) >= String(c.effective_from).slice(0,10) }
-function cpsOf(phase, store){ return (cpByPhase[phase]||[]).filter(c=>cpActive(c,store)) }
+// ---- checklist versioning ----
+// ร้านฟอร์มใหม่ = ยังไม่เคยตรวจสักข้อ (ก่อน cutoff) + ยังไม่เปิด · ร้านอื่น = ฟอร์มเดิม เห็นเหมือนเดิม
+const FORM_CUTOFF='2026-10-06'
+let _oldEvtStores=new Set()   // ร้านที่มี event ก่อน cutoff = ร้านเดิม (เซ็ตตอนโหลดข้อมูล)
+function storeNewForm(code){ const s=stores.find(z=>z.code===code); return !!(s && !_oldEvtStores.has(code) && _rfFutureOpen(s.opening_date)) }
+function cpActive(c, newForm){ if(!c) return true; if(c.effective_from!=null) return !!newForm; if(c.retired_from!=null) return !newForm; return true }
+function cpsOf(phase, newForm){ return (cpByPhase[phase]||[]).filter(c=>cpActive(c,newForm)) }
 // ---- Red Flag (ธงแดง) : manual (signoffs rfp:) + auto (เกินกำหนดตรวจ/ค้างแก้ไข) ----
 const RF_DUE={1:48,2:46,3:33,4:28,5:24,6:20,7:13,8:8,9:6}   // ยึดเลขน้ำเงิน(หน้าฝน) · งวด 7-9 ใช้ดำ
 function _rfPhName(p){ const c=(cpByPhase[p]||[])[0]; return (c&&c.phase_name)||(p===100?'ประเมิน Feasibility':p>200?'Set-Up '+(p-200):p>100?'Pre-Con '+(p-100):'งวดที่ '+p) }
 function _rfDaysSince(iso){ if(!iso)return null; const d=new Date(iso); if(isNaN(d))return null; d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
 function _rfOverdue(openingISO,off){ if(!openingISO||off==null)return null; const d=new Date(openingISO); if(isNaN(d))return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }
 function _rfFutureOpen(openingISO){ if(!openingISO)return false; const d=new Date(openingISO); if(isNaN(d))return false; d.setHours(0,0,0,0); const t=new Date();t.setHours(0,0,0,0); return d>t }
-function autoFlagsForStore(code){ const s=stores.find(z=>z.code===code); if(!s) return []; const m=cur[code]||{}; const out=[]
-  Object.keys(cpByPhase).forEach(pn=>{ const phase=+pn, cps=cpsOf(phase,s); let oldest=null,dcount=0,total=cps.length,allPassNa=true
+function autoFlagsForStore(code){ const s=stores.find(z=>z.code===code); if(!s) return []; const m=cur[code]||{}; const out=[]; const nf=storeNewForm(code)
+  Object.keys(cpByPhase).forEach(pn=>{ const phase=+pn, cps=cpsOf(phase,nf); let oldest=null,dcount=0,total=cps.length,allPassNa=true
     cps.forEach(c=>{ const e=m[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')){ dcount++; if(!oldest||(e.created_at||'')<oldest) oldest=e.created_at } if(!(e&&(e.status==='pass'||e.status==='na'))) allPassNa=false })
     if(dcount>0){ out.push({phase,kind:'defect',days:_rfDaysSince(oldest)||0,count:dcount}); return }
     if(phase>=1&&phase<=9 && !(total>0&&allPassNa) && _rfFutureOpen(s.opening_date)){ const ov=_rfOverdue(s.opening_date, RF_DUE[phase]); if(ov!=null&&ov>=0) out.push({phase,kind:'overdue',days:ov}) } })
@@ -226,7 +231,7 @@ function buildAllRedFlagReport(){ const bs=rfAllMap(); const codes=Object.keys(b
     ${total?rows:'<p style="color:#005137;font-weight:600">✓ ไม่มีสาขาติดธงแดง</p>'}</div>`)
   const w=window.open('','_blank'); if(w){ w.document.write(html); w.document.close() } else { const b=new Blob([html],{type:'text/html'}); location.href=URL.createObjectURL(b) } }
 window._rfReport=buildAllRedFlagReport
-function phaseStat(code,phase){ const s=stores.find(z=>z.code===code); const cps=cpsOf(phase,s); const total=cps.length
+function phaseStat(code,phase){ const cps=cpsOf(phase,storeNewForm(code)); const total=cps.length
   const m=cur[code]||{}; let done=0,pass=0,fail=0,fixed=0
   cps.forEach(c=>{ const e=m[String(c.id)]; if(e){done++; if(e.status==='pass')pass++; else if(e.status==='fail')fail++; else if(e.status==='fixed')fixed++} })
   let key='none'; if(done){ key= fail?'fail': done<total?'progress': fixed?'fixed':'pass' }
@@ -652,7 +657,7 @@ function _drBuild(){
   // 2) ต้องตรวจ (ถึงกำหนด/ใกล้กำหนด) + 3) ค้างแก้ — เฉพาะก่อสร้าง 9 งวด
   const todo=[],soon=[],pending=[]
   stores.forEach(s=>{ const code=s.code, m=cur[code]||{}, future=_rfFutureOpen(s.opening_date)
-    PHASES.forEach(([phase])=>{ const cps=cpsOf(phase,s); if(!cps.length) return
+    PHASES.forEach(([phase])=>{ const cps=cpsOf(phase,storeNewForm(s.code)); if(!cps.length) return
       let dcount=0,oldest=null,total=cps.length,allPassNa=true
       cps.forEach(c=>{ const e=m[String(c.id)]; if(e&&(e.status==='fail'||e.status==='fixed')){dcount++; if(!oldest||(e.created_at||'')<oldest)oldest=e.created_at} if(!(e&&(e.status==='pass'||e.status==='na')))allPassNa=false })
       const base={code,name:s.name||code,contractor:s.contractor||'',province:s.province||'',cm:cmOf[code],phase,phaseName:_rfPhName(phase),days:s.cs.days}
@@ -708,7 +713,7 @@ function _drSimple(){ const ref=_drDateObj(), refKey=_drKeyOfDate(ref)
   const cpById={}; checkpoints.forEach(c=>cpById[String(c.id)]=c); const p2=n=>String(n).padStart(2,'0')
   const due=[]
   stores.forEach(s=>{ const code=s.code,m=cur[code]||{}; if(!_rfFutureOpen(s.opening_date)) return
-    PHASES.forEach(([phase])=>{ const cps=cpsOf(phase,s); if(!cps.length) return
+    PHASES.forEach(([phase])=>{ const cps=cpsOf(phase,storeNewForm(s.code)); if(!cps.length) return
       let inspected=0,allPassNa=true; cps.forEach(c=>{const e=m[String(c.id)]; if(e){inspected++; if(!(e.status==='pass'||e.status==='na'))allPassNa=false} else allPassNa=false})
       if(inspected>0&&allPassNa) return
       const ov=_rfOverdue(s.opening_date,RF_DUE[phase]); if(ov==null||ov<0) return
@@ -1098,7 +1103,7 @@ function _slaLine(code,phase){ if(!(phase>=1&&phase<=9)) return ''
 function buildConReport(s,mediaByCp,sg){ const code=s.code
   let totIn=0,totPass=0,totFail=0, body=''
   const allP=FEAS.concat(PRECON).concat(PHASES)
-  allP.forEach(([pn,nm])=>{ const cps=cpsOf(pn,s).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); const m=cur[code]||{}
+  allP.forEach(([pn,nm])=>{ const cps=cpsOf(pn,storeNewForm(s.code)).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); const m=cur[code]||{}
     const inspected=cps.filter(c=>m[String(c.id)]).length; if(!inspected) return
     let rows=''; cps.forEach(c=>{ const e=m[String(c.id)]; if(e){totIn++; if(e.status==='pass')totPass++; else if(e.status==='fail')totFail++}
       const ims=mediaByCp[String(c.id)]||[]; const stc=e?(e.status==='pass'?'#006948':e.status==='fail'?'#DC2626':e.status==='fixed'?'#b15f00':'#9CA3AF'):'#9CA3AF'
@@ -1180,7 +1185,7 @@ function _dailyMedia(list){ if(!list||!list.length) return ''
 function buildStoreDaily(s,mediaByCp){ const code=s.code, m=cur[code]||{}
   const allP=FEAS.concat(PRECON).concat(PHASES)
   let secHtml='', tDone=0,tWait=0,tPass=0,tFail=0, shownPhases=0
-  allP.forEach(([pn,nm])=>{ const cps=cpsOf(pn,s).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); if(!cps.length) return
+  allP.forEach(([pn,nm])=>{ const cps=cpsOf(pn,storeNewForm(s.code)).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)); if(!cps.length) return
     let inspected=0,pass=0; const notDone=[],failItems=[]
     cps.forEach(c=>{ const e=m[String(c.id)]; if(!e){ notDone.push(c) } else { inspected++; if(e.status==='pass')pass++; else if(e.status==='fail'||e.status==='fixed')failItems.push({c,e}) } })
     const allPass=inspected>0&&failItems.length===0&&notDone.length===0; if(allPass) return
@@ -1232,7 +1237,7 @@ async function openStoreDetail(code){ const s=stores.find(x=>x.code===code)||{co
   showOverlay(ovHead('กำลังโหลด…','')+'<div style="padding:40px;text-align:center;color:#9A9A93">กำลังโหลดข้อมูลตรวจ + รูป/วิดีโอ…</div>',true)
   const byCp=await fetchStoreMedia(code); const m=cur[code]||{}
   const secBlock=(list,label)=>{ let inner='',any=false
-    list.forEach(([pn,nm])=>{ const cps=cpsOf(pn,s); if(!cps.length) return; const done=cps.filter(c=>m[String(c.id)]).length; if(!done) return; any=true
+    list.forEach(([pn,nm])=>{ const cps=cpsOf(pn,storeNewForm(code)); if(!cps.length) return; const done=cps.filter(c=>m[String(c.id)]).length; if(!done) return; any=true
       inner+=`<div class="mt-3 mb-1 font-title-sm text-title-sm text-primary-container">${esc((cps[0]&&cps[0].phase_name)||nm)}</div>`
       cps.forEach(c=>{ const e=m[String(c.id)]; const media=byCp[String(c.id)]||[]; const b=e?(STB[e.status]||['#232327','#9A9A93',e.status]):['#201f20','#67675F','ยังไม่ตรวจ']
         inner+=`<div class="rounded-lg bg-surface-control p-3 mb-2"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><span class="font-data-mono text-[11px] text-ink-faint">${esc(c.no||'')}</span> <span class="font-body-sm text-body-sm text-ink-primary">${esc(c.label)}</span>${c.media==='video'?' <span title="บังคับวิดีโอ">🎥</span>':''}${e&&e.note?`<div class="font-label-micro text-label-micro text-ink-muted mt-1">📝 ${esc(e.note)}</div>`:''}${e?`<div class="font-label-micro text-label-micro text-ink-faint mt-1">ผู้ตรวจ ${esc(nameOf(e.by))} · ${e.created_at?fmtDate(e.created_at):''}</div>`:''}</div><span class="shrink-0 font-label-micro text-label-micro font-bold px-2 py-0.5 rounded" style="background:${b[0]};color:${b[1]}">${b[2]}</span></div>${media.length?`<div class="mt-2">${mediaTiles(media)}</div>`:''}</div>` }) })

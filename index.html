@@ -2213,16 +2213,20 @@ $('q').oninput = e=>{ query=e.target.value; renderPool() }
 
 // ---- site detail (8 phases · real status) ----
 async function loadChecklist(){ if(checkpoints.length) return; const {data}=await sb.from('checkpoints').select('*').order('sort'); checkpoints=data||[] }
-// ---- checklist versioning: ข้อตรวจมีผลกับสาขาตาม effective_from เทียบวันเปิดสาขา ----
-// ข้อเดิม (effective_from = null) = เห็นทุกสาขา · ข้อใหม่ = เห็นเฉพาะสาขาที่เปิด "ตั้งแต่" วันนั้น
-// สาขาเก่าจึงไม่เห็นข้อที่เพิ่มทีหลัง (ความครบ/ใบรับรองเดิมไม่กระทบ)
-function cpActive(c, store){
-  if(!c || c.effective_from==null) return true
-  const op = store && store.opening_date
-  if(!op) return true                              // ไม่รู้วันเปิด = ถือเป็นสาขาใหม่ (เห็นข้อใหม่)
-  return String(op).slice(0,10) >= String(c.effective_from).slice(0,10)
+// ---- checklist versioning ----
+// "ร้านฟอร์มใหม่" = ยังไม่เคยตรวจสักข้อ (ก่อน cutoff) + ยังไม่เปิด → ใช้ checklist เวอร์ชันใหม่
+// ร้านอื่น (เคยตรวจแล้ว/กำลังตรวจ/เปิดแล้ว) = ร้านเดิม เห็น checklist เดิมเป๊ะ ไม่กระทบ
+// ข้อ tag ด้วย effective_from = เฉพาะร้านฟอร์มใหม่ · retired_from = เฉพาะร้านเดิม · ไม่ tag = ทุกร้าน
+const FORM_CUTOFF = '2026-10-06'   // มี event ก่อนวันนี้ = ร้านเดิม (กันร้านที่กำลังตรวจอยู่สะเทือน)
+function hasOldEvents(events){ return (events||[]).some(e=>e && e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) }
+function storeNewForm(opening_date, hadOldEvents){ return !hadOldEvents && _rfFutureOpen(opening_date) }
+function cpActive(c, newForm){
+  if(!c) return true
+  if(c.effective_from!=null) return !!newForm     // ข้อเวอร์ชันใหม่ → เฉพาะร้านฟอร์มใหม่
+  if(c.retired_from!=null)  return !newForm       // ข้อเวอร์ชันเก่า (เลิกใช้) → เฉพาะร้านเดิม
+  return true                                      // ข้อร่วม → ทุกร้าน
 }
-function cpsFor(phase, store){ return checkpoints.filter(c=>c.phase===phase && cpActive(c,store)) }
+function cpsFor(phase, newForm){ return checkpoints.filter(c=>c.phase===phase && cpActive(c,newForm)) }
 async function openSite(code){
   const s=stores.find(x=>x.code===code); if(!s) return
   if(!isHead()) myStores.add(code)   // CM: เลือก/เปิดสาขา = กลายเป็นงานของฉัน (ยืนยันถาวรเมื่อเริ่ม stamp)
@@ -2233,6 +2237,7 @@ async function openSite(code){
   if(ids.length){ const {data}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,created_at').in('inspection_id',ids); events=data||[] }
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const signoffs=sg||[]
+  const newForm = storeNewForm(s&&s.opening_date, hasOldEvents(events))   // ร้านฟอร์มใหม่ไหม (ยังไม่เคยตรวจ+ยังไม่เปิด)
   const c=s.cs
   const cstxt = c.key==='building'&&c.days!=null?`กำลังก่อสร้าง · เปิดในอีก ${c.days} วัน`
     : c.key==='opened'?'เปิดแล้ว' : c.key==='notyet'&&c.days!=null?`ยังไม่ก่อสร้าง · เปิดในอีก ${c.days} วัน`:''
@@ -2281,7 +2286,7 @@ async function openSite(code){
       if(autoDef) parts.push(`🔧 ค้างแก้ไข ${autoDef} งวด`)
       html += `<div class="rfstore"><span class="rfflag">🚩</span><div style="flex:1;min-width:0"><b>${parts.join(' · ')}</b><div style="font-size:11px;opacity:.9;margin-top:1px">แตะงวดที่มีสัญลักษณ์เพื่อดู · 🚩=แจ้งเอง · ⏰=เลยเส้นตายตรวจ · 🔧=จุดไม่ผ่านยังไม่แก้</div></div></div>` }
     // ---- ประเมิน Feasibility (ก่อน Pre-Con) ----
-    if(cpsFor(FEAS_PHASE,s).length){ const fst=phaseStatus(FEAS_PHASE, inspByPhase[FEAS_PHASE], events, s)
+    if(cpsFor(FEAS_PHASE,newForm).length){ const fst=phaseStatus(FEAS_PHASE, inspByPhase[FEAS_PHASE], events, s)
       const pass=fst.key==='pass', fail=fst.key==='fail', lbl=pass?'✓ ประเมินเรียบร้อย':fail?'✕ ไม่เรียบร้อย':(fst.done?'กำลังประเมิน':'ยังไม่ประเมิน')
       const bg=pass?'bg-surface-pass text-ink-pass':fail?'bg-surface-fail text-ink-fail':'bg-surface-control text-ink-faint'
       html += `<div class="flex flex-col gap-space-sm">
@@ -2466,7 +2471,7 @@ function _rfDaysSince(iso){ if(!iso) return null; const d=new Date(iso); if(isNa
 function _rfOverdue(openingISO, off){ if(!openingISO||off==null) return null; const d=new Date(openingISO); if(isNaN(d)) return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }   // >=0 = เกินเส้นตายมาแล้วกี่วัน
 function _rfFutureOpen(openingISO){ if(!openingISO) return false; const d=new Date(openingISO); if(isNaN(d)) return false; d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return d>t }   // ⏰ เฉพาะร้านที่เปิดหลังวันนี้
 // cur = {cpId: latestEvent} · คืน auto flags: overdue (ก่อสร้าง 1-9 ที่ยังไม่ผ่าน+เกินเส้นตาย) + defect (fail/fixed ค้าง ทุกเฟส)
-function computeAutoFlags(store, cur){ const phCps={}; checkpoints.forEach(c=>{ if(!cpActive(c,store)) return; (phCps[c.phase]||(phCps[c.phase]=[])).push(c) })
+function computeAutoFlags(store, cur){ const nf=storeNewForm(store.opening_date, hasOldEvents(Object.values(cur||{}))); const phCps={}; checkpoints.forEach(c=>{ if(!cpActive(c,nf)) return; (phCps[c.phase]||(phCps[c.phase]=[])).push(c) })
   const out=[]
   Object.keys(phCps).forEach(pn=>{ const phase=+pn, cps=phCps[pn]
     let oldest=null,dcount=0,total=cps.length,allPassNa=true,any=false
@@ -2478,11 +2483,12 @@ function computeAutoFlags(store, cur){ const phCps={}; checkpoints.forEach(c=>{ 
   return out }
 function _curFromEvents(events){ const m={}; (events||[]).forEach(e=>{ const k=String(e.checkpoint), p=m[k]; if(!p||(+e.round>+p.round)||(+e.round===+p.round&&(e.created_at||'')>=(p.created_at||''))) m[k]=e }); return m }
 function phaseStatus(phase, insp, events, store){
-  const total=cpsFor(phase,store).length
+  const nf=storeNewForm(store&&store.opening_date, hasOldEvents(events))
+  const total=cpsFor(phase,nf).length
   if(!insp) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
   const evs=events.filter(e=>e.inspection_id===insp.id), cur={}
   evs.forEach(e=>{ const p=cur[e.checkpoint]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[e.checkpoint]=e })
-  const ids=cpsFor(phase,store).map(c=>String(c.id))
+  const ids=cpsFor(phase,nf).map(c=>String(c.id))
   const done=ids.filter(id=>cur[id]).length
   if(!done) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
   if(done<total) return {key:'progress',label:`กำลังตรวจ ${done}/${total}`,color:'var(--build)',done,total}
@@ -2543,7 +2549,13 @@ $('siteBack').onclick = goHome
 // ---- inspect (tick pass/fail/na → save check_events, append-only) ----
 async function openPhase(code, phase){
   const s=stores.find(x=>x.code===code); await loadChecklist()
-  const cps=cpsFor(phase, s).sort((a,b)=>a.sort-b.sort)
+  // ร้านฟอร์มใหม่ไหม = ยังไม่เคยตรวจสักข้อ (ก่อน cutoff ทุกงวด) + ยังไม่เปิด
+  const { data:allInspRows } = await sb.from('inspections').select('id').eq('store_code',code)
+  const allInspIds=(allInspRows||[]).map(r=>r.id)
+  let hadOld=false
+  if(allInspIds.length){ const {data:oldEv}=await sb.from('check_events').select('created_at').in('inspection_id',allInspIds).lt('created_at',FORM_CUTOFF).limit(1); hadOld=!!(oldEv&&oldEv.length) }
+  const newForm=storeNewForm(s&&s.opening_date, hadOld)
+  const cps=cpsFor(phase, newForm).sort((a,b)=>a.sort-b.sort)
   const { data:inspRows } = await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).order('id',{ascending:true})
   const inspIds=(inspRows||[]).map(r=>r.id)
   let inspId=inspIds[0]||null, events=[]   // เขียนลงตัวเล็กสุดเสมอ · อ่านจากทุกตัว (กัน inspection ซ้ำทำรูปหาย)
@@ -3320,9 +3332,10 @@ async function loadDashData(){
   const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
   const evAll = await fetchAllRows('check_events','inspection_id,checkpoint,round,status,by,created_at','created_at')
   const sgAll = await fetchAllRows('signoffs','store_code,kind','created_at')
-  const agg={}; _curByStore={}
+  const agg={}; _curByStore={}; const oldEvtStores=new Set()
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
     const code=ins.store_code
+    if(e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) oldEvtStores.add(code)   // เคยตรวจก่อน cutoff = ร้านเดิม
     // full cur (ทุกเฟส รวม Set-Up) สำหรับ auto red flag
     const fm=_curByStore[code]||(_curByStore[code]={}); const fk=String(e.checkpoint),fp=fm[fk]; if(!fp||e.round>fp.round||(e.round===fp.round&&(e.created_at||'')>=(fp.created_at||''))) fm[fk]=e
     if(cpPhase[e.checkpoint]>=200) return   // ข้าม event ของ Set-Up ในแดชบอร์ดก่อสร้าง
@@ -3336,12 +3349,13 @@ async function loadDashData(){
   checkpoints.forEach(c=>{ if(c.phase<200){ (cpByPhase[c.phase]=cpByPhase[c.phase]||[]).push(c); if((c.phase_name||c.group_title)&&!phaseNameMap[c.phase]) phaseNameMap[c.phase]=c.phase_name||c.group_title } })
   _dashRows = scoped.map(s=>{
     const a=agg[s.code]||{cur:{},last:null}, vals=Object.values(a.cur)
-    const totalCP_s=checkpoints.filter(c=>c.phase<200&&cpActive(c,s)).length||1   // total ต่อสาขา (ตาม effective_from) — สาขาเก่าไม่นับข้อใหม่
+    const nf=storeNewForm(s.opening_date, oldEvtStores.has(s.code))
+    const totalCP_s=checkpoints.filter(c=>c.phase<200&&cpActive(c,nf)).length||1   // total ต่อสาขา — ร้านเดิมไม่นับข้อใหม่
     let phase=0, phaseTot=0, phaseDone=0
     if(vals.length){
       const _phs=Object.keys(cpByPhase).map(Number).sort((x,y)=>x-y)
-      for(const p of _phs){ const tot=cpByPhase[p].filter(c=>cpActive(c,s)).length, dn=Object.keys(a.cur).filter(k=>cpPhase[k]===p).length; if(dn<tot){ phase=p; phaseTot=tot; phaseDone=dn; break } }
-      if(!phase){ let mx=0; Object.keys(a.cur).forEach(k=>{ const pp=cpPhase[k]; if(pp>mx) mx=pp }); phase=mx; phaseTot=(cpByPhase[phase]||[]).filter(c=>cpActive(c,s)).length; phaseDone=Object.keys(a.cur).filter(k=>cpPhase[k]===phase).length }
+      for(const p of _phs){ const tot=cpByPhase[p].filter(c=>cpActive(c,nf)).length, dn=Object.keys(a.cur).filter(k=>cpPhase[k]===p).length; if(dn<tot){ phase=p; phaseTot=tot; phaseDone=dn; break } }
+      if(!phase){ let mx=0; Object.keys(a.cur).forEach(k=>{ const pp=cpPhase[k]; if(pp>mx) mx=pp }); phase=mx; phaseTot=(cpByPhase[phase]||[]).filter(c=>cpActive(c,nf)).length; phaseDone=Object.keys(a.cur).filter(k=>cpPhase[k]===phase).length }
     }
     return { code:s.code, name:s.name||s.code, prov:s.province||'', days:(s.cs&&s.cs.days!=null)?s.cs.days:null,
       done:vals.length, pass:vals.filter(e=>e.status==='pass').length, fail:vals.filter(e=>e.status==='fail').length,
@@ -3692,6 +3706,7 @@ async function generateReport(code, phase){
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const pickSig=(kind,scopeVal)=>{ const a=(sg||[]).filter(x=>x.kind===kind && (scopeVal==null||String(x.scope)===String(scopeVal))); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
   const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
+  const newForm = storeNewForm(s&&s.opening_date, hasOldEvents(events))
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
   const phases = phase?[+phase]:PRECON.map(p=>p[0]).concat(PHASES.map(p=>p[0]))
   const scoreFor=pn=>{ const a=(sg||[]).filter(x=>String(x.scope)===String(pn)&&x.kind==='score'); if(!a.length) return null
@@ -3699,7 +3714,7 @@ async function generateReport(code, phase){
   const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543}`
   let totIn=0,totPass=0,totFail=0, body=''
   phases.forEach(pn=>{
-    const cps=cpsFor(pn, s).sort((a,b)=>a.sort-b.sort)
+    const cps=cpsFor(pn, newForm).sort((a,b)=>a.sort-b.sort)
     const inspected=cps.filter(c=>cur[String(c.id)]).length
     if(!inspected && !phase) return
     const pName=(cps[0]&&cps[0].phase_name)||('ครั้งที่ '+pn)
@@ -3720,7 +3735,7 @@ async function generateReport(code, phase){
     body+=`<h2 class="ph">${esc(pName)}${psc?` <span class="okpill y">★ คะแนน ${psc}/5</span>`:''}${appr?` <span class="okpill">อนุมัติงวดแล้ว · ${esc(nameOf(appr.by))}</span>`:''}</h2>
       <table><thead><tr><th>ข้อ</th><th>รายการตรวจ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
   })
-  const scopeTxt = phase?`${+phase>100?'':'งวดที่ '+phase+' — '}${esc((cpsFor(+phase,s)[0]||{}).phase_name||'')}`:'รายงานตรวจงานทั้งโครงการ (Pre-Con + 9 งวดก่อสร้าง)'
+  const scopeTxt = phase?`${+phase>100?'':'งวดที่ '+phase+' — '}${esc((cpsFor(+phase,newForm)[0]||{}).phase_name||'')}`:'รายงานตรวจงานทั้งโครงการ (Pre-Con + 9 งวดก่อสร้าง)'
   const passAll = totIn>0 && totFail===0
   const handover=(sg||[]).find(x=>x.scope==='store'&&x.kind==='handover')
   const scopeArg = phase? +phase : null
@@ -3731,7 +3746,7 @@ async function generateReport(code, phase){
   const signHtml=`<div class="signgrid">${sgCard(cmSig,'ฝ่ายที่ 1: ผู้ตรวจ (CM)','วิศวกรควบคุมงานก่อสร้าง','')}${sgCard(conSig,'ฝ่ายที่ 2: ผู้รับเหมา (ผรม.)','ผู้รับเหมาหลัก',s.contractor||'')}${sgCard(apprSig,phase?'ฝ่ายที่ 3: ผู้อนุมัติ (Head)':'ฝ่ายที่ 3: ผู้รับมอบงาน (Head)','ผู้บริหารสายงาน','')}</div>`
   // ---- สรุปจุดที่ไม่ผ่าน (รวมทุกงวด) + รูป ----
   const failList=[]
-  phases.forEach(pn=>{ cpsFor(pn,s).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&e.status==='fail') failList.push({c,e,pn}) }) })
+  phases.forEach(pn=>{ cpsFor(pn,newForm).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&e.status==='fail') failList.push({c,e,pn}) }) })
   const failHtml = failList.length ? `<div class="failbox"><div class="failh">⚠ สรุปจุดที่ไม่ผ่าน ${failList.length} รายการ — ต้องแก้ไข</div>`+failList.map(({c,e,pn})=>{
       const ims=(mediaByCp[String(c.id)]||[]); const pName=(checkpoints.find(x=>x.phase===pn)||{}).phase_name||('ครั้งที่ '+pn)
       return `<div class="fitem"><div class="fhd"><span class="fno">${esc(c.no||'•')}</span> ${esc(c.label)} <span class="fph">${esc(pName)}</span></div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(repImg).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
