@@ -875,6 +875,43 @@ input[type=email],input[type=password],input[type=text]{border-radius:13px;backg
           <div class="ap-d">โหลดรายการตรวจรับร้าน <b>Ver.7</b> 165 ข้อ 8 หมวด (ทีม NSA · ให้คะแนน) · บังคับถ่ายหลักฐานเฉพาะ 27 จุด (2 จุดเป็นวิดีโอ) ตามคู่มือรับอาคาร · ที่เหลือติ๊กได้เลย · ทำครั้งเดียว (ถ้ามีอยู่แล้วจะเตือนก่อน)</div>
           <button class="btn gho sm" id="btnSeedSetup">โหลด checklist ตรวจรับ (Set-Up)</button>
           <div id="clMsgS"></div>
+          <div style="border-top:1px solid var(--line);margin:16px 0 12px"></div>
+          <div class="ap-t">➕ เพิ่มข้อตรวจเอง (Check Point)</div>
+          <div class="ap-d">เพิ่มข้อตรวจใหม่ได้เองโดยไม่ต้องรัน SQL · <b>มีผลเฉพาะสาขาที่เปิดตั้งแต่วันนี้เป็นต้นไป</b> — สาขาเก่าที่ตรวจไปแล้วไม่กระทบ</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px" id="addCpForm">
+            <select id="acpPhase" style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:#F5F5F2;font-size:13px">
+              <option value="100">ประเมิน Feasibility (100)</option>
+              <option value="101">Pre-Con · ด่าน 1 (101)</option>
+              <option value="102">Pre-Con · ด่าน 2 (102)</option>
+              <option value="103">Pre-Con · ด่าน 3 (103)</option>
+              <option value="104">Pre-Con · ด่าน 4 (104)</option>
+              <option value="1">ก่อสร้าง · งวด 1</option>
+              <option value="2">ก่อสร้าง · งวด 2</option>
+              <option value="3">ก่อสร้าง · งวด 3</option>
+              <option value="4">ก่อสร้าง · งวด 4</option>
+              <option value="5">ก่อสร้าง · งวด 5</option>
+              <option value="6">ก่อสร้าง · งวด 6</option>
+              <option value="7">ก่อสร้าง · งวด 7</option>
+              <option value="8">ก่อสร้าง · งวด 8</option>
+              <option value="9" selected>ก่อสร้าง · งวด 9 (ตรวจรับอาคาร)</option>
+              <option value="201">Set-Up · หมวด 1 (201)</option>
+              <option value="202">Set-Up · หมวด 2 (202)</option>
+              <option value="203">Set-Up · หมวด 3 (203)</option>
+              <option value="204">Set-Up · หมวด 4 (204)</option>
+              <option value="205">Set-Up · หมวด 5 (205)</option>
+              <option value="206">Set-Up · หมวด 6 (206)</option>
+              <option value="207">Set-Up · หมวด 7 (207)</option>
+              <option value="208">Set-Up · หมวด 8 (208)</option>
+            </select>
+            <input id="acpGroup" placeholder="หัวข้อกลุ่ม เช่น Section 9 · ร้านเช่า / แผงเช่า" style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:#F5F5F2;font-size:13px">
+            <input id="acpNo" placeholder="เลขข้อ เช่น 9.41 (เว้นว่างได้)" style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:#F5F5F2;font-size:13px">
+            <textarea id="acpLabel" rows="2" placeholder="ข้อความข้อตรวจ (บังคับ)" style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:#F5F5F2;font-size:13px;resize:vertical"></textarea>
+            <input id="acpHint" placeholder="คำอธิบาย/เกณฑ์เพิ่มเติม (ถ้ามี)" style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:#F5F5F2;font-size:13px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#C9C9C4"><input type="checkbox" id="acpVideo"> บังคับถ่าย<b>วิดีโอ</b> (ไม่ติ๊ก = ถ่ายรูป)</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#C9C9C4"><input type="checkbox" id="acpPhoto" checked> บังคับแนบหลักฐาน (รูป/คลิป)</label>
+            <button class="btn gho sm" id="btnAddCp">➕ เพิ่มข้อตรวจ (effective_from = วันนี้)</button>
+            <div id="acpMsg"></div>
+          </div>
         </div>
       </div>
       <div id="secUsers" class="asec hide">
@@ -1026,6 +1063,7 @@ const PHASES = [[1,'นัดวางผัง'],[2,'ตอกเสาเข�
   [5,'หลังคา/ไซด์ดิ้ง/ผนัง'],[6,'กระเบื้อง/ฝ้า/อลูมิเนียม'],[7,'สุขาภิบาล/ไฟฟ้า/คอนกรีต'],[8,'ทดสอบระบบ/จ่ายไฟ'],[9,'ตรวจรับอาคาร']]
 const PRECON = [[101,'สำรวจพื้นที่'],[102,'เข้าพื้นที่พร้อม ผรม.'],[103,'ติดตามงาน Pre-Con'],[104,'ตรวจรับ Pre-Con']]
 const FEAS_PHASE = 100   // ประเมิน Feasibility (ก่อน Pre-Con) · สถานะ เรียบร้อย(pass)/ไม่เรียบร้อย(fail)
+const VIDEO_SURVEY_GROUP = 'วีดีโอผังร้าน เสาป้าย สภาพแวดล้อมรอบๆร้าน'   // งวด 9: กลุ่มคลิปสำรวจรอบร้าน — ต้องครบทุกคลิปก่อนส่งผล
 const CONSTRUCTION_DAYS = 40
 const CHECKLIST_SEED = (function(){
   const rows=[]; let sort=0
@@ -2175,6 +2213,16 @@ $('q').oninput = e=>{ query=e.target.value; renderPool() }
 
 // ---- site detail (8 phases · real status) ----
 async function loadChecklist(){ if(checkpoints.length) return; const {data}=await sb.from('checkpoints').select('*').order('sort'); checkpoints=data||[] }
+// ---- checklist versioning: ข้อตรวจมีผลกับสาขาตาม effective_from เทียบวันเปิดสาขา ----
+// ข้อเดิม (effective_from = null) = เห็นทุกสาขา · ข้อใหม่ = เห็นเฉพาะสาขาที่เปิด "ตั้งแต่" วันนั้น
+// สาขาเก่าจึงไม่เห็นข้อที่เพิ่มทีหลัง (ความครบ/ใบรับรองเดิมไม่กระทบ)
+function cpActive(c, store){
+  if(!c || c.effective_from==null) return true
+  const op = store && store.opening_date
+  if(!op) return true                              // ไม่รู้วันเปิด = ถือเป็นสาขาใหม่ (เห็นข้อใหม่)
+  return String(op).slice(0,10) >= String(c.effective_from).slice(0,10)
+}
+function cpsFor(phase, store){ return checkpoints.filter(c=>c.phase===phase && cpActive(c,store)) }
 async function openSite(code){
   const s=stores.find(x=>x.code===code); if(!s) return
   if(!isHead()) myStores.add(code)   // CM: เลือก/เปิดสาขา = กลายเป็นงานของฉัน (ยืนยันถาวรเมื่อเริ่ม stamp)
@@ -2189,8 +2237,8 @@ async function openSite(code){
   const cstxt = c.key==='building'&&c.days!=null?`กำลังก่อสร้าง · เปิดในอีก ${c.days} วัน`
     : c.key==='opened'?'เปิดแล้ว' : c.key==='notyet'&&c.days!=null?`ยังไม่ก่อสร้าง · เปิดในอีก ${c.days} วัน`:''
   const handover=signoffs.find(x=>x.scope==='store'&&x.kind==='handover')
-  const preStats = PRECON.map(([n,name])=>({n,name,st:phaseStatus(n,inspByPhase[n],events)}))
-  const phStats = PHASES.map(([n,name])=>({n,name,st:phaseStatus(n,inspByPhase[n],events)}))
+  const preStats = PRECON.map(([n,name])=>({n,name,st:phaseStatus(n,inspByPhase[n],events,s)}))
+  const phStats = PHASES.map(([n,name])=>({n,name,st:phaseStatus(n,inspByPhase[n],events,s)}))
   const nPass = phStats.filter(p=>p.st.key==='pass').length
   const nProg = phStats.filter(p=>['progress','fail','fixed'].includes(p.st.key)).length
   const nWait = phStats.filter(p=>p.st.key==='none').length
@@ -2233,7 +2281,7 @@ async function openSite(code){
       if(autoDef) parts.push(`🔧 ค้างแก้ไข ${autoDef} งวด`)
       html += `<div class="rfstore"><span class="rfflag">🚩</span><div style="flex:1;min-width:0"><b>${parts.join(' · ')}</b><div style="font-size:11px;opacity:.9;margin-top:1px">แตะงวดที่มีสัญลักษณ์เพื่อดู · 🚩=แจ้งเอง · ⏰=เลยเส้นตายตรวจ · 🔧=จุดไม่ผ่านยังไม่แก้</div></div></div>` }
     // ---- ประเมิน Feasibility (ก่อน Pre-Con) ----
-    if(checkpoints.some(c=>c.phase===FEAS_PHASE)){ const fst=phaseStatus(FEAS_PHASE, inspByPhase[FEAS_PHASE], events)
+    if(cpsFor(FEAS_PHASE,s).length){ const fst=phaseStatus(FEAS_PHASE, inspByPhase[FEAS_PHASE], events, s)
       const pass=fst.key==='pass', fail=fst.key==='fail', lbl=pass?'✓ ประเมินเรียบร้อย':fail?'✕ ไม่เรียบร้อย':(fst.done?'กำลังประเมิน':'ยังไม่ประเมิน')
       const bg=pass?'bg-surface-pass text-ink-pass':fail?'bg-surface-fail text-ink-fail':'bg-surface-control text-ink-faint'
       html += `<div class="flex flex-col gap-space-sm">
@@ -2310,7 +2358,7 @@ async function openSite(code){
       // ===== Section header + การ์ด 8 หมวด =====
       { const pctDone=sc.totalItems?Math.round(sc.doneItems/sc.totalItems*100):0
         html += `<div class="flex items-center justify-between px-1 pt-space-xs"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary-container text-[20px]">format_list_bulleted</span><h2 class="font-title-md text-title-md text-ink-primary font-bold">หมวดตรวจรับ Set-Up (${SETUP_SECTIONS.length} หมวด)</h2></div><span class="font-label-caps text-label-caps text-ink-muted">ครบถ้วน ${pctDone}%</span></div>` }
-      html += `<div class="flex flex-col gap-2.5">`+SETUP_SECTIONS.map(([n,name,w])=>{ const st=phaseStatus(n, inspByPhase[n], events)
+      html += `<div class="flex flex-col gap-2.5">`+SETUP_SECTIONS.map(([n,name,w])=>{ const st=phaseStatus(n, inspByPhase[n], events, s)
         const sec=sc.sections.find(x=>x.phase===n)||{earned:0,fail:0,fixed:0,done:0,total:0}
         const desc=checkpoints.filter(c=>c.phase===n).map(c=>c.name).filter(Boolean).slice(0,6).join(', ')
         const numCls=st.key==='fail'?'bg-surface-fail text-status-fail':'bg-surface-container text-ink-primary'
@@ -2418,7 +2466,7 @@ function _rfDaysSince(iso){ if(!iso) return null; const d=new Date(iso); if(isNa
 function _rfOverdue(openingISO, off){ if(!openingISO||off==null) return null; const d=new Date(openingISO); if(isNaN(d)) return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }   // >=0 = เกินเส้นตายมาแล้วกี่วัน
 function _rfFutureOpen(openingISO){ if(!openingISO) return false; const d=new Date(openingISO); if(isNaN(d)) return false; d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return d>t }   // ⏰ เฉพาะร้านที่เปิดหลังวันนี้
 // cur = {cpId: latestEvent} · คืน auto flags: overdue (ก่อสร้าง 1-9 ที่ยังไม่ผ่าน+เกินเส้นตาย) + defect (fail/fixed ค้าง ทุกเฟส)
-function computeAutoFlags(store, cur){ const phCps={}; checkpoints.forEach(c=>{ (phCps[c.phase]||(phCps[c.phase]=[])).push(c) })
+function computeAutoFlags(store, cur){ const phCps={}; checkpoints.forEach(c=>{ if(!cpActive(c,store)) return; (phCps[c.phase]||(phCps[c.phase]=[])).push(c) })
   const out=[]
   Object.keys(phCps).forEach(pn=>{ const phase=+pn, cps=phCps[pn]
     let oldest=null,dcount=0,total=cps.length,allPassNa=true,any=false
@@ -2429,12 +2477,12 @@ function computeAutoFlags(store, cur){ const phCps={}; checkpoints.forEach(c=>{ 
   })
   return out }
 function _curFromEvents(events){ const m={}; (events||[]).forEach(e=>{ const k=String(e.checkpoint), p=m[k]; if(!p||(+e.round>+p.round)||(+e.round===+p.round&&(e.created_at||'')>=(p.created_at||''))) m[k]=e }); return m }
-function phaseStatus(phase, insp, events){
-  const total=checkpoints.filter(c=>c.phase===phase).length
+function phaseStatus(phase, insp, events, store){
+  const total=cpsFor(phase,store).length
   if(!insp) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
   const evs=events.filter(e=>e.inspection_id===insp.id), cur={}
   evs.forEach(e=>{ const p=cur[e.checkpoint]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[e.checkpoint]=e })
-  const ids=checkpoints.filter(c=>c.phase===phase).map(c=>String(c.id))
+  const ids=cpsFor(phase,store).map(c=>String(c.id))
   const done=ids.filter(id=>cur[id]).length
   if(!done) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
   if(done<total) return {key:'progress',label:`กำลังตรวจ ${done}/${total}`,color:'var(--build)',done,total}
@@ -2495,7 +2543,7 @@ $('siteBack').onclick = goHome
 // ---- inspect (tick pass/fail/na → save check_events, append-only) ----
 async function openPhase(code, phase){
   const s=stores.find(x=>x.code===code); await loadChecklist()
-  const cps=checkpoints.filter(c=>c.phase===phase).sort((a,b)=>a.sort-b.sort)
+  const cps=cpsFor(phase, s).sort((a,b)=>a.sort-b.sort)
   const { data:inspRows } = await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).order('id',{ascending:true})
   const inspIds=(inspRows||[]).map(r=>r.id)
   let inspId=inspIds[0]||null, events=[]   // เขียนลงตัวเล็กสุดเสมอ · อ่านจากทุกตัว (กัน inspection ซ้ำทำรูปหาย)
@@ -2740,7 +2788,12 @@ function renderPhase(){
   $('phaseBody').innerHTML=html
   $('phaseBody').classList.toggle('phlocked', !editable)
   { const pb=$('phaseBody').querySelector('.phback'); if(pb) pb.onclick=()=>openSite(pctx.code) }
-  { const bd=$('btnPhDone'); if(bd) bd.onclick=()=>{ syncEventQueue(); syncQueue(); toast(navigator.onLine?'บันทึกและส่งผลการตรวจแล้ว ✓':'บันทึกในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต','ok'); openSite(pctx.code) }
+  { const bd=$('btnPhDone'); if(bd) bd.onclick=()=>{
+      // งวด 9: วิดีโอสำรวจรอบร้านต้องครบทุกคลิปก่อนส่งผล
+      const vids=pctx.cps.filter(c=>c.group_title===VIDEO_SURVEY_GROUP)
+      if(vids.length){ const miss=vids.filter(c=>!mediaOf(c.id).length)
+        if(miss.length){ alert(`ต้องถ่าย“${VIDEO_SURVEY_GROUP}”ให้ครบ ${vids.length} คลิปก่อนบันทึก/ส่งผล\n(ยังขาดอีก ${miss.length} คลิป)`); return } }
+      syncEventQueue(); syncQueue(); toast(navigator.onLine?'บันทึกและส่งผลการตรวจแล้ว ✓':'บันทึกในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต','ok'); openSite(pctx.code) }
     const bp=$('btnPhPause'); if(bp) bp.onclick=()=>{ toast('พักไว้ก่อน — ผลถูกบันทึกแล้ว'); openSite(pctx.code) } }
   const _ths=[...$('phaseBody').querySelectorAll('.th')]
   const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
@@ -3108,6 +3161,28 @@ $('btnSeedSetup').onclick = async ()=>{
   if(error) return msg($('clMsgS'),'ไม่สำเร็จ: '+error.message,'err')
   msg($('clMsgS'),`สำเร็จ! โหลด ${SETUP_SEED.length} ข้อตรวจรับเข้าระบบแล้ว`,'ok'); toast(`โหลด checklist ตรวจรับ ${SETUP_SEED.length} ข้อแล้ว`)
 }
+// ---- เพิ่มข้อตรวจเอง (effective_from = วันนี้ → เห็นเฉพาะสาขาที่เปิดตั้งแต่วันนี้) ----
+$('btnAddCp').onclick = async ()=>{
+  await loadChecklist()
+  const phase=+$('acpPhase').value
+  const label=$('acpLabel').value.trim()
+  if(!label){ msg($('acpMsg'),'กรอกข้อความข้อตรวจก่อน','err'); return }
+  const group=$('acpGroup').value.trim()||null
+  const no=$('acpNo').value.trim()||''
+  const hint=$('acpHint').value.trim()||null
+  const media=$('acpVideo').checked?'video':null
+  const photo=!!$('acpPhoto').checked
+  const phase_name=(checkpoints.find(c=>c.phase===phase)||{}).phase_name||('งวด '+phase)
+  const sort=Math.max(0,...checkpoints.filter(c=>c.phase===phase).map(c=>+c.sort||0))+1
+  const today=new Date().toISOString().slice(0,10)
+  const row={phase,no,label,hint,media,na:false,sort,points:null,supplier:null,photo,group_title:group,phase_name,effective_from:today}
+  msg($('acpMsg'),'กำลังเพิ่ม…','ok')
+  const { data, error } = await sb.from('checkpoints').insert(row).select()
+  if(error){ msg($('acpMsg'), /effective_from/.test(error.message)?'ยังไม่ได้เพิ่มคอลัมน์ effective_from ใน DB — รัน sql/30 ก่อน':'เพิ่มไม่สำเร็จ: '+error.message,'err'); return }
+  if(data&&data[0]) checkpoints.push(data[0])
+  msg($('acpMsg'),`เพิ่มแล้ว ✓ เห็นเฉพาะสาขาที่เปิดตั้งแต่ ${today} — "${esc(label)}"`,'ok'); toast('เพิ่มข้อตรวจแล้ว ✓')
+  $('acpLabel').value=''; $('acpNo').value=''; $('acpHint').value=''; $('acpVideo').checked=false
+}
 function toISO(v){ if(!v) return null; v=v.trim()
   let m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m){ let y=+m[3]; if(y>2400)y-=543; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` }
   m=v.match(/^(\d{4})-(\d{2})-(\d{2})/); return m?m[0]:null }
@@ -3240,8 +3315,7 @@ function renderSetupList(){
 }
 async function loadDashData(){
   await loadChecklist()
-  const totalCP=checkpoints.filter(c=>c.phase<200).length||1   // แดชบอร์ด = งานก่อสร้าง (ไม่รวมข้อ Set-Up 201-208)
-  const cpPhase={}; checkpoints.forEach(c=>cpPhase[String(c.id)]=c.phase)
+  const cpPhase={}; checkpoints.forEach(c=>cpPhase[String(c.id)]=c.phase)   // total คิดต่อสาขา (totalCP_s) ตาม effective_from
   const insps = await fetchAllRows('inspections','id,store_code','id')
   const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
   const evAll = await fetchAllRows('check_events','inspection_id,checkpoint,round,status,by,created_at','created_at')
@@ -3262,20 +3336,21 @@ async function loadDashData(){
   checkpoints.forEach(c=>{ if(c.phase<200){ (cpByPhase[c.phase]=cpByPhase[c.phase]||[]).push(c); if((c.phase_name||c.group_title)&&!phaseNameMap[c.phase]) phaseNameMap[c.phase]=c.phase_name||c.group_title } })
   _dashRows = scoped.map(s=>{
     const a=agg[s.code]||{cur:{},last:null}, vals=Object.values(a.cur)
+    const totalCP_s=checkpoints.filter(c=>c.phase<200&&cpActive(c,s)).length||1   // total ต่อสาขา (ตาม effective_from) — สาขาเก่าไม่นับข้อใหม่
     let phase=0, phaseTot=0, phaseDone=0
     if(vals.length){
       const _phs=Object.keys(cpByPhase).map(Number).sort((x,y)=>x-y)
-      for(const p of _phs){ const tot=cpByPhase[p].length, dn=Object.keys(a.cur).filter(k=>cpPhase[k]===p).length; if(dn<tot){ phase=p; phaseTot=tot; phaseDone=dn; break } }
-      if(!phase){ let mx=0; Object.keys(a.cur).forEach(k=>{ const pp=cpPhase[k]; if(pp>mx) mx=pp }); phase=mx; phaseTot=(cpByPhase[phase]||[]).length; phaseDone=Object.keys(a.cur).filter(k=>cpPhase[k]===phase).length }
+      for(const p of _phs){ const tot=cpByPhase[p].filter(c=>cpActive(c,s)).length, dn=Object.keys(a.cur).filter(k=>cpPhase[k]===p).length; if(dn<tot){ phase=p; phaseTot=tot; phaseDone=dn; break } }
+      if(!phase){ let mx=0; Object.keys(a.cur).forEach(k=>{ const pp=cpPhase[k]; if(pp>mx) mx=pp }); phase=mx; phaseTot=(cpByPhase[phase]||[]).filter(c=>cpActive(c,s)).length; phaseDone=Object.keys(a.cur).filter(k=>cpPhase[k]===phase).length }
     }
     return { code:s.code, name:s.name||s.code, prov:s.province||'', days:(s.cs&&s.cs.days!=null)?s.cs.days:null,
       done:vals.length, pass:vals.filter(e=>e.status==='pass').length, fail:vals.filter(e=>e.status==='fail').length,
       phase, phaseName:phaseNameMap[phase]||'', phaseRemain:Math.max(phaseTot-phaseDone,0), phaseTotal:phaseTot,
-      pct:Math.round(vals.length/totalCP*100), last:a.last, closed:handovered.has(s.code), total:totalCP }
+      pct:Math.round(vals.length/totalCP_s*100), last:a.last, closed:handovered.has(s.code), total:totalCP_s }
   })
   _dashKpi={ build:scoped.filter(s=>s.cs.key==='building').length,
     fails:_dashRows.reduce((n,r)=>n+r.fail,0), failStores:_dashRows.filter(r=>r.fail>0).length,
-    done100:_dashRows.filter(r=>r.done>=totalCP&&r.fail===0).length }
+    done100:_dashRows.filter(r=>r.done>=r.total&&r.fail===0).length }
   _dashScope = head ? 'ทุกสาขา' : 'งานของฉัน'
 }
 function renderDash(){
@@ -3624,7 +3699,7 @@ async function generateReport(code, phase){
   const dd=new Date(),p2=n=>String(n).padStart(2,'0'), today=`${p2(dd.getDate())}/${p2(dd.getMonth()+1)}/${dd.getFullYear()+543}`
   let totIn=0,totPass=0,totFail=0, body=''
   phases.forEach(pn=>{
-    const cps=checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort)
+    const cps=cpsFor(pn, s).sort((a,b)=>a.sort-b.sort)
     const inspected=cps.filter(c=>cur[String(c.id)]).length
     if(!inspected && !phase) return
     const pName=(cps[0]&&cps[0].phase_name)||('ครั้งที่ '+pn)
@@ -3645,7 +3720,7 @@ async function generateReport(code, phase){
     body+=`<h2 class="ph">${esc(pName)}${psc?` <span class="okpill y">★ คะแนน ${psc}/5</span>`:''}${appr?` <span class="okpill">อนุมัติงวดแล้ว · ${esc(nameOf(appr.by))}</span>`:''}</h2>
       <table><thead><tr><th>ข้อ</th><th>รายการตรวจ</th><th>ผล</th><th>ผู้ตรวจ / เวลา</th><th>หลักฐาน</th></tr></thead><tbody>${rows}</tbody></table>`
   })
-  const scopeTxt = phase?`${+phase>100?'':'งวดที่ '+phase+' — '}${esc((checkpoints.find(c=>c.phase===+phase)||{}).phase_name||'')}`:'รายงานตรวจงานทั้งโครงการ (Pre-Con + 9 งวดก่อสร้าง)'
+  const scopeTxt = phase?`${+phase>100?'':'งวดที่ '+phase+' — '}${esc((cpsFor(+phase,s)[0]||{}).phase_name||'')}`:'รายงานตรวจงานทั้งโครงการ (Pre-Con + 9 งวดก่อสร้าง)'
   const passAll = totIn>0 && totFail===0
   const handover=(sg||[]).find(x=>x.scope==='store'&&x.kind==='handover')
   const scopeArg = phase? +phase : null
@@ -3656,7 +3731,7 @@ async function generateReport(code, phase){
   const signHtml=`<div class="signgrid">${sgCard(cmSig,'ฝ่ายที่ 1: ผู้ตรวจ (CM)','วิศวกรควบคุมงานก่อสร้าง','')}${sgCard(conSig,'ฝ่ายที่ 2: ผู้รับเหมา (ผรม.)','ผู้รับเหมาหลัก',s.contractor||'')}${sgCard(apprSig,phase?'ฝ่ายที่ 3: ผู้อนุมัติ (Head)':'ฝ่ายที่ 3: ผู้รับมอบงาน (Head)','ผู้บริหารสายงาน','')}</div>`
   // ---- สรุปจุดที่ไม่ผ่าน (รวมทุกงวด) + รูป ----
   const failList=[]
-  phases.forEach(pn=>{ checkpoints.filter(c=>c.phase===pn).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&e.status==='fail') failList.push({c,e,pn}) }) })
+  phases.forEach(pn=>{ cpsFor(pn,s).sort((a,b)=>a.sort-b.sort).forEach(c=>{ const e=cur[String(c.id)]; if(e&&e.status==='fail') failList.push({c,e,pn}) }) })
   const failHtml = failList.length ? `<div class="failbox"><div class="failh">⚠ สรุปจุดที่ไม่ผ่าน ${failList.length} รายการ — ต้องแก้ไข</div>`+failList.map(({c,e,pn})=>{
       const ims=(mediaByCp[String(c.id)]||[]); const pName=(checkpoints.find(x=>x.phase===pn)||{}).phase_name||('ครั้งที่ '+pn)
       return `<div class="fitem"><div class="fhd"><span class="fno">${esc(c.no||'•')}</span> ${esc(c.label)} <span class="fph">${esc(pName)}</span></div>${e.note?`<div class="fnt">หมายเหตุ: ${esc(e.note)}</div>`:''}<div class="fimgs">${ims.map(repImg).join('')||'<span class="fnoimg">— ยังไม่มีรูป —</span>'}</div></div>`
