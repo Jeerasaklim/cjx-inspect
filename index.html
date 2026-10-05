@@ -2294,13 +2294,6 @@ async function openSite(code){
       html += `<div class="flex flex-col gap-space-sm">
         <div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-head-const text-[18px]">travel_explore</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">ประเมินความเป็นไปได้ (ก่อน Pre-Con)</h2></div>
         <div class="rounded-xl bg-surface-card p-space-md flex items-center justify-between gap-space-sm shadow-sm cursor-pointer" data-phase="${FEAS_PHASE}"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">travel_explore</span></div><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm text-ink-primary font-bold">ประเมิน Feasibility</span><div class="font-body-sm text-body-sm truncate ${pass?'text-ink-pass':fail?'text-ink-fail':'text-ink-faint'}">ถ่ายรูป/คลิปสภาพพื้นที่ · ${lbl}</div></div></div><span class="material-symbols-outlined text-ink-faint text-[20px] shrink-0">chevron_right</span></div></div>` }
-    // ---- หัวข้อแยก: วีดีโอผังร้าน (เฉพาะร้านฟอร์มใหม่) ----
-    if(cpsFor(VIDEO_PHASE,newForm).length){
-      const vv=signoffs.filter(x=>x.scope==='video').reduce((p,c)=>(!p||(c.created_at||'')>(p.created_at||'')?c:p), null)
-      const vvs = vv ? (vv.kind==='pass'?['bg-surface-pass text-ink-pass','✓ Head CM รีวิวผ่าน']:['bg-surface-fail text-ink-fail','✕ Head CM: ไม่ผ่าน']) : ['bg-surface-control text-ink-faint','แตะเพื่อแนบ/ดูวีดีโอ (4 คลิป)']
-      html += `<div class="flex flex-col gap-space-sm">
-        <div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-head-const text-[18px]">videocam</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">วีดีโอผังร้าน เสาป้าย สภาพแวดล้อม</h2></div>
-        <div class="rounded-xl bg-surface-card p-space-md flex items-center justify-between gap-space-sm shadow-sm cursor-pointer" data-phase="${VIDEO_PHASE}"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-lg ${vvs[0]} flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">videocam</span></div><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm text-ink-primary font-bold">วีดีโอประกอบ (4 คลิป)</span><div class="font-body-sm text-body-sm truncate text-ink-faint">${vvs[1]}</div></div></div><span class="material-symbols-outlined text-ink-faint text-[20px] shrink-0">chevron_right</span></div></div>` }
     html += `<div class="flex flex-col gap-space-sm">
       <div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-setup text-[18px]">verified</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">PRE-CON · งานเตรียมพื้นที่ก่อนก่อสร้าง</h2></div><span class="font-label-caps text-label-caps px-2 py-0.5 rounded-full ${prePass===PRECON.length?'bg-surface-pass text-ink-pass':'bg-surface-warning text-ink-warning'}">${prePass===PRECON.length?'ผ่านครบ':'ผ่าน'} ${prePass}/${PRECON.length}</span></div>
       <div class="rounded-xl bg-surface-card p-space-md shadow-sm"><div class="grid grid-cols-4 gap-space-xs text-center">
@@ -2329,6 +2322,14 @@ async function openSite(code){
       <button class="btn gho" id="btnConPunch" style="color:#FF9B9B"><span style="margin-right:4px">🔧</span>ออกรายการงานที่ต้องแก้ (ก่อสร้าง)</button>
       ${canApprove()&&allPass&&!handover?`<button class="btn pri" id="btnHandover">✓ รับมอบงาน (ปิดงาน)</button>`:''}
     </div>`
+    // ---- หัวข้อแยก: วีดีโอผังร้าน (ต่อจากงวด 9 · ก่อน Set-Up · เฉพาะร้านฟอร์มใหม่) ----
+    if(cpsFor(VIDEO_PHASE,newForm).length){
+      const vv=signoffs.filter(x=>x.scope==='video').reduce((p,c)=>(!p||(c.created_at||'')>(p.created_at||'')?c:p), null)
+      const vvs = vv ? (vv.kind==='pass'?['bg-surface-pass text-ink-pass','✓ Head CM รีวิวผ่าน']:['bg-surface-fail text-ink-fail','✕ Head CM: ไม่ผ่าน']) : ['bg-surface-control text-ink-faint','แตะเพื่อแนบ/ดูวีดีโอ (4 คลิป)']
+      html += `<div class="flex flex-col gap-space-sm pt-space-xs">
+        <div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-head-const text-[18px]">videocam</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">วีดีโอผังร้าน เสาป้าย สภาพแวดล้อม</h2></div>
+        <div class="rounded-xl bg-surface-card p-space-md flex items-center justify-between gap-space-sm shadow-sm cursor-pointer" data-phase="${VIDEO_PHASE}"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-lg ${vvs[0]} flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">videocam</span></div><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm text-ink-primary font-bold">วีดีโอประกอบ (4 คลิป)</span><div class="font-body-sm text-body-sm truncate text-ink-faint">${vvs[1]}</div></div></div><span class="material-symbols-outlined text-ink-faint text-[20px] shrink-0">chevron_right</span></div></div>`
+    }
   }
   // ---- Set-Up (NSA) track: ตรวจรับร้าน + คะแนน ----
   //  เห็นได้: setup / หัวหน้า / admin  ·  และ CM เห็นเฉพาะร้านที่ตัวเองตรวจ (เมื่อ Set-Up เริ่มตรวจแล้ว) เพื่อแก้ข้อที่ถูกตีกลับ
