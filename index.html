@@ -2212,14 +2212,16 @@ function renderPool(){
 $('q').oninput = e=>{ query=e.target.value; renderPool() }
 
 // ---- site detail (8 phases · real status) ----
-async function loadChecklist(){ if(checkpoints.length) return; const {data}=await sb.from('checkpoints').select('*').order('sort'); checkpoints=data||[] }
+let _cpPhase={}   // checkpoint id -> phase
+async function loadChecklist(){ if(!checkpoints.length){ const {data}=await sb.from('checkpoints').select('*').order('sort'); checkpoints=data||[] } _cpPhase={}; checkpoints.forEach(c=>_cpPhase[String(c.id)]=c.phase) }
 // ---- checklist versioning ----
-// "ร้านฟอร์มใหม่" = ยังไม่เคยตรวจสักข้อ (ก่อน cutoff) + ยังไม่เปิด → ใช้ checklist เวอร์ชันใหม่
-// ร้านอื่น (เคยตรวจแล้ว/กำลังตรวจ/เปิดแล้ว) = ร้านเดิม เห็น checklist เดิมเป๊ะ ไม่กระทบ
+// "ร้านฟอร์มใหม่" = ยังไม่เคยตรวจ "งวด 9" (ก่อน cutoff) + ยังไม่เปิด → ใช้ checklist เวอร์ชันใหม่
+// ร้านอื่น (ตรวจงวด 9 แล้ว/กำลังตรวจงวด 9/เปิดแล้ว) = ร้านเดิม เห็น checklist เดิมเป๊ะ ไม่กระทบ
 // ข้อ tag ด้วย effective_from = เฉพาะร้านฟอร์มใหม่ · retired_from = เฉพาะร้านเดิม · ไม่ tag = ทุกร้าน
-const FORM_CUTOFF = '2026-10-06'   // มี event ก่อนวันนี้ = ร้านเดิม (กันร้านที่กำลังตรวจอยู่สะเทือน)
-function hasOldEvents(events){ return (events||[]).some(e=>e && e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) }
-function storeNewForm(opening_date, hadOldEvents){ return !hadOldEvents && _rfFutureOpen(opening_date) }
+const FORM_CUTOFF = '2026-10-06'   // มี event งวด 9 ก่อนวันนี้ = ร้านเดิม (กันร้านที่กำลังตรวจงวด 9 สะเทือน)
+const VIDEO_PHASE = 110            // หัวข้อแยก: วีดีโอผังร้าน (ไม่อยู่ในงวด 9 · ไม่มีผ่าน/ไม่ผ่าน · Head รีวิว)
+function hadPhase9(events){ return (events||[]).some(e=> _cpPhase[String(e.checkpoint)]===9 && e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) }
+function storeNewForm(opening_date, hadP9){ return !hadP9 && _rfFutureOpen(opening_date) }
 function cpActive(c, newForm){
   if(!c) return true
   if(c.effective_from!=null) return !!newForm     // ข้อเวอร์ชันใหม่ → เฉพาะร้านฟอร์มใหม่
@@ -2237,7 +2239,7 @@ async function openSite(code){
   if(ids.length){ const {data}=await sb.from('check_events').select('inspection_id,checkpoint,round,status,created_at').in('inspection_id',ids); events=data||[] }
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const signoffs=sg||[]
-  const newForm = storeNewForm(s&&s.opening_date, hasOldEvents(events))   // ร้านฟอร์มใหม่ไหม (ยังไม่เคยตรวจ+ยังไม่เปิด)
+  const newForm = storeNewForm(s&&s.opening_date, hadPhase9(events))   // ร้านฟอร์มใหม่ไหม (ยังไม่เคยตรวจ+ยังไม่เปิด)
   const c=s.cs
   const cstxt = c.key==='building'&&c.days!=null?`กำลังก่อสร้าง · เปิดในอีก ${c.days} วัน`
     : c.key==='opened'?'เปิดแล้ว' : c.key==='notyet'&&c.days!=null?`ยังไม่ก่อสร้าง · เปิดในอีก ${c.days} วัน`:''
@@ -2292,6 +2294,13 @@ async function openSite(code){
       html += `<div class="flex flex-col gap-space-sm">
         <div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-head-const text-[18px]">travel_explore</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">ประเมินความเป็นไปได้ (ก่อน Pre-Con)</h2></div>
         <div class="rounded-xl bg-surface-card p-space-md flex items-center justify-between gap-space-sm shadow-sm cursor-pointer" data-phase="${FEAS_PHASE}"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">travel_explore</span></div><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm text-ink-primary font-bold">ประเมิน Feasibility</span><div class="font-body-sm text-body-sm truncate ${pass?'text-ink-pass':fail?'text-ink-fail':'text-ink-faint'}">ถ่ายรูป/คลิปสภาพพื้นที่ · ${lbl}</div></div></div><span class="material-symbols-outlined text-ink-faint text-[20px] shrink-0">chevron_right</span></div></div>` }
+    // ---- หัวข้อแยก: วีดีโอผังร้าน (เฉพาะร้านฟอร์มใหม่) ----
+    if(cpsFor(VIDEO_PHASE,newForm).length){
+      const vv=signoffs.filter(x=>x.scope==='video').reduce((p,c)=>(!p||(c.created_at||'')>(p.created_at||'')?c:p), null)
+      const vvs = vv ? (vv.kind==='pass'?['bg-surface-pass text-ink-pass','✓ Head CM รีวิวผ่าน']:['bg-surface-fail text-ink-fail','✕ Head CM: ไม่ผ่าน']) : ['bg-surface-control text-ink-faint','แตะเพื่อแนบ/ดูวีดีโอ (4 คลิป)']
+      html += `<div class="flex flex-col gap-space-sm">
+        <div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-head-const text-[18px]">videocam</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">วีดีโอผังร้าน เสาป้าย สภาพแวดล้อม</h2></div>
+        <div class="rounded-xl bg-surface-card p-space-md flex items-center justify-between gap-space-sm shadow-sm cursor-pointer" data-phase="${VIDEO_PHASE}"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-lg ${vvs[0]} flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">videocam</span></div><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm text-ink-primary font-bold">วีดีโอประกอบ (4 คลิป)</span><div class="font-body-sm text-body-sm truncate text-ink-faint">${vvs[1]}</div></div></div><span class="material-symbols-outlined text-ink-faint text-[20px] shrink-0">chevron_right</span></div></div>` }
     html += `<div class="flex flex-col gap-space-sm">
       <div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-role-setup text-[18px]">verified</span><h2 class="font-title-sm text-title-sm text-ink-primary font-bold">PRE-CON · งานเตรียมพื้นที่ก่อนก่อสร้าง</h2></div><span class="font-label-caps text-label-caps px-2 py-0.5 rounded-full ${prePass===PRECON.length?'bg-surface-pass text-ink-pass':'bg-surface-warning text-ink-warning'}">${prePass===PRECON.length?'ผ่านครบ':'ผ่าน'} ${prePass}/${PRECON.length}</span></div>
       <div class="rounded-xl bg-surface-card p-space-md shadow-sm"><div class="grid grid-cols-4 gap-space-xs text-center">
@@ -2471,7 +2480,7 @@ function _rfDaysSince(iso){ if(!iso) return null; const d=new Date(iso); if(isNa
 function _rfOverdue(openingISO, off){ if(!openingISO||off==null) return null; const d=new Date(openingISO); if(isNaN(d)) return null; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return Math.floor((t-d)/86400000) }   // >=0 = เกินเส้นตายมาแล้วกี่วัน
 function _rfFutureOpen(openingISO){ if(!openingISO) return false; const d=new Date(openingISO); if(isNaN(d)) return false; d.setHours(0,0,0,0); const t=new Date(); t.setHours(0,0,0,0); return d>t }   // ⏰ เฉพาะร้านที่เปิดหลังวันนี้
 // cur = {cpId: latestEvent} · คืน auto flags: overdue (ก่อสร้าง 1-9 ที่ยังไม่ผ่าน+เกินเส้นตาย) + defect (fail/fixed ค้าง ทุกเฟส)
-function computeAutoFlags(store, cur){ const nf=storeNewForm(store.opening_date, hasOldEvents(Object.values(cur||{}))); const phCps={}; checkpoints.forEach(c=>{ if(!cpActive(c,nf)) return; (phCps[c.phase]||(phCps[c.phase]=[])).push(c) })
+function computeAutoFlags(store, cur){ const nf=storeNewForm(store.opening_date, hadPhase9(Object.values(cur||{}))); const phCps={}; checkpoints.forEach(c=>{ if(!cpActive(c,nf)) return; (phCps[c.phase]||(phCps[c.phase]=[])).push(c) })
   const out=[]
   Object.keys(phCps).forEach(pn=>{ const phase=+pn, cps=phCps[pn]
     let oldest=null,dcount=0,total=cps.length,allPassNa=true,any=false
@@ -2483,7 +2492,7 @@ function computeAutoFlags(store, cur){ const nf=storeNewForm(store.opening_date,
   return out }
 function _curFromEvents(events){ const m={}; (events||[]).forEach(e=>{ const k=String(e.checkpoint), p=m[k]; if(!p||(+e.round>+p.round)||(+e.round===+p.round&&(e.created_at||'')>=(p.created_at||''))) m[k]=e }); return m }
 function phaseStatus(phase, insp, events, store){
-  const nf=storeNewForm(store&&store.opening_date, hasOldEvents(events))
+  const nf=storeNewForm(store&&store.opening_date, hadPhase9(events))
   const total=cpsFor(phase,nf).length
   if(!insp) return {key:'none',label:'ยังไม่เริ่ม',color:'var(--muted)',done:0,total}
   const evs=events.filter(e=>e.inspection_id===insp.id), cur={}
@@ -2549,11 +2558,11 @@ $('siteBack').onclick = goHome
 // ---- inspect (tick pass/fail/na → save check_events, append-only) ----
 async function openPhase(code, phase){
   const s=stores.find(x=>x.code===code); await loadChecklist()
-  // ร้านฟอร์มใหม่ไหม = ยังไม่เคยตรวจสักข้อ (ก่อน cutoff ทุกงวด) + ยังไม่เปิด
-  const { data:allInspRows } = await sb.from('inspections').select('id').eq('store_code',code)
-  const allInspIds=(allInspRows||[]).map(r=>r.id)
+  // ร้านฟอร์มใหม่ไหม = ยังไม่เคยตรวจ "งวด 9" (ก่อน cutoff) + ยังไม่เปิด
+  const { data:p9Rows } = await sb.from('inspections').select('id').eq('store_code',code).eq('phase',9)
+  const p9Ids=(p9Rows||[]).map(r=>r.id)
   let hadOld=false
-  if(allInspIds.length){ const {data:oldEv}=await sb.from('check_events').select('created_at').in('inspection_id',allInspIds).lt('created_at',FORM_CUTOFF).limit(1); hadOld=!!(oldEv&&oldEv.length) }
+  if(p9Ids.length){ const {data:oldEv}=await sb.from('check_events').select('created_at').in('inspection_id',p9Ids).lt('created_at',FORM_CUTOFF).limit(1); hadOld=!!(oldEv&&oldEv.length) }
   const newForm=storeNewForm(s&&s.opening_date, hadOld)
   const cps=cpsFor(phase, newForm).sort((a,b)=>a.sort-b.sort)
   const { data:inspRows } = await sb.from('inspections').select('id').eq('store_code',code).eq('phase',phase).order('id',{ascending:true})
@@ -2566,7 +2575,7 @@ async function openPhase(code, phase){
       const {data:fu}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.path),3600)
       const {data:tu}=await sb.storage.from('media').createSignedUrls(media.map(x=>x.thumb_path||x.path),3600)
       media.forEach((x,i)=>{ x.url=(fu&&fu[i]&&fu[i].signedUrl)||''; x.turl=(tu&&tu[i]&&tu[i].signedUrl)||x.url }) } }
-  const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code).eq('scope',String(phase))
+  const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code).eq('scope',phase===VIDEO_PHASE?'video':String(phase))
   // ธงแดง (Red Flag) — เฉพาะก่อสร้าง · เก็บใน signoffs scope='rf:<checkpointId>'
   let redflags=[]
   if(phase<200){ const {data:rf}=await sb.from('signoffs').select('scope,kind,by,created_at,note').eq('store_code',code).eq('scope','rfp:'+phase); redflags=rf||[] }
@@ -2619,7 +2628,14 @@ function latestSignoff(kind){ const a=pctx.signoffs.filter(x=>x.kind===kind); re
 // ล็อกงวด: เซ็นครบ 2 ฝ่าย (ผู้ตรวจ + ผรม.) แล้ว = ปิด ใครก็แก้/ตรวจซ้ำไม่ได้ (ยกเว้น Admin)
 function phaseLocked(){ return pctx.signoffs.some(x=>x.kind==='sign_cm') && pctx.signoffs.some(x=>x.kind==='sign_contractor') }
 function phaseEditable(){ if(isViewer()) return false; return !phaseLocked() || (profile&&profile.role==='admin') }
-async function reloadSignoffs(){ const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',pctx.code).eq('scope',String(pctx.phase)); pctx.signoffs=data||[] }
+async function reloadSignoffs(){ const {data}=await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',pctx.code).eq('scope',pctx.phase===VIDEO_PHASE?'video':String(pctx.phase)); pctx.signoffs=data||[] }
+async function saveVidVerdict(kind){
+  if(!isHead()||isViewer()){ toast('เฉพาะ Head CM รีวิวได้','err'); return }
+  const note = kind==='fail' ? (prompt('เหตุผลที่ไม่ผ่าน (ถ้ามี)')||null) : null
+  const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:'video', kind, note })
+  if(error) return alert('บันทึกไม่สำเร็จ: '+error.message)
+  await reloadSignoffs(); renderPhase(); toast(kind==='pass'?'บันทึก: ผ่าน ✓':'บันทึก: ไม่ผ่าน')
+}
 async function saveSignature(kind, img){
   if(phaseLocked() && !(profile&&profile.role==='admin')){ alert('งวดนี้ปิดแล้ว — เซ็นซ้ำไม่ได้'); return }
   const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:String(pctx.phase), kind, image:img })
@@ -2669,18 +2685,20 @@ function evidTile(m){
 function renderPhase(){
   const _keepY=window.scrollY   // จำตำแหน่งเลื่อนหน้า — กันหน้า "เด้ง" กลับตอนแนบรูป/ติ๊ก/อัปเสร็จ
   const {cps, phase, storeName}=pctx
-  const total=cps.length, done=cps.filter(c=>curStatus(c.id)).length, pct=total?Math.round(done/total*100):0
-  const failN=cps.filter(c=>curStatus(c.id)==='fail').length
-  const passN=cps.filter(c=>curStatus(c.id)==='pass').length
+  const vid = phase===VIDEO_PHASE   // หัวข้อวีดีโอผังร้าน: อัปวีดีโออย่างเดียว ไม่มีผ่าน/ไม่ผ่าน (CM) · Head รีวิว
+  const total=cps.length, done=cps.filter(c=> vid ? mediaOf(c.id).length>0 : curStatus(c.id)).length, pct=total?Math.round(done/total*100):0
+  const failN=vid?0:cps.filter(c=>curStatus(c.id)==='fail').length
+  const passN=vid?done:cps.filter(c=>curStatus(c.id)==='pass').length
   const allPass = total>0 && done===total && failN===0
   const approved = pctx.signoffs.find(x=>x.kind==='approve')
   const locked = phaseLocked(), editable = phaseEditable()
   const feas = phase===FEAS_PHASE
+  const vidVerdict = vid ? pctx.signoffs.filter(x=>x.scope==='video').reduce((p,c)=>(!p||(c.created_at||'')>(p.created_at||'')?c:p), null) : null
   const phaseName=(cps[0]&&cps[0].phase_name)||(feas?'ประเมิน Feasibility':phase>200?('ตรวจรับ Set-Up '+(phase-200)):phase>100?('Pre-Con '+(phase-100)):('ครั้งที่ '+phase))
   const suPhase = phase>=201 && phase<=208
   const cmRespond = suPhase && profile.role==='cm'   // CM เข้ามาแก้ข้อที่ Set-Up ตีกลับ
   const fixedN=cps.filter(c=>curStatus(c.id)==='fixed').length
-  const _bt = feas?'ก่อน Pre-Con · ประเมินความเป็นไปได้':(phase>=201&&phase<=208)?`ตรวจรับ Set-Up ${phase-200} จาก 8`:(phase>=101&&phase<=104)?`Pre-Con ${phase-100} จาก 4`:`งวดที่ ${phase} จาก 9`
+  const _bt = vid?'📹 หัวข้อแยก · วีดีโอประกอบ':feas?'ก่อน Pre-Con · ประเมินความเป็นไปได้':(phase>=201&&phase<=208)?`ตรวจรับ Set-Up ${phase-200} จาก 8`:(phase>=101&&phase<=104)?`Pre-Con ${phase-100} จาก 4`:`งวดที่ ${phase} จาก 9`
   let html=`<a class="phback inline-flex items-center gap-space-xs text-ink-muted cursor-pointer" style="margin:0 0 4px -4px;padding:4px 0"><span class="material-symbols-outlined text-[20px]">chevron_left</span><span class="font-body-sm text-body-sm font-semibold">กลับไปหน้าสาขา</span></a>
   <div class="flex items-start justify-between gap-space-md" style="margin-bottom:14px">
     <div class="min-w-0"><div class="inline-flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-surface-elevated text-role-head-const font-label-micro text-label-micro uppercase tracking-wider" style="margin-bottom:6px"><span class="w-1.5 h-1.5 rounded-full bg-role-head-const"></span>${_bt}</div><h1 class="font-headline-md text-headline-md text-ink-primary font-extrabold tracking-tight">${esc(phaseName)}</h1><p class="font-body-sm text-body-sm text-ink-muted mt-0.5">สาขา ${esc(storeName)} (${esc(pctx.code)})</p></div>
@@ -2691,13 +2709,25 @@ function renderPhase(){
   if(approved) html+=`<div class="appv">✓ อนุมัติงวดแล้ว · ${esc(nameOf(approved.by))} · ${fmtDate(approved.created_at)}</div>`
   const _pp=total?Math.round(passN/total*100):0, _pf=total?Math.round(failN/total*100):0
   html+=`<div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.3)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px"><span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;color:#F5F5F2"><span class="material-symbols-outlined" style="font-size:18px;color:#F5C518">verified</span>ตรวจแล้ว ${done}/${total} ข้อ</span><span class="mono" style="font-size:14px;font-weight:800;color:#F5C518">${pct}%</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px"><span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;color:#F5F5F2"><span class="material-symbols-outlined" style="font-size:18px;color:#F5C518">${vid?'videocam':'verified'}</span>${vid?'แนบวีดีโอแล้ว':'ตรวจแล้ว'} ${done}/${total}${vid?' คลิป':' ข้อ'}</span><span class="mono" style="font-size:14px;font-weight:800;color:#F5C518">${pct}%</span></div>
     <div style="display:flex;height:9px;border-radius:99px;overflow:hidden;background:#141416"><div style="background:#37D98B;width:${_pp}%"></div><div style="background:#FF5C5C;width:${_pf}%"></div></div>
-    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10.5px;font-weight:700"><span style="color:#37D98B">● ${feas?'เรียบร้อย':'ผ่าน'} ${passN}</span><span style="color:#FF5C5C">● ${feas?'ไม่เรียบร้อย':'ไม่ผ่าน'} ${failN}</span><span style="color:#9A9A93">○ ${feas?'ยังไม่ประเมิน':'รอตรวจ'} ${total-done}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10.5px;font-weight:700"><span style="color:#37D98B">● ${vid?'แนบแล้ว':feas?'เรียบร้อย':'ผ่าน'} ${passN}</span>${vid?'':`<span style="color:#FF5C5C">● ${feas?'ไม่เรียบร้อย':'ไม่ผ่าน'} ${failN}</span>`}<span style="color:#9A9A93">○ ${vid?'ยังไม่แนบ':feas?'ยังไม่ประเมิน':'รอตรวจ'} ${total-done}</span></div>
   </div>`
   let lastGrp='__none__', first=true
   cps.forEach(c=>{
     if(c.group_title!==lastGrp){ if(c.group_title) html+=`<div class="grp${first?' first':''}">${esc(c.group_title)}</div>`; lastGrp=c.group_title; first=false }
+    if(vid){   // หัวข้อวีดีโอ: อัปวีดีโออย่างเดียว ไม่มีผ่าน/ไม่ผ่าน
+      const ph=mediaOf(c.id), has=ph.length>0
+      const _bd=has?['#12271B','#7EE6B0','videocam','แนบแล้ว']:['#232327','#67675F','video_camera_back','ยังไม่แนบ']
+      const badge=`<span style="display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;padding:4px 10px;border-radius:999px;background:${_bd[0]};color:${_bd[1]};font-size:11px;font-weight:700"><span class="material-symbols-outlined" style="font-size:14px">${_bd[2]}</span>${_bd[3]}</span>`
+      html+=`<div class="cp ${has?'pass':''}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div style="min-width:0"><div class="clb">${esc(c.label)}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}</div>
+          ${badge}
+        </div>
+        <div class="photos">${ph.map(m=>evidTile(m)).join('')}${editable?`<span class="addph" data-cp="${c.id}" data-vid="1">🎥 ถ่าย/แนบวิดีโอ<small>${has?'แนบเพิ่ม/แก้ได้':'บังคับ'}</small></span>`:''}</div></div>`
+      return
+    }
     const cur=curStatus(c.id), cls=cur==='pass'?'pass':cur==='fail'?'fail':cur==='na'?'na':cur==='fixed'?'cpfix':''
     const ph=mediaOf(c.id), rnd=maxRound(c.id), note=curNote(c.id)
     const needEvid = cpEvid(c), isVid = cpVideo(c)
@@ -2749,14 +2779,16 @@ function renderPhase(){
     _af.forEach(f=>{ if(f.kind==='overdue') html+=`<div class="rfbanner" style="margin-top:12px;background:#2a1e08;border-color:#7a5a1a;border-left-color:#E0A800"><span class="rfflag">⏰</span><div style="flex:1;min-width:0"><div class="rft" style="color:#ffcf6b">ต้องตรวจด่วน — เลยเส้นตายตรวจงวดนี้มาแล้ว ${f.days} วัน</div><div class="rfr" style="color:#ffe4b0">ถึงกำหนดตาม Timeline แล้ว แต่ยังตรวจไม่ครบ/ไม่ผ่าน — ตรวจให้ครบ ธงหายเอง</div></div></div>`
       else html+=`<div class="rfbanner" style="margin-top:12px"><span class="rfflag">🔧</span><div style="flex:1;min-width:0"><div class="rft">ค้างแก้ไข — ${f.count} จุดไม่ผ่าน/รอแก้ · รอแก้ไขมาแล้ว <b>${f.days} วัน</b></div><div class="rfr">แก้แล้วกดผ่าน/ส่งตรวจซ้ำ ธงจะหายเอง</div></div></div>` }) }
   // ===== ธงแดง — งวดละปุ่มเดียว (เฉพาะก่อสร้าง) =====
-  if(!suPhase){ const rf=rfPhaseState()
+  if(!suPhase && !vid){ const rf=rfPhaseState()
     if(rf&&rf.active){ html+=`<div class="rfbanner" style="margin-top:12px"><span class="rfflag">🚩</span><div style="min-width:0;flex:1"><div class="rft">ธงแดง — แจ้งสิ่งผิดปกติ/ควรเฝ้าระวัง <span class="rfby">· โดย ${esc(nameOf(rf.by))} · ${fmtDate(rf.at)}</span></div><div class="rfr">“${esc(rf.reason)}”</div>${canClearRf()?'':'<div class="rfwait">รอ Head CM / Head Construction ตัดสินใจ</div>'}</div>${canClearRf()?`<button class="rfclear" id="rfClearBtn">✓ ปิดธง</button>`:''}</div>` }
     else { html+=`<button class="rfbtn" id="rfRaiseBtn" style="margin-top:12px"><span class="rfbtnflag">🚩</span><span>ปักธงแดง — แจ้งสิ่งผิดปกติ หรือควรเฝ้าระวัง</span></button>` }
   }
   // ---- summary + actions ----
   const scls = total===0?'mid':allPass?'ok':(failN?'bad':'mid')
   let sub, big
-  if(total===0){ big=`ยังไม่มีรายการตรวจในงวดนี้`; sub=`ผู้ดูแล (Admin) ต้องกด “โหลด checklist” ในหน้า Admin ก่อน — งวดนี้จึงจะมีข้อให้ตรวจ` }
+  if(vid){ big = done<total?`แนบวีดีโอแล้ว ${done}/${total} คลิป`:`แนบครบ ${total} คลิปแล้ว ✓`
+    sub = done<total?`ต้องแนบให้ครบ ${total} คลิป ถึงจะกดบันทึกได้`:(vidVerdict?`Head CM รีวิวแล้ว: ${vidVerdict.kind==='pass'?'ผ่าน':'ไม่ผ่าน'}`:`แนบครบแล้ว — รอ Head CM เข้ามารีวิว`) }
+  else if(total===0){ big=`ยังไม่มีรายการตรวจในงวดนี้`; sub=`ผู้ดูแล (Admin) ต้องกด “โหลด checklist” ในหน้า Admin ก่อน — งวดนี้จึงจะมีข้อให้ตรวจ` }
   else if(done<total){ big=`ตรวจแล้ว ${done}/${total} รายการ`; sub=`ผ่าน ${passN} · ไม่ผ่าน ${failN}${fixedN?` · รอตรวจซ้ำ ${fixedN}`:''} · ยังไม่ตรวจ ${total-done}` }
   else if(failN){ big=`มี ${failN} รายการไม่ผ่าน — ต้องแก้และตรวจซ้ำ`; sub=suPhase?`CM แก้แล้วแนบรูป กดส่ง → Set-Up ตรวจซ้ำ (เก็บเป็นรอบใหม่ ไม่ทับของเดิม)`:`ผรม.แก้แล้ว กดผ่าน/ไม่ผ่านใหม่ได้เลย (ระบบเก็บเป็นรอบใหม่ ไม่ทับของเดิม)` }
   else if(fixedN){ big=`รอ Set-Up ตรวจซ้ำ ${fixedN} รายการ`; sub=`CM แก้แล้วส่งกลับ — Set-Up ตรวจซ้ำเพื่อปิดข้อ` }
@@ -2767,7 +2799,11 @@ function renderPhase(){
     return `<div class="pi"><div class="pihd"><b>${esc(c.no||'•')}</b> ${esc(c.label)}</div>${nt?`<div class="pint">📝 ${esc(nt)}</div>`:''}${pm.length?`<div class="piph">${pm.map(m=>m.kind==='video'?`<video class="pithv" src="${m.url||''}" playsinline muted preload="none"></video>`:`<img class="th pith" loading="lazy" decoding="async" src="${m.turl||m.url||''}" data-url="${m.url||''}">`).join('')}</div>`:'<div class="pinophoto">⚠ ยังไม่มีรูป</div>'}</div>`
   }).join('')+`</div>` }
   html+=`</div>`
-  if(allPass && !suPhase){
+  if(vid){   // Head CM รีวิววีดีโอ (ไม่เกี่ยวการเบิกงวด ผรม.)
+    if(vidVerdict) html+=`<div class="appv" style="margin-top:14px;${vidVerdict.kind==='fail'?'background:#241416;color:#FF9B9B':''}">${vidVerdict.kind==='pass'?'✓ Head CM รีวิวผ่าน':'✕ Head CM: ไม่ผ่าน'} · ${esc(nameOf(vidVerdict.by))} · ${fmtDate(vidVerdict.created_at)}${vidVerdict.note?' · '+esc(vidVerdict.note):''}</div>`
+    if(isHead()&&!isViewer()) html+=`<div class="apanel" style="margin-top:14px"><div class="ap-t">Head CM รีวิววีดีโอ</div><div class="ap-d">ดูวีดีโอทั้ง ${total} คลิป แล้วบันทึกผล (ไม่เกี่ยวการเบิกงวดงาน ผรม.)</div><div class="actbtn" style="margin-top:10px"><button class="btn pri" id="btnVidPass">✓ ผ่าน</button><button class="btn gho" id="btnVidFail">✕ ไม่ผ่าน</button></div></div>`
+  }
+  if(allPass && !suPhase && !vid){
     const scSig=latestSignoff('score'); const curScore=scSig?((+scSig.note)||0):0
     html+=`<div class="apanel scorebox" style="margin-top:16px"><div class="ap-t">คะแนนคุณภาพงวดนี้ (1–5)</div>
       <div class="ap-d">ผู้ตรวจให้คะแนนคุณภาพงานโดยรวมของงวดนี้</div>
@@ -2790,10 +2826,13 @@ function renderPhase(){
   }
   // ===== แถบ Save ลอยล่าง (Stitch p6) — แอป auto-save ทุกติ๊ก ปุ่มนี้ = ยืนยัน/กลับ =====
   { const _rem=total-done, _bt2=(phase>=201&&phase<=208)?('ตรวจรับ Set-Up '+(phase-200)):(phase>=101&&phase<=104)?('Pre-Con '+(phase-100)):('งวดที่ '+phase)
+    const _statLine = vid
+      ? `<div class="flex items-center gap-space-md font-body-sm text-body-sm"><span class="flex items-center gap-1 text-role-setup font-bold"><span class="w-2 h-2 rounded-full bg-role-setup"></span> แนบแล้ว ${done}</span><span class="flex items-center gap-1 text-ink-muted"><span class="w-2 h-2 rounded-full bg-ink-faint"></span> ยังไม่แนบ ${_rem}</span></div>`
+      : `<div class="flex items-center gap-space-md font-body-sm text-body-sm"><span class="flex items-center gap-1 text-role-setup font-bold"><span class="w-2 h-2 rounded-full bg-role-setup"></span> ผ่าน ${passN}</span><span class="flex items-center gap-1 text-status-fail font-bold"><span class="w-2 h-2 rounded-full bg-status-fail"></span> ไม่ผ่าน ${failN}</span><span class="flex items-center gap-1 text-ink-muted"><span class="w-2 h-2 rounded-full bg-ink-faint"></span> รอตรวจ ${_rem}</span></div>`
     html+=`<div class="sticky z-40 rounded-2xl p-space-md flex flex-col gap-space-md" style="bottom:calc(env(safe-area-inset-bottom,0px) + 74px);margin-top:18px;background:rgba(35,35,39,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -8px 30px -10px #000">
-      <div class="flex items-center justify-between px-1"><div class="flex items-center gap-space-md font-body-sm text-body-sm"><span class="flex items-center gap-1 text-role-setup font-bold"><span class="w-2 h-2 rounded-full bg-role-setup"></span> ผ่าน ${passN}</span><span class="flex items-center gap-1 text-status-fail font-bold"><span class="w-2 h-2 rounded-full bg-status-fail"></span> ไม่ผ่าน ${failN}</span><span class="flex items-center gap-1 text-ink-muted"><span class="w-2 h-2 rounded-full bg-ink-faint"></span> รอตรวจ ${_rem}</span></div><span class="font-label-micro text-label-micro text-ink-faint uppercase" style="font-family:monospace">CJX Inspect</span></div>
+      <div class="flex items-center justify-between px-1">${_statLine}<span class="font-label-micro text-label-micro text-ink-faint uppercase" style="font-family:monospace">CJX Inspect</span></div>
       <div class="flex flex-col gap-space-xs">
-        <button id="btnPhDone" class="w-full rounded-full bg-primary-container text-ink-on-yellow font-title-md text-title-md font-extrabold flex items-center justify-center gap-space-xs shadow-lg active:scale-[0.98] transition-transform" style="height:56px"><span class="material-symbols-outlined text-[24px]">send</span><span>บันทึกและส่งผลการตรวจ${_bt2}</span></button>
+        <button id="btnPhDone" class="w-full rounded-full bg-primary-container text-ink-on-yellow font-title-md text-title-md font-extrabold flex items-center justify-center gap-space-xs shadow-lg active:scale-[0.98] transition-transform" style="height:56px"><span class="material-symbols-outlined text-[24px]">${vid?'videocam':'send'}</span><span>${vid?`บันทึกวีดีโอ (${done}/${total})`:`บันทึกและส่งผลการตรวจ${_bt2}`}</span></button>
         <button id="btnPhPause" class="w-full rounded-full text-ink-muted font-body-sm text-body-sm font-semibold flex items-center justify-center gap-1.5" style="padding:10px;background:var(--card)"><span class="material-symbols-outlined text-[18px]">save</span><span>พักการตรวจ (บันทึกร่างไว้)</span></button>
       </div></div>`
   }
@@ -2801,12 +2840,14 @@ function renderPhase(){
   $('phaseBody').classList.toggle('phlocked', !editable)
   { const pb=$('phaseBody').querySelector('.phback'); if(pb) pb.onclick=()=>openSite(pctx.code) }
   { const bd=$('btnPhDone'); if(bd) bd.onclick=()=>{
-      // งวด 9: วิดีโอสำรวจรอบร้านต้องครบทุกคลิปก่อนส่งผล
-      const vids=pctx.cps.filter(c=>c.group_title===VIDEO_SURVEY_GROUP)
-      if(vids.length){ const miss=vids.filter(c=>!mediaOf(c.id).length)
-        if(miss.length){ alert(`ต้องถ่าย“${VIDEO_SURVEY_GROUP}”ให้ครบ ${vids.length} คลิปก่อนบันทึก/ส่งผล\n(ยังขาดอีก ${miss.length} คลิป)`); return } }
+      if(pctx.phase===VIDEO_PHASE){ // หัวข้อวีดีโอ: ต้องแนบครบทุกคลิปก่อนบันทึก
+        const miss=pctx.cps.filter(c=>!mediaOf(c.id).length)
+        if(miss.length){ alert(`ต้องแนบวีดีโอให้ครบ ${pctx.cps.length} คลิปก่อนบันทึก (ยังขาดอีก ${miss.length} คลิป)`); return }
+        syncQueue(); toast(navigator.onLine?'บันทึกวีดีโอแล้ว ✓':'บันทึกในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต','ok'); openSite(pctx.code); return }
       syncEventQueue(); syncQueue(); toast(navigator.onLine?'บันทึกและส่งผลการตรวจแล้ว ✓':'บันทึกในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต','ok'); openSite(pctx.code) }
-    const bp=$('btnPhPause'); if(bp) bp.onclick=()=>{ toast('พักไว้ก่อน — ผลถูกบันทึกแล้ว'); openSite(pctx.code) } }
+    const bp=$('btnPhPause'); if(bp) bp.onclick=()=>{ toast('พักไว้ก่อน — ผลถูกบันทึกแล้ว'); openSite(pctx.code) }
+    const vp=$('btnVidPass'); if(vp) vp.onclick=()=>saveVidVerdict('pass')
+    const vf=$('btnVidFail'); if(vf) vf.onclick=()=>saveVidVerdict('fail') }
   const _ths=[...$('phaseBody').querySelectorAll('.th')]
   const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
   _ths.forEach((im,idx)=> im.onclick=()=>openLightbox(_urls, idx))   // ดูรูปได้เสมอ
@@ -3335,7 +3376,7 @@ async function loadDashData(){
   const agg={}; _curByStore={}; const oldEvtStores=new Set()
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
     const code=ins.store_code
-    if(e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) oldEvtStores.add(code)   // เคยตรวจก่อน cutoff = ร้านเดิม
+    if(cpPhase[e.checkpoint]===9 && e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) oldEvtStores.add(code)   // เคยตรวจงวด 9 ก่อน cutoff = ร้านเดิม
     // full cur (ทุกเฟส รวม Set-Up) สำหรับ auto red flag
     const fm=_curByStore[code]||(_curByStore[code]={}); const fk=String(e.checkpoint),fp=fm[fk]; if(!fp||e.round>fp.round||(e.round===fp.round&&(e.created_at||'')>=(fp.created_at||''))) fm[fk]=e
     if(cpPhase[e.checkpoint]>=200) return   // ข้าม event ของ Set-Up ในแดชบอร์ดก่อสร้าง
@@ -3706,7 +3747,7 @@ async function generateReport(code, phase){
   const { data:sg } = await sb.from('signoffs').select('scope,kind,by,created_at,image,note').eq('store_code',code)
   const pickSig=(kind,scopeVal)=>{ const a=(sg||[]).filter(x=>x.kind===kind && (scopeVal==null||String(x.scope)===String(scopeVal))); return a.length? a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)) : null }
   const cur={}; events.forEach(e=>{ const k=e.checkpoint,p=cur[k]; if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) cur[k]=e })
-  const newForm = storeNewForm(s&&s.opening_date, hasOldEvents(events))
+  const newForm = storeNewForm(s&&s.opening_date, hadPhase9(events))
   const mediaByCp={}; media.forEach(m=>{ (mediaByCp[m.checkpoint]||(mediaByCp[m.checkpoint]=[])).push(m) })
   const phases = phase?[+phase]:PRECON.map(p=>p[0]).concat(PHASES.map(p=>p[0]))
   const scoreFor=pn=>{ const a=(sg||[]).filter(x=>String(x.scope)===String(pn)&&x.kind==='score'); if(!a.length) return null

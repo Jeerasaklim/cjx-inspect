@@ -127,10 +127,10 @@ async function loadAll(){
   stores=(st.data||[]).map(s=>({...s,cs:cs(s.opening_date)}))
   checkpoints=cp.data||[]; insps=ins; events=ev; signoffs=sg; profiles=pf.data||[]
   nameByUid={}; profiles.forEach(p=>nameByUid[p.id]=p.name||p.email||'')
-  cpByPhase={}; checkpoints.forEach(c=>{ (cpByPhase[c.phase]||(cpByPhase[c.phase]=[])).push(c) })
+  cpByPhase={}; const _cpPh={}; checkpoints.forEach(c=>{ (cpByPhase[c.phase]||(cpByPhase[c.phase]=[])).push(c); _cpPh[String(c.id)]=c.phase })
   const inspById={}; insps.forEach(i=>inspById[i.id]=i)
   cur={}; _oldEvtStores=new Set(); events.forEach(e=>{ const ins2=inspById[e.inspection_id]; if(!ins2) return; const code=ins2.store_code
-    if(e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) _oldEvtStores.add(code)   // เคยตรวจก่อน cutoff = ร้านเดิม
+    if(_cpPh[e.checkpoint]===9 && e.created_at && String(e.created_at).slice(0,10) < FORM_CUTOFF) _oldEvtStores.add(code)   // เคยตรวจงวด 9 ก่อน cutoff = ร้านเดิม
     const m=cur[code]||(cur[code]={}); const p=m[e.checkpoint]
     if(!p||e.round>p.round||(e.round===p.round&&(e.created_at||'')>=(p.created_at||''))) m[e.checkpoint]={...e,store_code:code} })
   // โหลด+เซ็นรูป thumbnail เฉพาะข้อที่ไม่ผ่าน/รอตรวจซ้ำ (สำหรับคิว Defect)
