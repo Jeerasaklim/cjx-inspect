@@ -3651,7 +3651,10 @@ function renderPermMatrix(){
   roles.forEach(r=> h+='<th style="padding:7px 4px;border-bottom:2px solid #2A2A2E;color:'+r[1]+';font-size:10px;font-weight:700;white-space:normal;line-height:1.2;min-width:66px;vertical-align:bottom">'+r[0]+'</th>')
   h+='</tr></thead><tbody>'
   rows.forEach(row=>{
-    if(row.g){ h+='<tr><td colspan="'+(roles.length+1)+'" style="position:sticky;left:0;z-index:2;background:#141416;padding:9px 8px 4px;color:#F5C518;font-weight:800;font-size:11px;border-bottom:1px solid #2A2A2E">'+esc(row.g)+'</td></tr>'; return }
+    if(row.g){ h+='<tr>'
+      +'<td style="position:sticky;left:0;z-index:2;background:#20242c;color:#F5C518;font-weight:800;font-size:11px;padding:9px 8px 5px;border-bottom:1px solid #2A2A2E;min-width:190px;white-space:nowrap">'+esc(row.g)+'</td>'
+      +'<td colspan="'+roles.length+'" style="background:#20242c;border-bottom:1px solid #2A2A2E"></td>'
+      +'</tr>'; return }
     h+='<tr><td style="position:sticky;left:0;background:#141416;z-index:1;padding:6px 8px;border-bottom:1px solid #202022;color:#D6D6D1">'+esc(row[0])+'</td>'
     for(let i=1;i<=roles.length;i++) h+='<td style="text-align:center;padding:6px 3px;border-bottom:1px solid #202022">'+cell(row[i])+'</td>'
     h+='</tr>'
