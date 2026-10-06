@@ -927,8 +927,9 @@ input[type=email],input[type=password],input[type=text]{border-radius:13px;backg
           <div class="ap-t">ทะเบียนสิทธิ์ (Roster)</div>
           <div class="ap-d">กำหนด role ให้ <b>email ล่วงหน้าได้เลย</b> (ก่อนคนล็อกอิน) · อีเมลที่ไม่อยู่ในทะเบียน = เข้าไม่ได้ (pending) · แก้ role ที่นี่มีผลกับคนที่ล็อกอินไปแล้วด้วย</div>
           <details style="margin:10px 0 4px;background:#141416;border:1px solid #2A2A2E;border-radius:10px;padding:8px 12px">
-            <summary style="cursor:pointer;color:#F5C518;font-weight:800;font-size:13px">ℹ️ สิทธิ์แต่ละ Role ทำอะไรได้บ้าง (แตะดู)</summary>
-            <div style="overflow-x:auto;margin-top:10px">
+            <summary style="cursor:pointer;color:#F5C518;font-weight:800;font-size:13px">ℹ️ ตารางสิทธิ์ (Permission Matrix) — Feature × Role (แตะดู)</summary>
+            <div id="permMatrixBox" style="overflow-x:auto;margin-top:10px"></div>
+            <div style="overflow-x:auto;margin-top:10px;display:none">
               <table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px">
                 <thead><tr style="color:#9A9A93;text-align:left">
                   <th style="padding:6px 8px;border-bottom:1px solid #2A2A2E;white-space:nowrap">Role</th>
@@ -936,16 +937,16 @@ input[type=email],input[type=password],input[type=text]{border-radius:13px;backg
                   <th style="padding:6px 8px;border-bottom:1px solid #2A2A2E">✏️ แก้ไข/ทำได้ (Edit)</th>
                 </tr></thead>
                 <tbody style="color:#D6D6D1;vertical-align:top">
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#8FB4FF;white-space:nowrap">CM</td><td style="padding:7px 8px;border-bottom:1px solid #202022">สาขาที่ตัวเองตรวจ (งานก่อสร้าง)</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ติ๊กผล+แนบรูปงานก่อสร้าง · ปักธงแดง · อัปวีดีโอ <span style="color:#67675F">(อนุมัติ/เซ็น/ปิดธง ไม่ได้)</span></td></tr>
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#FF9F1C;white-space:nowrap">หัวหน้า CM</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกสาขา + Dashboard</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจ/แก้ทุกงวด · อนุมัติงวด · เซ็น · ปิด/ปักธงแดง · รีวิววีดีโอ</td></tr>
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#F5C518;white-space:nowrap">Head Construction</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกสาขา + Dashboard</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">เหมือนหัวหน้า CM (ตรวจ/อนุมัติ/เซ็น/ปิดธง/รีวิววีดีโอ)</td></tr>
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#F0B429;white-space:nowrap">Managing Director</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกสาขา + Dashboard</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">= Head Construction</td></tr>
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#37D98B;white-space:nowrap">Set-Up (NSA)</td><td style="padding:7px 8px;border-bottom:1px solid #202022">สาขาที่ตัวเองตรวจรับ</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจรับร้าน Set-Up + ให้คะแนน + เซ็นรับร้าน <span style="color:#67675F">(ไม่ยุ่งงานก่อสร้าง)</span></td></tr>
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#4FD1B5;white-space:nowrap">หัวหน้า Set-Up</td><td style="padding:7px 8px;border-bottom:1px solid #202022">งาน Set-Up ทุกสาขา</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจ Set-Up + อนุมัติ <span style="color:#67675F">(ไม่ปิดธงก่อสร้าง)</span></td></tr>
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#C7A6FF;white-space:nowrap">บัญชี</td><td style="padding:7px 8px;border-bottom:1px solid #202022">รายงานทุกสาขา (Dashboard)</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#67675F">— ดู/โหลดรายงานอย่างเดียว</td></tr>
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#9AA4B2;white-space:nowrap">Member</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกสาขา/ทุกเมนู</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#FF9B9B">❌ แก้ไม่ได้เลย (ดูอย่างเดียว · ล็อกทั้งแอป)</td></tr>
-                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#C79BFF;white-space:nowrap">Admin</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกอย่าง</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ทุกอย่าง + จัดการผู้ใช้/checklist/roster + override งวดที่ปิดแล้ว</td></tr>
-                  <tr><td style="padding:7px 8px;font-weight:800;color:#67675F;white-space:nowrap">(pending)</td><td style="padding:7px 8px;color:#67675F">เข้าระบบไม่ได้ (รออนุมัติ)</td><td style="padding:7px 8px;color:#67675F">—</td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#8FB4FF;white-space:nowrap">CM</td><td style="padding:7px 8px;border-bottom:1px solid #202022">เฉพาะสาขาที่ตัวเองตรวจ (งานก่อสร้าง 9 งวด)</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ติ๊กผล ผ่าน/ไม่ผ่าน + แนบรูปงานก่อสร้าง · ปักธงแดง · อัปวีดีโอผังร้าน <span style="color:#67675F">(อนุมัติงวด/เซ็นรับรอง/ปิดธงแดง ไม่ได้)</span></td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#FF9F1C;white-space:nowrap">หัวหน้า CM</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกสาขา (งานก่อสร้าง) + Dashboard HQ</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจ/แก้ผลทุกงวด · อนุมัติงวดงาน · เซ็นรับรอง · ปัก/ปิดธงแดง · รีวิววีดีโอผังร้าน (ผ่าน/ไม่ผ่าน)</td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#F5C518;white-space:nowrap">Head Construction</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกสาขา (งานก่อสร้าง) + Dashboard HQ</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจ/แก้ผลทุกงวด · อนุมัติงวดงาน · เซ็นรับรอง · ปัก/ปิดธงแดง · รีวิววีดีโอผังร้าน (ผ่าน/ไม่ผ่าน)</td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#F0B429;white-space:nowrap">Managing Director</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกสาขา (งานก่อสร้าง) + Dashboard HQ</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจ/แก้ผลทุกงวด · อนุมัติงวดงาน · เซ็นรับรอง · ปัก/ปิดธงแดง · รีวิววีดีโอผังร้าน (ผ่าน/ไม่ผ่าน)</td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#37D98B;white-space:nowrap">Set-Up (NSA)</td><td style="padding:7px 8px;border-bottom:1px solid #202022">เฉพาะสาขาที่ตัวเองตรวจรับ (งาน Set-Up)</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจรับร้าน Set-Up (ติ๊กผล+แนบรูป) · ให้คะแนน · เซ็นรับร้าน <span style="color:#67675F">(ไม่ยุ่งงานก่อสร้าง)</span></td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#4FD1B5;white-space:nowrap">หัวหน้า Set-Up</td><td style="padding:7px 8px;border-bottom:1px solid #202022">งานตรวจรับ Set-Up ทุกสาขา</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจรับ Set-Up (ติ๊กผล+แนบรูป) · ให้คะแนน · เซ็น/อนุมัติ Set-Up <span style="color:#67675F">(ไม่ยุ่งงานก่อสร้าง / ไม่ปิดธงแดง)</span></td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#C7A6FF;white-space:nowrap">บัญชี</td><td style="padding:7px 8px;border-bottom:1px solid #202022">รายงานทุกสาขา (Dashboard HQ)</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#67675F">ดู/โหลดรายงานอย่างเดียว — แก้ไขอะไรไม่ได้</td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#9AA4B2;white-space:nowrap">Member</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกสาขา / ทุกเมนู</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#FF9B9B">❌ แก้ไขอะไรไม่ได้เลย (ดูอย่างเดียว · ล็อกทั้งแอป)</td></tr>
+                  <tr><td style="padding:7px 8px;border-bottom:1px solid #202022;font-weight:800;color:#C79BFF;white-space:nowrap">Admin</td><td style="padding:7px 8px;border-bottom:1px solid #202022">ทุกอย่าง (ก่อสร้าง + Set-Up + Dashboard + Admin)</td><td style="padding:7px 8px;border-bottom:1px solid #202022;color:#7EE6B0">ตรวจ/แก้/อนุมัติ/เซ็น/ปิดธง ทุกอย่าง · จัดการผู้ใช้+สิทธิ์ · โหลด/เพิ่ม checklist · แก้งวดที่ปิดแล้ว (override)</td></tr>
+                  <tr><td style="padding:7px 8px;font-weight:800;color:#67675F;white-space:nowrap">(pending)</td><td style="padding:7px 8px;color:#67675F">เข้าระบบไม่ได้ (รออนุมัติสิทธิ์)</td><td style="padding:7px 8px;color:#67675F">—</td></tr>
                 </tbody>
               </table>
             </div>
@@ -3621,6 +3622,44 @@ function drawRoster(){
     _roster=_roster.filter(r=>r.email!==email); drawRoster(); toast('ลบแล้ว')
   })
 }
+// ---- ตารางสิทธิ์ (Permission Matrix) Feature × Role ----
+function renderPermMatrix(){
+  const box=$('permMatrixBox'); if(!box) return
+  const roles=[['CM','#8FB4FF'],['หัวหน้า CM','#FF9F1C'],['Head Const','#F5C518'],['MD','#F0B429'],['Set-Up','#37D98B'],['ห.Set-Up','#4FD1B5'],['บัญชี','#C7A6FF'],['Member','#9AA4B2'],['Admin','#C79BFF']]
+  const rows=[
+    {g:'งานก่อสร้าง (Feasibility · Pre-Con · 9 งวด)'},
+    ['ดูข้อมูลงานก่อสร้าง','V','V','V','V','-','-','V','V','V'],
+    ['ตรวจ / ติ๊กผล + แนบรูป','E','E','E','E','-','-','-','-','E'],
+    ['อนุมัติงวด + เซ็นรับรองงาน','-','E','E','E','-','-','-','-','E'],
+    ['ปักธงแดง','E','E','E','E','-','-','-','-','E'],
+    ['ปิดธงแดง','-','E','E','E','-','-','-','-','E'],
+    {g:'วีดีโอผังร้าน เสาป้าย สภาพแวดล้อม'},
+    ['อัปคลิปวีดีโอ (4 คลิป)','E','E','E','E','-','-','-','-','E'],
+    ['รีวิว ผ่าน / ไม่ผ่าน','-','E','E','E','-','-','-','-','E'],
+    {g:'ตรวจรับร้าน Set-Up (NSA)'},
+    ['ดูข้อมูลตรวจรับ Set-Up','V','V','V','V','V','V','V','V','V'],
+    ['ตรวจรับ + ให้คะแนน','-','-','-','-','E','E','-','-','E'],
+    ['เซ็น / อนุมัติ รับร้าน','-','-','-','-','E','E','-','-','E'],
+    {g:'ภาพรวม & ระบบ'},
+    ['ดู Dashboard HQ + โหลดรายงาน','V','V','V','V','V','V','V','V','V'],
+    ['จัดการผู้ใช้ / สิทธิ์ (Roster)','-','-','-','-','-','-','-','-','E'],
+    ['โหลด / เพิ่ม checklist','-','-','-','-','-','-','-','-','E'],
+  ]
+  const cell=v=> v==='E'?'<span style="color:#7EE6B0;font-weight:800">✓</span>': v==='V'?'<span style="color:#8FB4FF">👁</span>':'<span style="color:#3E3E44">–</span>'
+  let h='<table style="border-collapse:collapse;font-size:11px;min-width:'+(210+roles.length*54)+'px">'
+  h+='<thead><tr><th style="position:sticky;left:0;background:#141416;z-index:1;text-align:left;padding:7px 8px;border-bottom:2px solid #2A2A2E;min-width:190px">Feature</th>'
+  roles.forEach(r=> h+='<th style="padding:7px 3px;border-bottom:2px solid #2A2A2E;color:'+r[1]+';font-size:9.5px;white-space:nowrap;min-width:50px">'+r[0]+'</th>')
+  h+='</tr></thead><tbody>'
+  rows.forEach(row=>{
+    if(row.g){ h+='<tr><td colspan="'+(roles.length+1)+'" style="padding:9px 8px 4px;color:#F5C518;font-weight:800;font-size:11px;border-bottom:1px solid #2A2A2E">'+esc(row.g)+'</td></tr>'; return }
+    h+='<tr><td style="position:sticky;left:0;background:#141416;z-index:1;padding:6px 8px;border-bottom:1px solid #202022;color:#D6D6D1">'+esc(row[0])+'</td>'
+    for(let i=1;i<=roles.length;i++) h+='<td style="text-align:center;padding:6px 3px;border-bottom:1px solid #202022">'+cell(row[i])+'</td>'
+    h+='</tr>'
+  })
+  h+='</tbody></table><div style="color:#9A9A93;font-size:10.5px;margin-top:8px;line-height:1.5">✓ = ทำได้/แก้ไขได้ · 👁 = ดูอย่างเดียว · – = ไม่มีสิทธิ์<br>CM / Set-Up เห็นเฉพาะสาขาที่ตัวเองตรวจ · (pending = เข้าระบบไม่ได้)</div>'
+  box.innerHTML=h
+}
+try{ renderPermMatrix() }catch(e){}
 $('btnRosAdd').onclick = async ()=>{
   const email=$('rosEmail').value.trim().toLowerCase(), name=$('rosName').value.trim(), role=$('rosRole').value
   if(!/^\S+@\S+\.\S+$/.test(email)) return msg($('rosMsg'),'อีเมลไม่ถูกต้อง','err')
