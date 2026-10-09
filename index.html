@@ -2732,7 +2732,7 @@ function renderPhase(){
     <div class="flex items-center gap-1.5 px-space-sm py-1 rounded-lg bg-surface-card text-ink-muted font-label-micro text-label-micro shrink-0"><span class="material-symbols-outlined text-role-setup text-[14px]">cloud_done</span><span>ซิงค์แล้ว</span></div>
   </div>`
   if(cmRespond) html+=`<div class="lockbar" style="border-color:#3a4a2a;background:#17210f;color:#cfe8a8">🔧 โหมดแก้งานที่ Set-Up ตีกลับ — ข้อ <b style="color:var(--fail)">ไม่ผ่าน</b> แนบรูปที่แก้แล้ว → กดส่งให้ Set-Up ตรวจซ้ำ (คุณกดผ่านเองไม่ได้)</div>`
-  if(locked) html+=`<div class="lockbar">🔒 งวดนี้ปิดแล้ว · เซ็นครบ 2 ฝ่าย · ${editable?'<b>Admin แก้ไขได้ (override)</b>':'แก้ไข/ตรวจซ้ำไม่ได้'}</div>`
+  if(locked) html+=`<div class="lockbar">🔒 งวดนี้ปิดแล้ว · เซ็นครบ 2 ฝ่าย · ${editable?'<b>Admin แก้ไขได้ (override)</b>':'แก้ไข/ตรวจซ้ำไม่ได้'}${(profile&&profile.role==='admin')?`<button id="btnUnlockPhase" class="btn gho sm" style="margin-top:9px;color:#FF9B9B;border-color:#5a2a2a">🔓 ปลดล็อกงวด (ถอนลายเซ็น CM + ผรม.)</button>`:''}</div>`
   if(approved) html+=`<div class="appv">✓ อนุมัติงวดแล้ว · ${esc(nameOf(approved.by))} · ${fmtDate(approved.created_at)}</div>`
   const _pp=total?Math.round(passN/total*100):0, _pf=total?Math.round(failN/total*100):0
   html+=`<div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.3)">
@@ -2874,7 +2874,13 @@ function renderPhase(){
       syncEventQueue(); syncQueue(); toast(navigator.onLine?'บันทึกและส่งผลการตรวจแล้ว ✓':'บันทึกในเครื่องแล้ว · จะส่งอัตโนมัติเมื่อมีเน็ต','ok'); openSite(pctx.code) }
     const bp=$('btnPhPause'); if(bp) bp.onclick=()=>{ toast('พักไว้ก่อน — ผลถูกบันทึกแล้ว'); openSite(pctx.code) }
     const vp=$('btnVidPass'); if(vp) vp.onclick=()=>saveVidVerdict('pass')
-    const vf=$('btnVidFail'); if(vf) vf.onclick=()=>saveVidVerdict('fail') }
+    const vf=$('btnVidFail'); if(vf) vf.onclick=()=>saveVidVerdict('fail')
+    const ul=$('btnUnlockPhase'); if(ul) ul.onclick=async()=>{
+      if(!(profile&&profile.role==='admin')){ toast('เฉพาะ Admin ปลดล็อกได้','err'); return }
+      if(!confirm('ปลดล็อกงวดนี้?\nจะถอนลายเซ็น CM + ผรม. ออก (ผลตรวจไม่ถูกลบ) → ให้ตรวจ/แก้ใหม่ได้')) return
+      const { error } = await sb.from('signoffs').delete().eq('store_code',pctx.code).eq('scope',String(pctx.phase)).in('kind',['sign_cm','sign_contractor','approve'])
+      if(error) return alert('ปลดล็อกไม่สำเร็จ: '+error.message)
+      await reloadSignoffs(); renderPhase(); toast('ปลดล็อกงวดแล้ว ✓ — ตรวจใหม่ได้') } }
   const _ths=[...$('phaseBody').querySelectorAll('.th')]
   const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
   _ths.forEach((im,idx)=> im.onclick=()=>openLightbox(_urls, idx))   // ดูรูปได้เสมอ
