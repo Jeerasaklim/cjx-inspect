@@ -1042,7 +1042,7 @@ function toast(text, kind='ok'){
 }
 // ---- signature pad ----
 let _sigOnSave=null, _sigDrawn=false
-function openSigPad(title, onSave, offerSaved){
+function openSigPad(title, onSave, offerSaved, preload){
   _sigOnSave=onSave; _sigDrawn=false
   $('sigTitle').textContent=title||'ลงลายเซ็น'
   show($('sigModal'),true)
@@ -1053,10 +1053,12 @@ function openSigPad(title, onSave, offerSaved){
   // ปุ่ม "ใช้ลายเซ็นที่บันทึกไว้" — โชว์เฉพาะตอนเซ็นในนามตัวเอง (sign_cm/approve/setup_nsa) และมีลายเซ็นเก็บไว้
   const btnU=$('sigUseSaved'); let _saved=null
   if(offerSaved){ _saved=(profile&&profile.signature)||null; if(!_saved){ try{_saved=localStorage.getItem('cjx_mysig')}catch(e){} } }
+  const _useSaved=()=>{ if(!_saved)return; const im=new Image()
+    im.onload=()=>{ ctx.drawImage(im,0,0,r.width,r.height); _sigDrawn=true }; im.src=_saved }
   if(btnU){ btnU.style.display=_saved?'block':'none'
-    btnU.onclick=()=>{ if(!_saved)return; const im=new Image()
-      im.onload=()=>{ ctx.drawImage(im,0,0,r.width,r.height); _sigDrawn=true; try{toast('ดึงลายเซ็นที่บันทึกไว้แล้ว — กดบันทึกเพื่อลงนาม','ok')}catch(e){} }
-      im.src=_saved } }
+    btnU.textContent = preload ? '↩️ เอาลายเซ็นเดิมกลับมา' : '✍️ ใช้ลายเซ็นที่บันทึกไว้'
+    btnU.onclick=()=>{ _useSaved(); try{toast(preload?'โหลดลายเซ็นเดิมแล้ว':'ดึงลายเซ็นที่บันทึกไว้แล้ว — กดบันทึกเพื่อลงนาม','ok')}catch(e){} } }
+  if(preload && _saved) _useSaved()   // หน้าตั้งลายเซ็น: โชว์ลายเซ็นเดิมบนแผ่นเลย = เห็นว่าเซฟแล้ว
   let drawing=false
   const pos=e=>{ const b=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-b.left, y:t.clientY-b.top} }
   const down=e=>{ e.preventDefault(); drawing=true; _sigDrawn=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y) }
@@ -1635,6 +1637,7 @@ function openProfile(){
 $('who').onclick = openProfile
 if($('btnAdminConsole')) $('btnAdminConsole').onclick=()=>openAdmin()
 if($('btnSig')) $('btnSig').onclick=()=>openSigPad('ลายเซ็นประจำตัวของฉัน', async img=>{
+  // preload=true → เปิดมาเห็นลายเซ็นเดิมบนแผ่น (ไม่ใช่ช่องว่าง) = รู้ว่าเซฟอยู่แล้ว
   try{localStorage.setItem('cjx_mysig',img)}catch(e){}   // cache ในเครื่อง (เร็ว/offline)
   if(profile) profile.signature=img
   const s=$('sigStatus'); if(s) s.textContent='กำลังบันทึก…'
@@ -1642,7 +1645,7 @@ if($('btnSig')) $('btnSig').onclick=()=>openSigPad('ลายเซ็นปร�
   if(error){ if(s) s.textContent='บันทึกในเครื่องแล้ว (ยังไม่ซิงค์)'
     try{toast('เซฟในเครื่องแล้ว แต่ซิงค์ขึ้นระบบไม่ได้: '+error.message+' (ให้ผู้ดูแลรัน sql/36)','err')}catch(e){}; return }
   if(s) s.textContent='มีลายเซ็นแล้ว'; try{toast('บันทึกลายเซ็นแล้ว ✓ ใช้ได้ทุกเครื่อง','ok')}catch(e){}
-})
+}, true, true)
 $('btnRetryQ').onclick = ()=>{ retryPhotoQueue(); setTimeout(openProfile,600) }
 $('btnClearQ').onclick = ()=>{ clearPhotoQueue().then(()=>openProfile()) }
 $('profBack').onclick = ()=>switchTab('home')
