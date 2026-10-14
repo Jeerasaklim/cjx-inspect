@@ -1578,6 +1578,7 @@ let myStores=new Set(), profileNames={}, _tab='home', contractors=[]
 const HEAD_ROLES=['head_cm','head_construction','md','head_setup','member','admin']   // member อยู่ในนี้เพื่อให้เห็นทุกสาขา (แต่ view-only ล็อกแก้ไขแยก)
 const isViewer=()=>!!(profile&&profile.role==='member')   // ดูอย่างเดียว ห้ามแก้ไข
 const isHead=()=>HEAD_ROLES.includes(profile&&profile.role)
+const isApprover=()=>['head_cm','head_construction','md','admin'].includes(profile&&profile.role)   // ผู้อนุมัติงวดงานก่อสร้าง
 const canApprove=()=>isHead()&&!isViewer()
 const nameOf=uid=>uid&&profileNames[uid]?profileNames[uid]:'—'
 
@@ -1828,6 +1829,12 @@ async function renderLanding(){
        <span class="font-title-sm text-title-sm text-ink-primary font-bold">ธงแดง</span><span class="font-label-micro text-label-micro text-ink-fail font-bold mt-0.5">แจ้งสิ่งผิดปกติ</span>
      </div>
    </section>
+   <!-- การ์ดอนุมัติงวดงาน (รวมทุกสาขา) -->
+   <div id="apprCard" class="qact flex items-center gap-space-md p-space-md rounded-2xl bg-surface-card shadow-md cursor-pointer" data-go="approve" style="display:none">
+     <div class="w-14 h-14 rounded-2xl bg-primary-container/15 text-primary-container flex items-center justify-center shrink-0 relative"><span class="material-symbols-outlined text-[30px]" style="font-variation-settings:'FILL' 1">verified</span><span id="apprBadge" class="absolute -top-1 -right-1 px-1.5 h-4 rounded-full bg-status-fail text-white font-label-micro text-label-micro items-center justify-center font-bold" style="display:none"></span></div>
+     <div class="flex flex-col min-w-0 flex-1"><span class="font-title-sm text-title-sm text-ink-primary font-bold">อนุมัติงวดงาน</span><span id="apprSub" class="font-label-micro text-label-micro text-ink-muted">—</span></div>
+     <span class="material-symbols-outlined text-ink-faint">chevron_right</span>
+   </div>
    <!-- recent -->
    <section class="flex flex-col gap-space-md">
      <div class="flex items-center justify-between px-space-xs">
@@ -1843,8 +1850,19 @@ async function renderLanding(){
    </div>`
   $('lav').onclick=()=>switchTab('profile')
   $('lcta').onclick=()=>switchTab('inspect')
-  $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='redflag'){ filter='redflag'; return switchTab('inspect') } if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
+  $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='approve')return openApprovalPanel(); if(g==='redflag'){ filter='redflag'; return switchTab('inspect') } if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
   await loadDashData()
+  { // การ์ดอนุมัติ — ผู้อนุมัติเน้น "รออนุมัติ" (ไปกด) · CM เน้น "อนุมัติแล้ว" (รอปริ้นให้ ผรม.)
+    const _hd=isApprover(), _cm=(profile&&profile.role==='cm'), pend=_approvalRows.filter(r=>!r.approved), appr=_approvalRows.filter(r=>r.approved)
+    const card=$('apprCard'), bg=$('apprBadge'), sub=$('apprSub')
+    if(card && !(_hd||_cm)){ card.style.display='none' }   // ฝั่ง Set-Up/บัญชี/Member ไม่เกี่ยวงวดก่อสร้าง → ซ่อน
+    else if(card){ card.style.display='flex'
+      if(_hd){ sub.textContent = pend.length?`${pend.length} งวดรออนุมัติ${appr.length?` · อนุมัติแล้ว ${appr.length}`:''}`:(appr.length?`อนุมัติแล้ว ${appr.length} งวด`:'ไม่มีงวดรออนุมัติ')
+        if(pend.length){ bg.textContent=pend.length>99?'99+':pend.length; bg.style.display='flex' } else bg.style.display='none'
+        card.classList.toggle('rf-hot', pend.length>0) }
+      else { sub.textContent = appr.length?`${appr.length} งวดอนุมัติแล้ว — พร้อมปริ้นให้ ผรม.`:(pend.length?`${pend.length} งวดรอหัวหน้าอนุมัติ`:'ยังไม่มีงวดรออนุมัติ')
+        if(appr.length){ bg.textContent=appr.length>99?'99+':appr.length; bg.style.display='flex' } else bg.style.display='none'
+        card.classList.toggle('rf-hot', appr.length>0) } } }
   loadRedFlags().then(()=>{ const b=$('rfLandBadge'), c=$('rfLandCard'); const t=(_rfHome&&_rfHome.list.length)||0
     if(b){ if(t){ b.textContent=t; b.style.display='flex' } else b.style.display='none' }
     if(c){ c.classList.toggle('rf-hot', t>0) } }).catch(()=>{})
@@ -3312,6 +3330,7 @@ function phKey(cur, phase){
   return ids.some(id=>cur[id].status==='fail')?'fail':'pass'
 }
 let _dashRows=[], _dashView='urgent', _dashKpi={}, _dashScope='ทุกสาขา', _dashFilter='all', _dashQuery=''
+let _approvalRows=[]   // งวดก่อสร้าง 1-9 ที่เซ็นครบ 2 ฝ่าย (locked) → รออนุมัติ/อนุมัติแล้ว (ตาม role scope)
 let _curByStore={}   // {code:{cpId:latestEvent}} ทุกเฟส — ใช้คำนวณ auto red flag
 const dstt=r=> r.fail>0?'fail':(r.done>=r.total?'done':r.done>0?'progress':'idle')
 function dqMatch(r){ const q=_dashQuery.trim().toLowerCase(); if(!q) return true
@@ -3419,13 +3438,36 @@ function renderSetupList(){
         ${detail}${progRow}</div>` }).join('')
   w.querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
 }
+function openApprovalPanel(){
+  const head=isApprover()
+  const pend=_approvalRows.filter(r=>!r.approved), appr=_approvalRows.filter(r=>r.approved)
+  const phN = p => ((PHASES.find(x=>x[0]===p)||[])[1]) || ('งวด '+p)
+  const item = r => `<div class="apprItem" data-code="${esc(r.code)}" data-phase="${r.phase}" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;background:#1b1c1f;margin-bottom:7px;cursor:pointer">
+    <div style="flex:1;min-width:0"><div style="font-size:14px;color:#F5F5F2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+    <div style="font-size:11.5px;color:#9A9A93">งวด ${r.phase} · ${esc(phN(r.phase))}${r.prov?' · '+esc(r.prov):''}</div></div>
+    <span style="color:var(--faint)">›</span></div>`
+  const sec=(title,color,arr,empty)=>`<div style="font-size:12px;font-weight:700;color:${color};margin:6px 2px 8px">${title} (${arr.length})</div>${arr.length?arr.map(item).join(''):`<div style="font-size:12px;color:#777;padding:2px 2px 10px">${empty}</div>`}`
+  const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
+  ov.innerHTML=`<div style="background:#191A1D;border-top:3px solid #F5C518;border-radius:16px 16px 0 0;width:100%;max-width:412px;box-sizing:border-box;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:82vh;overflow:auto;box-shadow:0 -10px 40px rgba(0,0,0,.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><b style="font-size:15px;color:#F5F5F2">✅ อนุมัติงวดงาน</b><span id="apprX" style="cursor:pointer;color:#9A9A93;font-size:18px">✕</span></div>
+    <div style="font-size:11.5px;color:#9A9A93;margin-bottom:8px">${head?'แตะงวดที่รออนุมัติเพื่อเข้าไปตรวจและลงนามอนุมัติ':'งวดที่หัวหน้าอนุมัติแล้ว = พร้อมปริ้นเอกสารให้ ผรม. เบิกงวดงาน'}</div>
+    ${head
+      ? sec('🕒 รออนุมัติ — แตะเพื่อเข้าไปอนุมัติ','#F5C518',pend,'ไม่มีงวดรออนุมัติ 🎉')+sec('✓ อนุมัติแล้ว','#37D98B',appr,'—')
+      : sec('✓ อนุมัติแล้ว — พร้อมปริ้นให้ ผรม.','#37D98B',appr,'ยังไม่มีงวดที่อนุมัติ')+sec('🕒 รอหัวหน้าอนุมัติ','#F5C518',pend,'—')}
+  </div>`
+  document.body.appendChild(ov)
+  const close=()=>ov.remove()
+  ov.addEventListener('click',e=>{ if(e.target===ov) close() })
+  ov.querySelector('#apprX').onclick=close
+  ov.querySelectorAll('.apprItem').forEach(el=>el.onclick=()=>{ close(); openPhase(el.dataset.code, +el.dataset.phase) })
+}
 async function loadDashData(){
   await loadChecklist()
   const cpPhase={}; checkpoints.forEach(c=>cpPhase[String(c.id)]=c.phase)   // total คิดต่อสาขา (totalCP_s) ตาม effective_from
   const insps = await fetchAllRows('inspections','id,store_code','id')
   const inspById={}; (insps||[]).forEach(i=>inspById[i.id]=i)
   const evAll = await fetchAllRows('check_events','inspection_id,checkpoint,round,status,by,created_at','created_at')
-  const sgAll = await fetchAllRows('signoffs','store_code,kind','created_at')
+  const sgAll = await fetchAllRows('signoffs','store_code,scope,kind','created_at')
   const agg={}; _curByStore={}; const oldEvtStores=new Set()
   ;(evAll||[]).forEach(e=>{ const ins=inspById[e.inspection_id]; if(!ins) return
     const code=ins.store_code
@@ -3460,6 +3502,19 @@ async function loadDashData(){
     fails:_dashRows.reduce((n,r)=>n+r.fail,0), failStores:_dashRows.filter(r=>r.fail>0).length,
     done100:_dashRows.filter(r=>r.done>=r.total&&r.fail===0).length }
   _dashScope = head ? 'ทุกสาขา' : 'งานของฉัน'
+  // ===== รายการอนุมัติงวดงาน (เฉพาะงวดก่อสร้าง 1-9 ที่เซ็นครบ 2 ฝ่าย) =====
+  const sgBy={}   // key = code|scope → {cm,con,approve}
+  ;(sgAll||[]).forEach(x=>{ if(x.scope==null) return; const k=x.store_code+'|'+x.scope; const o=sgBy[k]||(sgBy[k]={})
+    if(x.kind==='sign_cm')o.cm=1; else if(x.kind==='sign_contractor')o.con=1; else if(x.kind==='approve')o.approve=1 })
+  const inScope=new Set(scoped.map(s=>s.code))
+  _approvalRows=[]
+  Object.keys(sgBy).forEach(k=>{ const i=k.indexOf('|'); const code=k.slice(0,i), scope=k.slice(i+1), o=sgBy[k]
+    const ph=+scope; if(!(ph>=1&&ph<=9)) return        // เฉพาะงวดก่อสร้าง 1-9
+    if(!(o.cm&&o.con)) return                           // ต้องเซ็นครบ 2 ฝ่าย (locked)
+    if(!inScope.has(code)) return                       // ตามสิทธิ์ที่เห็น
+    const s=stores.find(z=>z.code===code)||{}
+    _approvalRows.push({ code, phase:ph, name:s.name||code, prov:s.province||'', approved:!!o.approve }) })
+  _approvalRows.sort((a,b)=> (a.approved-b.approved) || String(a.name).localeCompare(b.name) || a.phase-b.phase)
 }
 function renderDash(){
   const head=`<div class="flex flex-col gap-space-sm pt-space-xs" style="margin-bottom:14px">
