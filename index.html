@@ -996,6 +996,7 @@ input[type=email],input[type=password],input[type=text]{border-radius:13px;backg
     <div class="sigttl" id="sigTitle">ลงลายเซ็น</div>
     <canvas id="sigPad"></canvas>
     <div class="sighint">เซ็นด้วยนิ้วในกรอบด้านบน</div>
+    <button class="btn gho sm" id="sigUseSaved" style="display:none;width:100%;margin-top:10px">✍️ ใช้ลายเซ็นที่บันทึกไว้</button>
     <div class="row" style="margin-top:12px">
       <button class="btn gho sm" id="sigClear">ล้าง</button>
       <button class="btn gho sm" id="sigCancel">ยกเลิก</button>
@@ -1041,7 +1042,7 @@ function toast(text, kind='ok'){
 }
 // ---- signature pad ----
 let _sigOnSave=null, _sigDrawn=false
-function openSigPad(title, onSave){
+function openSigPad(title, onSave, offerSaved){
   _sigOnSave=onSave; _sigDrawn=false
   $('sigTitle').textContent=title||'ลงลายเซ็น'
   show($('sigModal'),true)
@@ -1049,6 +1050,13 @@ function openSigPad(title, onSave){
   const r=cv.getBoundingClientRect(); cv.width=r.width*dpr; cv.height=r.height*dpr
   const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr); ctx.fillStyle='#fff'; ctx.fillRect(0,0,r.width,r.height)
   ctx.lineWidth=2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#111'
+  // ปุ่ม "ใช้ลายเซ็นที่บันทึกไว้" — โชว์เฉพาะตอนเซ็นในนามตัวเอง (sign_cm/approve/setup_nsa) และมีลายเซ็นเก็บไว้
+  const btnU=$('sigUseSaved'); let _saved=null
+  if(offerSaved){ _saved=(profile&&profile.signature)||null; if(!_saved){ try{_saved=localStorage.getItem('cjx_mysig')}catch(e){} } }
+  if(btnU){ btnU.style.display=_saved?'block':'none'
+    btnU.onclick=()=>{ if(!_saved)return; const im=new Image()
+      im.onload=()=>{ ctx.drawImage(im,0,0,r.width,r.height); _sigDrawn=true; try{toast('ดึงลายเซ็นที่บันทึกไว้แล้ว — กดบันทึกเพื่อลงนาม','ok')}catch(e){} }
+      im.src=_saved } }
   let drawing=false
   const pos=e=>{ const b=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-b.left, y:t.clientY-b.top} }
   const down=e=>{ e.preventDefault(); drawing=true; _sigDrawn=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y) }
@@ -1614,7 +1622,7 @@ function openProfile(){
   const _s2=$('pfStat2'); if(_s2) _s2.textContent=(_dashRows&&_dashRows.length)?_dashRows.reduce((n,r)=>n+(r.pass||0),0):'–'
   const _s3=$('pfStat3'); if(_s3) _s3.textContent=(_dashKpi&&_dashKpi.failStores!=null)?_dashKpi.failStores:'–'
   const _ap=$('pfAdminPanel'); if(_ap) show(_ap, profile.role==='admin')
-  const _sg=$('sigStatus'); if(_sg){ let h=false; try{h=!!localStorage.getItem('cjx_mysig')}catch(e){}; _sg.textContent=h?'มีลายเซ็นแล้ว':'ตั้งลายเซ็น' }
+  const _sg=$('sigStatus'); if(_sg){ let h=!!(profile&&profile.signature); if(!h){ try{h=!!localStorage.getItem('cjx_mysig')}catch(e){} }; _sg.textContent=h?'มีลายเซ็นแล้ว':'ตั้งลายเซ็น' }
   updatePushBtn()   // สถานะปุ่มแจ้งเตือน push
   // แผงรูปที่ค้างส่ง (โชว์เมื่อมีค้าง)
   queueAll().then(items=>{ const n=items.length, stuck=items.filter(r=>(r.tries||0)>=QMAXTRY).length
@@ -1626,7 +1634,15 @@ function openProfile(){
 }
 $('who').onclick = openProfile
 if($('btnAdminConsole')) $('btnAdminConsole').onclick=()=>openAdmin()
-if($('btnSig')) $('btnSig').onclick=()=>openSigPad('ลายเซ็นประจำตัว (CM)', img=>{ try{localStorage.setItem('cjx_mysig',img)}catch(e){}; const s=$('sigStatus'); if(s) s.textContent='มีลายเซ็นแล้ว'; try{toast('บันทึกลายเซ็นแล้ว','ok')}catch(e){} })
+if($('btnSig')) $('btnSig').onclick=()=>openSigPad('ลายเซ็นประจำตัวของฉัน', async img=>{
+  try{localStorage.setItem('cjx_mysig',img)}catch(e){}   // cache ในเครื่อง (เร็ว/offline)
+  if(profile) profile.signature=img
+  const s=$('sigStatus'); if(s) s.textContent='กำลังบันทึก…'
+  const { error } = await sb.rpc('set_my_signature',{ img })   // เก็บที่ตัว User → ใช้ได้ทุกเครื่อง
+  if(error){ if(s) s.textContent='บันทึกในเครื่องแล้ว (ยังไม่ซิงค์)'
+    try{toast('เซฟในเครื่องแล้ว แต่ซิงค์ขึ้นระบบไม่ได้: '+error.message+' (ให้ผู้ดูแลรัน sql/36)','err')}catch(e){}; return }
+  if(s) s.textContent='มีลายเซ็นแล้ว'; try{toast('บันทึกลายเซ็นแล้ว ✓ ใช้ได้ทุกเครื่อง','ok')}catch(e){}
+})
 $('btnRetryQ').onclick = ()=>{ retryPhotoQueue(); setTimeout(openProfile,600) }
 $('btnClearQ').onclick = ()=>{ clearPhotoQueue().then(()=>openProfile()) }
 $('profBack').onclick = ()=>switchTab('home')
@@ -1644,6 +1660,7 @@ async function enterApp(){
   const { data:prof } = await sb.from('profiles').select('*').eq('id',user.id).single()
   profile = prof || { name:user.email, role:'cm' }
   if(!profile.email) profile.email = user.email
+  if(profile.signature){ try{localStorage.setItem('cjx_mysig',profile.signature)}catch(e){} }   // sync ลายเซ็นจาก DB → cache เครื่องนี้
   if(profile.role==='pending'){ showPending(profile.email); return }   // ยังไม่ได้รับสิทธิ์ = กันไว้ก่อน
   const dispName=profile.name||user.email
   $('who').innerHTML = `<span class="wav">${esc((dispName||'?').trim().charAt(0).toUpperCase())}</span><span class="wtx"><b>${esc(dispName)}</b><span class="role">${ROLE_TH[profile.role]||profile.role}</span></span><span class="wcv">▾</span>`
@@ -2460,7 +2477,7 @@ async function openSite(code){
   const shA=$('btnSiteShare'); if(shA) shA.onclick=()=>{ if(navigator.share){ navigator.share({title:(s.name||code),text:'CJX Inspect · '+(s.name||code),url:location.href}).catch(()=>{}) } else { try{ toast('อุปกรณ์นี้ยังไม่รองรับแชร์ — ใช้ปุ่ม PDF แทนได้') }catch(e){} } }
   const bh=$('btnHandover'); if(bh) bh.onclick=()=>doSignoff(code,'store','handover',()=>openSite(code))
   $('siteBody').querySelectorAll('.sigslot[data-susig]').forEach(el=> el.onclick=()=>{ const kind=el.dataset.susig
-    openSigPad(kind==='setup_nsa'?'ลายเซ็นผู้ตรวจรับ (Set-Up/NSA)':'ลายเซ็นทีมก่อสร้าง (CM)', img=>saveSetupSig(code,kind,img)) })
+    openSigPad(kind==='setup_nsa'?'ลายเซ็นผู้ตรวจรับ (Set-Up/NSA)':'ลายเซ็นทีมก่อสร้าง (CM)', img=>saveSetupSig(code,kind,img), kind==='setup_nsa') })
   const bsr=$('btnSetupReport'); if(bsr) bsr.onclick=()=>generateSetupReport(code)
   const bsp=$('btnSetupPunch'); if(bsp) bsp.onclick=()=>generateSetupPunch(code)
   hideAllViews(); showTabbar(true); show($('viewSite'),true); window.scrollTo(0,0)   // ค้าง Tab Bar ไว้ · ไม่ทับแท็บต้นทาง (Back กลับไปที่เดิม)
@@ -2899,7 +2916,7 @@ function renderPhase(){
       $('phaseBody').querySelectorAll('.cmt').forEach(inp=>{ const cp=+inp.dataset.cp
         inp.onblur=()=>{ const cur=curStatus(cp); if(cur && cur!=='fixed' && inp.value.trim()!==curNote(cp)) saveTick(cp, cur) } })
       $('phaseBody').querySelectorAll('.sigslot').forEach(el=> el.onclick=()=>{ const kind=el.dataset.sig
-        openSigPad(kind==='sign_cm'?'ลายเซ็นผู้ตรวจ (CM)':'ลายเซ็นผู้รับเหมา (ผรม.)', img=>saveSignature(kind,img)) })
+        openSigPad(kind==='sign_cm'?'ลายเซ็นผู้ตรวจ (CM)':'ลายเซ็นผู้รับเหมา (ผรม.)', img=>saveSignature(kind,img), kind==='sign_cm') })
       $('phaseBody').querySelectorAll('.scoresel b').forEach(b=> b.onclick=()=>saveScore(+b.dataset.sc))
     }
   }
@@ -2908,7 +2925,7 @@ function renderPhase(){
     const { error } = await sb.from('signoffs').insert({ store_code:pctx.code, scope:String(phase), kind:'approve', image:img })
     if(error) return alert('อนุมัติไม่สำเร็จ: '+error.message)
     await reloadSignoffs(); renderPhase(); toast('อนุมัติงวดงานแล้ว ✓')
-  })
+  }, true)
   window.scrollTo(0,_keepY)   // คืนตำแหน่งเลื่อนหน้าเดิม (ไม่เด้งขึ้นบน)
 }
 async function saveTick(cpId, status){
