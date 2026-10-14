@@ -3,7 +3,7 @@
 // - ออนไลน์: ดึงของสดเสมอ (แอปใช้ Supabase สด ๆ ต้องได้ข้อมูลล่าสุด)
 // - ออฟไลน์: เสิร์ฟ shell ที่แคชไว้ให้เปิดแอปได้
 // - ไม่ยุ่งกับ POST และไม่ยุ่งกับ Supabase/CDN (cross-origin) เด็ดขาด
-const CACHE = 'cjx-inspect-v4';
+const CACHE = 'cjx-inspect-v5';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'

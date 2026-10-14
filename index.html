@@ -1850,7 +1850,7 @@ async function renderLanding(){
    </div>`
   $('lav').onclick=()=>switchTab('profile')
   $('lcta').onclick=()=>switchTab('inspect')
-  $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='approve')return openApprovalPanel(); if(g==='redflag'){ filter='redflag'; return switchTab('inspect') } if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
+  $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='approve'){ filter='approve'; return switchTab('inspect') } if(g==='redflag'){ filter='redflag'; return switchTab('inspect') } if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
   await loadDashData()
   { // การ์ดอนุมัติ — แยกตามฝั่งงาน: ก่อสร้าง (อนุมัติงวด) · Set-Up (เซ็นรับงานตรวจรับ)
     const _hd=isApprover(), _cm=(profile&&profile.role==='cm'), _su=isSetup()
@@ -2065,9 +2065,9 @@ function renderHome(){
   show($('tabs'), true)
   if(head){
     $('cmBar').innerHTML=''
-    if(!['mine','tofix','redflag','building','notyet','opened','all'].includes(filter)) filter='building'
+    if(!['mine','tofix','redflag','approve','building','notyet','opened','all'].includes(filter)) filter='building'
   } else {
-    if(!['mine','tofix','redflag'].includes(filter)) filter='mine'
+    if(!['mine','tofix','redflag','approve'].includes(filter)) filter='mine'
     $('cmBar').innerHTML='<button class="btn pri" id="btnPick" style="margin-bottom:14px">＋ เลือกสาขาเพื่อเริ่มตรวจ</button>'
     $('btnPick').onclick=openPick
   }
@@ -2076,6 +2076,7 @@ function renderHome(){
   loadFixWork().then(()=>{ renderTabs(); updateHomeStat(); if(filter==='tofix') renderPool() })   // อัปเดตจำนวน + รายการงานที่ต้องแก้
   { const el=$('rfHomeBar'); if(el) el.innerHTML='' }
   loadRedFlags().then(()=>{ renderRfHome(); renderTabs(); if(filter==='redflag') renderPool() }).catch(()=>{})   // แถบธงแดง + อัปเดตชิป/รายการ
+  loadApprovalWork().then(()=>{ renderTabs(); if(filter==='approve') renderPool() }).catch(()=>{})   // งานรออนุมัติ/เซ็นรับ
 }
 let _rfHome=null
 let _rfMap={}   // {code: items[]} สำหรับ filter ธงแดง + chip บนการ์ด
@@ -2214,9 +2215,14 @@ function renderTabs(){
   const tofix=['tofix',`🔧 ต้องแก้${nfix?' ('+nfix+')':''}`]
   const nrf=Object.keys(_rfMap||{}).length
   const rf=['redflag',`🚩 ธงแดง${nrf?' ('+nrf+')':''}`]
+  const napp=approvalCount(), _su=isSetup()
+  const apprTab=['approve', (_su?'✍️ รอเซ็นรับ':isApprover()?'✅ รออนุมัติ':'🖨️ รอปริ้น')+(napp?' ('+napp+')':'')]
+  const showAppr = isApprover()||_su||(profile&&profile.role==='cm')
+  const headMid = showAppr ? [tofix, rf, apprTab] : [tofix, rf]
+  const cmTabs = showAppr ? [tofix, rf, apprTab] : [tofix, rf]
   const defs = isHead()
-    ? [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], tofix, rf, ['building','กำลังก่อสร้าง'],['notyet','ยังไม่ก่อสร้าง'],['opened','เปิดแล้ว'],['all','ทั้งหมด']]
-    : [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], tofix, rf]
+    ? [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], ...headMid, ['building','กำลังก่อสร้าง'],['notyet','ยังไม่ก่อสร้าง'],['opened','เปิดแล้ว'],['all','ทั้งหมด']]
+    : [['mine',`งานของฉัน${myStores.size?' ('+myStores.size+')':''}`], ...cmTabs]
   $('tabs').innerHTML = defs.map(([k,l])=>`<b class="${filter===k?'on':''}${k==='tofix'&&nfix?' tabfix':''}" data-k="${k}">${l}</b>`).join('')
   $('tabs').querySelectorAll('b').forEach(b=> b.onclick=()=>{ filter=b.dataset.k; updateHomeStat(); renderTabs(); renderPool() })
 }
@@ -2224,6 +2230,7 @@ let _poolThumbs={}, _poolThumbsLoaded=false
 function renderPool(){
   const q=query.trim().toLowerCase()
   if(filter==='tofix') return renderPoolFix(q)
+  if(filter==='approve') return renderPoolApprove(q)
   if(!_poolThumbsLoaded && stores.length){ _poolThumbsLoaded=true; recentThumbs(stores).then(t=>{ _poolThumbs=t||{}
     document.querySelectorAll('#poolList [data-th]').forEach(el=>{ const u=_poolThumbs[el.dataset.th]; if(u && !el.querySelector('img')){ const ov=el.querySelector('[data-ov]'); el.innerHTML='<img src="'+u+'" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async">'+(ov?ov.outerHTML:'') } })
   }) }
@@ -3447,47 +3454,41 @@ function renderSetupList(){
         ${detail}${progRow}</div>` }).join('')
   w.querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
 }
-function openApprovalPanel(){
-  const su=isSetup()
-  const sec=(title,color,html,n,empty)=>`<div style="font-size:12px;font-weight:700;color:${color};margin:6px 2px 8px">${title} (${n})</div>${n?html:`<div style="font-size:12px;color:#777;padding:2px 2px 10px">${empty}</div>`}`
-  let title, intro, body, onItem
-  if(su){   // ===== ฝั่ง Set-Up =====
-    title='เซ็นรับงานตรวจรับ (Set-Up)'
-    intro='แตะสาขาเพื่อเข้าไปเซ็นรับ / ดูผลตรวจรับ · เซ็นครบ 2 ฝ่าย (NSA + CM) = จบงาน'
-    const row = r => `<div class="apprItem" data-code="${esc(r.code)}" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;background:#1b1c1f;margin-bottom:7px;cursor:pointer">
-      <div style="flex:1;min-width:0"><div style="font-size:14px;color:#F5F5F2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
-      <div style="font-size:11.5px;color:#9A9A93">คะแนน ${r.score}/100${r.prov?' · '+esc(r.prov):''}</div></div>
-      <span style="color:var(--faint)">›</span></div>`
-    const wait=_setupApprRows.wait||[], done=_setupApprRows.done||[]
-    body = sec('🕒 ตรวจครบ รอเซ็นรับ — แตะเพื่อเซ็น','#F5C518',wait.map(row).join(''),wait.length,'ไม่มีสาขารอเซ็น 🎉')
-         + sec('✓ เซ็นครบแล้ว','#37D98B',done.map(row).join(''),done.length,'—')
-    onItem = el => openSite(el.dataset.code)
-  } else {   // ===== ฝั่งก่อสร้าง =====
-    const head=isApprover()
-    const pend=_approvalRows.filter(r=>!r.approved), appr=_approvalRows.filter(r=>r.approved)
-    const phN = p => ((PHASES.find(x=>x[0]===p)||[])[1]) || ('งวด '+p)
-    const row = r => `<div class="apprItem" data-code="${esc(r.code)}" data-phase="${r.phase}" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;background:#1b1c1f;margin-bottom:7px;cursor:pointer">
-      <div style="flex:1;min-width:0"><div style="font-size:14px;color:#F5F5F2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
-      <div style="font-size:11.5px;color:#9A9A93">งวด ${r.phase} · ${esc(phN(r.phase))}${r.prov?' · '+esc(r.prov):''}</div></div>
-      <span style="color:var(--faint)">›</span></div>`
-    title='อนุมัติงวดงาน'
-    intro = head?'แตะงวดที่รออนุมัติเพื่อเข้าไปตรวจและลงนามอนุมัติ':'งวดที่หัวหน้าอนุมัติแล้ว = พร้อมปริ้นเอกสารให้ ผรม. เบิกงวดงาน'
-    body = head
-      ? sec('🕒 รออนุมัติ — แตะเพื่อเข้าไปอนุมัติ','#F5C518',pend.map(row).join(''),pend.length,'ไม่มีงวดรออนุมัติ 🎉')+sec('✓ อนุมัติแล้ว','#37D98B',appr.map(row).join(''),appr.length,'—')
-      : sec('✓ อนุมัติแล้ว — พร้อมปริ้นให้ ผรม.','#37D98B',appr.map(row).join(''),appr.length,'ยังไม่มีงวดที่อนุมัติ')+sec('🕒 รอหัวหน้าอนุมัติ','#F5C518',pend.map(row).join(''),pend.length,'—')
-    onItem = el => openPhase(el.dataset.code, +el.dataset.phase)
+async function loadApprovalWork(){
+  if(isSetup()){ await loadSetupDash(); const wait=_suRows.filter(r=>r.allDone&&!r.signed), done=_suRows.filter(r=>r.signed); _setupApprRows={wait,done} }
+  else { await loadDashData() }
+}
+function approvalCount(){   // เลขบนชิป/การ์ด ตามมุมของแต่ละ role
+  if(isSetup()) return (_setupApprRows.wait||[]).length                       // รอเซ็นรับ
+  if(isApprover()) return _approvalRows.filter(r=>!r.approved).length         // รออนุมัติ
+  if(profile&&profile.role==='cm') return _approvalRows.filter(r=>r.approved).length   // อนุมัติแล้ว รอปริ้น
+  return 0
+}
+function renderPoolApprove(q){
+  const el=$('poolList'); if(!el) return
+  const match=r=>!q||[r.name,r.code].some(v=>(v||'').toLowerCase().includes(q))
+  const hdr=(t,c)=>`<div style="font-size:12px;font-weight:800;color:${c};margin:14px 2px 9px;display:flex;align-items:center;gap:6px">${t}</div>`
+  if(isSetup()){   // ===== ฝั่ง Set-Up: แตะ → เข้าหน้าสาขาเพื่อเซ็นรับ =====
+    const wait=(_setupApprRows.wait||[]).filter(match), done=(_setupApprRows.done||[]).filter(match)
+    const row=r=>`<div class="sc apprItem" data-code="${esc(r.code)}">
+      <div class="tp"><div><div class="nm">${esc(r.name)}</div><div class="mt"><span class="code">${esc(r.code)}</span>${r.prov?' · '+esc(r.prov):''}</div></div>
+      <span class="fixbadge" style="background:#1C1608;color:#F5C518">${r.score}/100</span></div></div>`
+    el.innerHTML = hdr('🕒 ตรวจครบ รอเซ็นรับ ('+wait.length+')','#F5C518')+(wait.length?wait.map(row).join(''):'<div class="fwok" style="margin-top:4px">— ไม่มีสาขารอเซ็น 🎉</div>')
+      + hdr('✓ เซ็นครบแล้ว ('+done.length+')','#37D98B')+(done.length?done.map(row).join(''):'<div class="fwok" style="margin-top:4px">—</div>')
+    el.querySelectorAll('.apprItem').forEach(c=>c.onclick=()=>openSite(c.dataset.code)); return
   }
-  const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
-  ov.innerHTML=`<div style="background:#191A1D;border-top:3px solid #F5C518;border-radius:16px 16px 0 0;width:100%;max-width:412px;box-sizing:border-box;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:82vh;overflow:auto;box-shadow:0 -10px 40px rgba(0,0,0,.5)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><b style="font-size:15px;color:#F5F5F2">✅ ${esc(title)}</b><span id="apprX" style="cursor:pointer;color:#9A9A93;font-size:18px">✕</span></div>
-    <div style="font-size:11.5px;color:#9A9A93;margin-bottom:8px">${intro}</div>
-    ${body}
-  </div>`
-  document.body.appendChild(ov)
-  const close=()=>ov.remove()
-  ov.addEventListener('click',e=>{ if(e.target===ov) close() })
-  ov.querySelector('#apprX').onclick=close
-  ov.querySelectorAll('.apprItem').forEach(el=>el.onclick=()=>{ close(); onItem(el) })
+  // ===== ฝั่งก่อสร้าง: แตะ → เข้าหน้าตรวจงวดนั้นเลย =====
+  const pend=_approvalRows.filter(r=>!r.approved).filter(match), appr=_approvalRows.filter(r=>r.approved).filter(match)
+  const phN=p=>((PHASES.find(x=>x[0]===p)||[])[1])||('งวด '+p)
+  const row=r=>`<div class="sc apprItem" data-code="${esc(r.code)}" data-phase="${r.phase}">
+    <div class="tp"><div><div class="nm">${esc(r.name)}</div><div class="mt"><span class="code">${esc(r.code)}</span> · งวด ${r.phase} · ${esc(phN(r.phase))}${r.prov?' · '+esc(r.prov):''}</div></div></div></div>`
+  const cm=(profile&&profile.role==='cm')
+  el.innerHTML = cm
+    ? hdr('🖨️ อนุมัติแล้ว — พร้อมปริ้นให้ ผรม. ('+appr.length+')','#37D98B')+(appr.length?appr.map(row).join(''):'<div class="fwok" style="margin-top:4px">— ยังไม่มีงวดที่อนุมัติ</div>')
+      + hdr('🕒 รอหัวหน้าอนุมัติ ('+pend.length+')','#F5C518')+(pend.length?pend.map(row).join(''):'<div class="fwok" style="margin-top:4px">—</div>')
+    : hdr('🕒 รออนุมัติ — แตะเข้าไปอนุมัติ ('+pend.length+')','#F5C518')+(pend.length?pend.map(row).join(''):'<div class="fwok" style="margin-top:4px">✓ ไม่มีงวดรออนุมัติ 🎉</div>')
+      + hdr('✓ อนุมัติแล้ว ('+appr.length+')','#37D98B')+(appr.length?appr.map(row).join(''):'<div class="fwok" style="margin-top:4px">—</div>')
+  el.querySelectorAll('.apprItem').forEach(c=>c.onclick=()=>openPhase(c.dataset.code, +c.dataset.phase))
 }
 async function loadDashData(){
   await loadChecklist()
