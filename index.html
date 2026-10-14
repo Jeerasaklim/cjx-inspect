@@ -1832,7 +1832,7 @@ async function renderLanding(){
    <!-- การ์ดอนุมัติงวดงาน (รวมทุกสาขา) -->
    <div id="apprCard" class="qact flex items-center gap-space-md p-space-md rounded-2xl bg-surface-card shadow-md cursor-pointer" data-go="approve" style="display:none">
      <div class="w-14 h-14 rounded-2xl bg-primary-container/15 text-primary-container flex items-center justify-center shrink-0 relative"><span class="material-symbols-outlined text-[30px]" style="font-variation-settings:'FILL' 1">verified</span><span id="apprBadge" class="absolute -top-1 -right-1 px-1.5 h-4 rounded-full bg-status-fail text-white font-label-micro text-label-micro items-center justify-center font-bold" style="display:none"></span></div>
-     <div class="flex flex-col min-w-0 flex-1"><span class="font-title-sm text-title-sm text-ink-primary font-bold">อนุมัติงวดงาน</span><span id="apprSub" class="font-label-micro text-label-micro text-ink-muted">—</span></div>
+     <div class="flex flex-col min-w-0 flex-1"><span id="apprTitle" class="font-title-sm text-title-sm text-ink-primary font-bold">อนุมัติงวดงาน</span><span id="apprSub" class="font-label-micro text-label-micro text-ink-muted">—</span></div>
      <span class="material-symbols-outlined text-ink-faint">chevron_right</span>
    </div>
    <!-- recent -->
@@ -1852,17 +1852,25 @@ async function renderLanding(){
   $('lcta').onclick=()=>switchTab('inspect')
   $('landBody').querySelectorAll('.qact').forEach(el=> el.onclick=()=>{ const g=el.dataset.go; if(g==='admin')return openAdmin(); if(g==='approve')return openApprovalPanel(); if(g==='redflag'){ filter='redflag'; return switchTab('inspect') } if(g==='tofix'){ filter='tofix'; return switchTab('inspect') } switchTab(g) })
   await loadDashData()
-  { // การ์ดอนุมัติ — ผู้อนุมัติเน้น "รออนุมัติ" (ไปกด) · CM เน้น "อนุมัติแล้ว" (รอปริ้นให้ ผรม.)
-    const _hd=isApprover(), _cm=(profile&&profile.role==='cm'), pend=_approvalRows.filter(r=>!r.approved), appr=_approvalRows.filter(r=>r.approved)
-    const card=$('apprCard'), bg=$('apprBadge'), sub=$('apprSub')
-    if(card && !(_hd||_cm)){ card.style.display='none' }   // ฝั่ง Set-Up/บัญชี/Member ไม่เกี่ยวงวดก่อสร้าง → ซ่อน
-    else if(card){ card.style.display='flex'
+  { // การ์ดอนุมัติ — แยกตามฝั่งงาน: ก่อสร้าง (อนุมัติงวด) · Set-Up (เซ็นรับงานตรวจรับ)
+    const _hd=isApprover(), _cm=(profile&&profile.role==='cm'), _su=isSetup()
+    const card=$('apprCard'), bg=$('apprBadge'), sub=$('apprSub'), ttl=$('apprTitle')
+    const setBadge=n=>{ if(n){ bg.textContent=n>99?'99+':n; bg.style.display='flex' } else bg.style.display='none'; if(card) card.classList.toggle('rf-hot', n>0) }
+    if(card && _su){            // ===== ฝั่ง Set-Up =====
+      await loadSetupDash()
+      const wait=_suRows.filter(r=>r.allDone&&!r.signed), done=_suRows.filter(r=>r.signed)
+      _setupApprRows={wait,done}
+      card.style.display='flex'; if(ttl) ttl.textContent='เซ็นรับงานตรวจรับ (Set-Up)'
+      sub.textContent = wait.length?`${wait.length} สาขาตรวจครบ รอเซ็นรับ${done.length?` · เซ็นครบ ${done.length}`:''}`:(done.length?`เซ็นครบแล้ว ${done.length} สาขา`:'ยังไม่มีงานรอเซ็น')
+      setBadge(wait.length)
+    } else if(card && !(_hd||_cm)){ card.style.display='none' }   // บัญชี/Member ไม่เกี่ยว → ซ่อน
+    else if(card){             // ===== ฝั่งก่อสร้าง =====
+      const pend=_approvalRows.filter(r=>!r.approved), appr=_approvalRows.filter(r=>r.approved)
+      card.style.display='flex'; if(ttl) ttl.textContent='อนุมัติงวดงาน'
       if(_hd){ sub.textContent = pend.length?`${pend.length} งวดรออนุมัติ${appr.length?` · อนุมัติแล้ว ${appr.length}`:''}`:(appr.length?`อนุมัติแล้ว ${appr.length} งวด`:'ไม่มีงวดรออนุมัติ')
-        if(pend.length){ bg.textContent=pend.length>99?'99+':pend.length; bg.style.display='flex' } else bg.style.display='none'
-        card.classList.toggle('rf-hot', pend.length>0) }
+        setBadge(pend.length) }
       else { sub.textContent = appr.length?`${appr.length} งวดอนุมัติแล้ว — พร้อมปริ้นให้ ผรม.`:(pend.length?`${pend.length} งวดรอหัวหน้าอนุมัติ`:'ยังไม่มีงวดรออนุมัติ')
-        if(appr.length){ bg.textContent=appr.length>99?'99+':appr.length; bg.style.display='flex' } else bg.style.display='none'
-        card.classList.toggle('rf-hot', appr.length>0) } } }
+        setBadge(appr.length) } } }
   loadRedFlags().then(()=>{ const b=$('rfLandBadge'), c=$('rfLandCard'); const t=(_rfHome&&_rfHome.list.length)||0
     if(b){ if(t){ b.textContent=t; b.style.display='flex' } else b.style.display='none' }
     if(c){ c.classList.toggle('rf-hot', t>0) } }).catch(()=>{})
@@ -3331,6 +3339,7 @@ function phKey(cur, phase){
 }
 let _dashRows=[], _dashView='urgent', _dashKpi={}, _dashScope='ทุกสาขา', _dashFilter='all', _dashQuery=''
 let _approvalRows=[]   // งวดก่อสร้าง 1-9 ที่เซ็นครบ 2 ฝ่าย (locked) → รออนุมัติ/อนุมัติแล้ว (ตาม role scope)
+let _setupApprRows={wait:[],done:[]}   // ฝั่ง Set-Up: สาขาที่ตรวจครบรอเซ็น / เซ็นครบ 2 ฝ่าย (NSA+CM)
 let _curByStore={}   // {code:{cpId:latestEvent}} ทุกเฟส — ใช้คำนวณ auto red flag
 const dstt=r=> r.fail>0?'fail':(r.done>=r.total?'done':r.done>0?'progress':'idle')
 function dqMatch(r){ const q=_dashQuery.trim().toLowerCase(); if(!q) return true
@@ -3439,27 +3448,46 @@ function renderSetupList(){
   w.querySelectorAll('[data-code]').forEach(el=> el.onclick=()=>openSite(el.dataset.code))
 }
 function openApprovalPanel(){
-  const head=isApprover()
-  const pend=_approvalRows.filter(r=>!r.approved), appr=_approvalRows.filter(r=>r.approved)
-  const phN = p => ((PHASES.find(x=>x[0]===p)||[])[1]) || ('งวด '+p)
-  const item = r => `<div class="apprItem" data-code="${esc(r.code)}" data-phase="${r.phase}" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;background:#1b1c1f;margin-bottom:7px;cursor:pointer">
-    <div style="flex:1;min-width:0"><div style="font-size:14px;color:#F5F5F2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
-    <div style="font-size:11.5px;color:#9A9A93">งวด ${r.phase} · ${esc(phN(r.phase))}${r.prov?' · '+esc(r.prov):''}</div></div>
-    <span style="color:var(--faint)">›</span></div>`
-  const sec=(title,color,arr,empty)=>`<div style="font-size:12px;font-weight:700;color:${color};margin:6px 2px 8px">${title} (${arr.length})</div>${arr.length?arr.map(item).join(''):`<div style="font-size:12px;color:#777;padding:2px 2px 10px">${empty}</div>`}`
+  const su=isSetup()
+  const sec=(title,color,html,n,empty)=>`<div style="font-size:12px;font-weight:700;color:${color};margin:6px 2px 8px">${title} (${n})</div>${n?html:`<div style="font-size:12px;color:#777;padding:2px 2px 10px">${empty}</div>`}`
+  let title, intro, body, onItem
+  if(su){   // ===== ฝั่ง Set-Up =====
+    title='เซ็นรับงานตรวจรับ (Set-Up)'
+    intro='แตะสาขาเพื่อเข้าไปเซ็นรับ / ดูผลตรวจรับ · เซ็นครบ 2 ฝ่าย (NSA + CM) = จบงาน'
+    const row = r => `<div class="apprItem" data-code="${esc(r.code)}" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;background:#1b1c1f;margin-bottom:7px;cursor:pointer">
+      <div style="flex:1;min-width:0"><div style="font-size:14px;color:#F5F5F2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+      <div style="font-size:11.5px;color:#9A9A93">คะแนน ${r.score}/100${r.prov?' · '+esc(r.prov):''}</div></div>
+      <span style="color:var(--faint)">›</span></div>`
+    const wait=_setupApprRows.wait||[], done=_setupApprRows.done||[]
+    body = sec('🕒 ตรวจครบ รอเซ็นรับ — แตะเพื่อเซ็น','#F5C518',wait.map(row).join(''),wait.length,'ไม่มีสาขารอเซ็น 🎉')
+         + sec('✓ เซ็นครบแล้ว','#37D98B',done.map(row).join(''),done.length,'—')
+    onItem = el => openSite(el.dataset.code)
+  } else {   // ===== ฝั่งก่อสร้าง =====
+    const head=isApprover()
+    const pend=_approvalRows.filter(r=>!r.approved), appr=_approvalRows.filter(r=>r.approved)
+    const phN = p => ((PHASES.find(x=>x[0]===p)||[])[1]) || ('งวด '+p)
+    const row = r => `<div class="apprItem" data-code="${esc(r.code)}" data-phase="${r.phase}" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;background:#1b1c1f;margin-bottom:7px;cursor:pointer">
+      <div style="flex:1;min-width:0"><div style="font-size:14px;color:#F5F5F2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+      <div style="font-size:11.5px;color:#9A9A93">งวด ${r.phase} · ${esc(phN(r.phase))}${r.prov?' · '+esc(r.prov):''}</div></div>
+      <span style="color:var(--faint)">›</span></div>`
+    title='อนุมัติงวดงาน'
+    intro = head?'แตะงวดที่รออนุมัติเพื่อเข้าไปตรวจและลงนามอนุมัติ':'งวดที่หัวหน้าอนุมัติแล้ว = พร้อมปริ้นเอกสารให้ ผรม. เบิกงวดงาน'
+    body = head
+      ? sec('🕒 รออนุมัติ — แตะเพื่อเข้าไปอนุมัติ','#F5C518',pend.map(row).join(''),pend.length,'ไม่มีงวดรออนุมัติ 🎉')+sec('✓ อนุมัติแล้ว','#37D98B',appr.map(row).join(''),appr.length,'—')
+      : sec('✓ อนุมัติแล้ว — พร้อมปริ้นให้ ผรม.','#37D98B',appr.map(row).join(''),appr.length,'ยังไม่มีงวดที่อนุมัติ')+sec('🕒 รอหัวหน้าอนุมัติ','#F5C518',pend.map(row).join(''),pend.length,'—')
+    onItem = el => openPhase(el.dataset.code, +el.dataset.phase)
+  }
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
   ov.innerHTML=`<div style="background:#191A1D;border-top:3px solid #F5C518;border-radius:16px 16px 0 0;width:100%;max-width:412px;box-sizing:border-box;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:82vh;overflow:auto;box-shadow:0 -10px 40px rgba(0,0,0,.5)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><b style="font-size:15px;color:#F5F5F2">✅ อนุมัติงวดงาน</b><span id="apprX" style="cursor:pointer;color:#9A9A93;font-size:18px">✕</span></div>
-    <div style="font-size:11.5px;color:#9A9A93;margin-bottom:8px">${head?'แตะงวดที่รออนุมัติเพื่อเข้าไปตรวจและลงนามอนุมัติ':'งวดที่หัวหน้าอนุมัติแล้ว = พร้อมปริ้นเอกสารให้ ผรม. เบิกงวดงาน'}</div>
-    ${head
-      ? sec('🕒 รออนุมัติ — แตะเพื่อเข้าไปอนุมัติ','#F5C518',pend,'ไม่มีงวดรออนุมัติ 🎉')+sec('✓ อนุมัติแล้ว','#37D98B',appr,'—')
-      : sec('✓ อนุมัติแล้ว — พร้อมปริ้นให้ ผรม.','#37D98B',appr,'ยังไม่มีงวดที่อนุมัติ')+sec('🕒 รอหัวหน้าอนุมัติ','#F5C518',pend,'—')}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><b style="font-size:15px;color:#F5F5F2">✅ ${esc(title)}</b><span id="apprX" style="cursor:pointer;color:#9A9A93;font-size:18px">✕</span></div>
+    <div style="font-size:11.5px;color:#9A9A93;margin-bottom:8px">${intro}</div>
+    ${body}
   </div>`
   document.body.appendChild(ov)
   const close=()=>ov.remove()
   ov.addEventListener('click',e=>{ if(e.target===ov) close() })
   ov.querySelector('#apprX').onclick=close
-  ov.querySelectorAll('.apprItem').forEach(el=>el.onclick=()=>{ close(); openPhase(el.dataset.code, +el.dataset.phase) })
+  ov.querySelectorAll('.apprItem').forEach(el=>el.onclick=()=>{ close(); onItem(el) })
 }
 async function loadDashData(){
   await loadChecklist()
