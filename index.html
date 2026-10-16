@@ -2933,7 +2933,10 @@ function renderPhase(){
       if(!confirm('ปลดล็อกงวดนี้?\nจะถอนลายเซ็น CM + ผรม. ออก (ผลตรวจไม่ถูกลบ) → ให้ตรวจ/แก้ใหม่ได้')) return
       const { error } = await sb.from('signoffs').delete().eq('store_code',pctx.code).eq('scope',String(pctx.phase)).in('kind',['sign_cm','sign_contractor','approve'])
       if(error) return alert('ปลดล็อกไม่สำเร็จ: '+error.message)
-      await reloadSignoffs(); renderPhase(); toast('ปลดล็อกงวดแล้ว ✓ — ตรวจใหม่ได้') } }
+      await reloadSignoffs()
+      // RLS บล็อกการลบจะ "ไม่ error" แต่ลบไม่ได้ → เช็กสถานะจริงหลังลบ ห้ามขึ้นว่าสำเร็จหลอก
+      if(phaseLocked()){ renderPhase(); return alert('ปลดล็อกไม่สำเร็จ — ระบบไม่ยอมให้ลบลายเซ็น (สิทธิ์ RLS)\nให้รัน sql/35_unlock_phase_policy.sql ใน Supabase ก่อน แล้วกดปลดล็อกใหม่') }
+      renderPhase(); toast('ปลดล็อกงวดแล้ว ✓ — CM ต้องออกจากงวดแล้วเข้าใหม่ถึงจะแก้ได้') } }
   const _ths=[...$('phaseBody').querySelectorAll('.th')]
   const _urls=_ths.map(x=>x.dataset.url).filter(Boolean)
   _ths.forEach((im,idx)=> im.onclick=()=>openLightbox(_urls, idx))   // ดูรูปได้เสมอ
