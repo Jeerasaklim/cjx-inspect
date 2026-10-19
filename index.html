@@ -600,6 +600,7 @@ input[type=email],input[type=password],input[type=text]{border-radius:13px;backg
 
   <!-- ===== HOME ===== -->
   <div id="viewHome" class="hide">
+    <div class="bk" id="homeBack">‹ กลับ</div>
     <div class="actbtn" id="homeActs"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin:2px 2px 14px">
       <div>
@@ -664,7 +665,7 @@ input[type=email],input[type=password],input[type=text]{border-radius:13px;backg
 
   <!-- ===== PROFILE / ACCOUNT ===== -->
   <div id="viewProfile" class="hide">
-    <div class="bk" id="profBack" style="display:none">‹ กลับ</div>
+    <div class="bk" id="profBack">‹ กลับ</div>
     <div class="flex flex-col gap-space-md">
     <!-- hero -->
     <section class="bg-surface-card border border-solid border-border-subtle rounded-2xl p-space-lg relative overflow-hidden shadow-lg">
@@ -1746,6 +1747,21 @@ async function loadMine(){
   ;(insp||[]).forEach(i=>myStores.add(i.store_code)); renderTabs()
 }
 function goHome(){ switchTab(_tab||'home') }
+if($('homeBack')) $('homeBack').onclick=()=>switchTab('home')
+// ===== ปุ่ม Back ของมือถือ/เบราว์เซอร์ → ย้อนในแอป (เดิมกดแล้วหลุดออกจากแอป) =====
+;(function(){
+  const vis=el=>!!(el && el.offsetParent!==null)
+  const BACKS=['#reportBack','#adminSecBack','#phaseBody .phback','#siteBack','#pickBack','#dashBack','#adminBack','#homeBack','#profBack']
+  const keep=()=>{ try{ history.pushState({cjx:1},'') }catch(e){} }
+  keep()
+  window.addEventListener('popstate',()=>{
+    const lb=$('lightbox'); if(lb && !lb.classList.contains('hide')){ closeLb(); return keep() }
+    const sg=$('sigModal'); if(sg && !sg.classList.contains('hide')){ closeSigPad(); return keep() }
+    const np=$('notiPanel'); if(np && np.classList.contains('on')){ np.classList.remove('on'); return keep() }
+    for(const q of BACKS){ const el=document.querySelector(q); if(vis(el)){ el.click(); return keep() } }
+    history.back()   // หน้าแรก/หน้า login = ไม่มีที่ให้ย้อน → ออกจากแอปตามปกติ
+  })
+})();
 function greetWord(){ const h=new Date().getHours(); return h<12?'สวัสดีตอนเช้า':h<17?'สวัสดีตอนบ่าย':'สวัสดีตอนเย็น' }
 const _ic={check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
   dash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
