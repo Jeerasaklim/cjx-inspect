@@ -3138,7 +3138,33 @@ async function evqCount(){ const st=await evqStore('readonly'); return new Promi
 async function queueCount(){ const st=await qStore('readonly'); return new Promise(res=>{ const q=st.count(); q.onsuccess=()=>res(q.result); q.onerror=()=>res(0) }) }
 
 // ถ่าย/เลือกหลายรูปทีเดียว · เข้าคิวในเครื่องทันที (offline ได้) · อ่าน GPS ครั้งเดียว/ชุด
-const VID_MAX_MB=45   // เพดานไฟล์ของ Storage: คลิปที่อัปสำเร็จทั้งหมด (321 ไฟล์ ถึง 19 ต.ค.) ใหญ่สุด 38.9 MB ไม่มีเกิน 40 MB เลย
+const VID_COPY_MAX_MB=150   // คลิป ≤ นี้ คัดลอกเข้าหน่วยความจำก่อนเก็บคิว · ใหญ่กว่านี้เก็บไฟล์ตรง (กันมือถือแรมไม่พอ)
+// ส่งวีดีโอแบบแบ่งท่อน (TUS resumable, ท่อนละ 6 MB ตามที่ Supabase กำหนด) — เน็ตหลุดก็ส่งต่อจากท่อนที่ค้าง ไม่ต้องเริ่มใหม่
+// เดิมส่งก้อนเดียว: คลิปที่อัปสำเร็จ 321 ไฟล์ (ถึง 19 ต.ค.) ใหญ่สุด 38.9 MB ไม่มีเกิน 40 MB เลย = คลิปยาวพังเงียบ
+let _tusMod=null
+async function tusUpload(path, blob, ctype){
+  try{
+    if(!_tusMod) _tusMod=await import('https://esm.sh/tus-js-client@4.1.0')
+    const tus=_tusMod.default||_tusMod
+    const ses=(await sb.auth.getSession()).data.session
+    if(!ses) return { message:'เซสชันหมดอายุ — ปิดแอปแล้วเปิดใหม่' }
+    return await new Promise(res=>{
+      const u=new tus.Upload(blob,{
+        endpoint:SUPABASE_URL+'/storage/v1/upload/resumable',
+        retryDelays:[0,3000,5000,10000,20000],
+        headers:{ authorization:'Bearer '+ses.access_token, 'x-upsert':'true' },
+        uploadDataDuringCreation:true, removeFingerprintOnSuccess:true,
+        metadata:{ bucketName:'media', objectName:path, contentType:ctype, cacheControl:'3600' },
+        chunkSize:6*1024*1024,
+        onError:e=>{ const st=(e&&e.originalResponse&&e.originalResponse.getStatus&&e.originalResponse.getStatus())||0, mb=(blob.size/1048576).toFixed(0)
+          res({ message: (st===413||/maximum allowed size|too large/i.test(String(e)))
+            ? `คลิป ${mb} MB เกินเพดานไฟล์ของ Storage — ผู้ดูแลต้องขยาย Upload file size limit ใน Supabase`
+            : String((e&&e.message)||'ส่งวีดีโอไม่สำเร็จ').slice(0,160) }) },
+        onSuccess:()=>res(null) })
+      u.findPreviousUploads().then(p=>{ if(p&&p.length) u.resumeFromPreviousUpload(p[0]); u.start() }).catch(()=>u.start())
+    })
+  }catch(e){ return { message:'โหลดตัวส่งวีดีโอไม่สำเร็จ: '+((e&&e.message)||e) } }
+}
 async function handlePhotos(cpId, files){
   const P=pctx
   const loc=null, gps=null   // ตัด GPS/สถานที่ออก → เร็วขึ้น (watermark เหลือแค่ วันเวลา + เลขข้อ)
@@ -3150,12 +3176,13 @@ async function handlePhotos(cpId, files){
     try{
       const f=files[idx], isV = cpVid || (f.type||'').startsWith('video')
       let blob, tblob=null
-      if(isV){   // วิดีโอ: ไม่ใส่ลายน้ำ/ไม่ทำ thumb · เช็กขนาดก่อน (เกินเพดาน Storage = ส่งไม่ขึ้นแน่) + อ่านไฟล์ให้ครบ กันคลิป 0 ไบต์
-        const mb=(f.size||0)/1048576
-        if(mb>VID_MAX_MB){ failMsg=`คลิปนี้ ${mb.toFixed(0)} MB ใหญ่เกิน ${VID_MAX_MB} MB — ถ่ายใหม่ให้สั้นลง (ประมาณ 20–30 วินาที) หรือตั้งกล้องเป็น 1080p 30fps`; continue }
-        let buf=null; try{ buf=await f.arrayBuffer() }catch(e){}
-        if(!buf||!buf.byteLength){ failMsg='ไฟล์วีดีโอว่าง/อ่านไม่ได้ (0 ไบต์) — ถ่ายใหม่อีกครั้ง'; continue }
-        blob=new Blob([buf],{type:f.type||'video/mp4'}) }
+      if(isV){   // วิดีโอ: ไม่ใส่ลายน้ำ/ไม่ทำ thumb · ไม่จำกัดขนาด (ส่งแบบแบ่งท่อนใน syncQueue) · กันคลิป 0 ไบต์
+        if(!f.size){ failMsg='ไฟล์วีดีโอว่าง (0 ไบต์) — ถ่ายใหม่อีกครั้ง'; continue }
+        blob=f
+        if(f.size<=VID_COPY_MAX_MB*1048576){   // คัดลอกเข้าเครื่องให้ครบก่อน (กันไฟล์จากกล้องหลุดกลายเป็น 0 ไบต์) · คลิปใหญ่มากใช้ไฟล์ตรง กันมือถือแรมเต็ม
+          let buf=null; try{ buf=await f.arrayBuffer() }catch(e){}
+          if(buf&&buf.byteLength) blob=new Blob([buf],{type:f.type||'video/mp4'})
+          else { failMsg='ไฟล์วีดีโออ่านไม่ได้ (0 ไบต์) — ถ่ายใหม่อีกครั้ง'; continue } } }
       else { try{ blob=await watermark(f, loc, cp) }catch(e){ blob=f }; try{ tblob=await makeThumb(blob) }catch(e){} }  // decode ค้าง/พัง = ใช้ไฟล์ดิบ ยังแนบได้
       const ts=Date.now()+'_'+idx, kind=isV?'video':'image'
       let qid=null; try{ qid=await queueAdd({storeCode:P.code, phase:P.phase, cpId:String(cpId), round, gps, ts, blob, tblob, kind}) }
@@ -3201,7 +3228,9 @@ async function syncQueue(force){
         if(!inspId){ await _qFail(r,'สร้างรายการตรวจไม่ได้ (สิทธิ์/เน็ต)'); continue }
         const isV = r.kind==='video', ext = isV?'mp4':'jpg', ctype = isV?((r.blob&&r.blob.type)||'video/mp4'):'image/jpeg'
         const path=`${inspId}/${r.cpId}/${r.ts}.${ext}`, tpath=`${inspId}/${r.cpId}/${r.ts}_t.jpg`
-        const {error:up}=await sb.storage.from('media').upload(path, r.blob, {contentType:ctype,upsert:true}); if(up){ await _qFail(r, (up.message||up.error||'อัปไฟล์ไม่สำเร็จ')+(r.blob&&r.blob.size?` [ไฟล์ ${(r.blob.size/1048576).toFixed(1)}MB]`:'')); continue }
+        const up = isV ? await tusUpload(path, r.blob, ctype)
+          : (await sb.storage.from('media').upload(path, r.blob, {contentType:ctype,upsert:true})).error
+        if(up){ await _qFail(r, (up.message||up.error||'อัปไฟล์ไม่สำเร็จ')+(r.blob&&r.blob.size?` [ไฟล์ ${(r.blob.size/1048576).toFixed(1)}MB]`:'')); continue }
         let thumbOk=false; if(r.tblob){ const {error:up2}=await sb.storage.from('media').upload(tpath, r.tblob, {contentType:'image/jpeg',upsert:true}); thumbOk=!up2 }
         const {error}=await sb.from('media').insert({inspection_id:inspId, checkpoint:r.cpId, round:r.round, kind:(r.kind||'image'), path, gps:r.gps, thumb_path:(thumbOk?tpath:null)}); if(error){ await _qFail(r, error.message||'บันทึกข้อมูลรูปไม่สำเร็จ'); continue }
         await queueDel(r.id)
