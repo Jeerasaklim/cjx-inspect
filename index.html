@@ -2914,7 +2914,7 @@ function renderPhase(){
         <div style="min-width:0">${c.no?`<div class="cno"${cur==='fail'?' style="color:var(--fail)"':''}>ข้อ ${esc(c.no)}${cur==='fail'?' · พบจุดบกพร่อง':(needEvid?' · บังคับตรวจ':'')}</div>`:''}<div class="clb">${esc(c.label)}${c.supplier?`<span class="supchip ${c.supplier==='ซัพย่อย'?'sub':'main'}">${c.supplier==='ซัพย่อย'?'ย่อย':'หลัก'}</span>`:''}</div>${c.hint?`<div class="chint">${esc(c.hint)}</div>`:''}</div>
         ${badge}
       </div>
-      <div class="photos">${ph.map(m=>evidTile(m)).join('')}${showAddph?`<span class="addph${needEvid?'':' opt'}" data-cp="${c.id}" data-vid="${isVid?1:0}">${isVid?'🎥 ถ่าย/แนบวิดีโอ':'📷 ถ่าย/แนบรูป'}<small>${isVid?'สั้นๆ ≤ 30 วิ':(needEvid?'หลายรูปได้':'ถ้ามี')}</small></span>`:''}</div>
+      <div class="photos">${ph.map(m=>evidTile(m)).join('')}${showAddph?`<span class="addph${needEvid?'':' opt'}" data-cp="${c.id}" data-vid="${isVid?1:0}">${isVid?'🎥 ถ่าย/แนบวิดีโอ':'📷 ถ่าย/แนบรูป'}<small>${isVid?'คลิปยาว แอปย่อให้เอง':(needEvid?'หลายรูปได้':'ถ้ามี')}</small></span>`:''}</div>
       ${act}${stamp}</div>`
   })
   // ===== Auto Red Flag ของงวดนี้ (เกินกำหนดตรวจ / ค้างแก้ไข X วัน) =====
@@ -3140,6 +3140,69 @@ async function queueCount(){ const st=await qStore('readonly'); return new Promi
 // ถ่าย/เลือกหลายรูปทีเดียว · เข้าคิวในเครื่องทันที (offline ได้) · อ่าน GPS ครั้งเดียว/ชุด
 const VID_MAX_MB=50   // = Supabase Global file size limit (ล็อกที่ 50 MB เพราะเปิด Spend cap กันบิลเพิ่ม · ตัดสินใจ 2026-10-26) · ย้าย Launchpad แล้วให้ Tech กำหนดเอง
 const VID_COPY_MAX_MB=150   // คลิป ≤ นี้ คัดลอกเข้าหน่วยความจำก่อนเก็บคิว · ใหญ่กว่านี้เก็บไฟล์ตรง (กันมือถือแรมไม่พอ)
+const VID_TARGET_MB=45      // ย่อคลิปให้เหลือไม่เกินนี้ (เผื่อระยะก่อนชนเพดาน 50 MB)
+// ===== ย่อคลิปในเครื่อง: เล่นคลิปแบบเงียบ → วาดลง canvas 720p → อัดใหม่ด้วย MediaRecorder (ใช้เวลาเท่าความยาวคลิป · ไม่มีเสียง) =====
+function _vidUI(onCancel){
+  const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:320;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
+  ov.innerHTML=`<div style="background:#191A1D;border-top:3px solid #F5C518;border-radius:16px 16px 0 0;width:100%;max-width:412px;box-sizing:border-box;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))">
+    <b style="font-size:15px;color:#F5F5F2">🎬 กำลังย่อคลิปให้พอดีส่ง</b>
+    <div id="vcTxt" style="font-size:12px;color:#9A9A93;margin:6px 0 10px">เปิดแอปค้างไว้ อย่าล็อกจอ/สลับแอป · ใช้เวลาเท่าความยาวคลิป</div>
+    <div style="height:8px;border-radius:99px;background:#232327;overflow:hidden"><div id="vcBar" style="height:100%;width:0%;background:#F5C518;transition:width .3s"></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span id="vcPct" style="font-size:13px;color:#F5F5F2;font-weight:700">0%</span>
+      <button id="vcCancel" style="height:38px;padding:0 16px;border:0;border-radius:10px;background:#232327;color:#F5F5F2;font-weight:700;font-family:inherit;cursor:pointer">ยกเลิก</button></div></div>`
+  document.body.appendChild(ov); ov.querySelector('#vcCancel').onclick=onCancel
+  return { set:(p,txt)=>{ const pc=Math.max(0,Math.min(100,Math.round(p*100))); ov.querySelector('#vcBar').style.width=pc+'%'; ov.querySelector('#vcPct').textContent=pc+'%'; if(txt) ov.querySelector('#vcTxt').textContent=txt },
+           close:()=>ov.remove() }
+}
+async function compressVideo(file){
+  const NO='คลิปใหญ่เกิน 50 MB และมือถือเครื่องนี้ย่อคลิปไม่ได้ — อัปเดตแอป Chrome/Safari แล้วลองแนบใหม่ หรือแบ่งเป็นคลิปสั้นลง'
+  if(!('MediaRecorder' in window) || !HTMLCanvasElement.prototype.captureStream) return { error:NO }
+  // ใช้ mp4 เท่านั้น — ทดสอบ 2026-10-26: webm จาก MediaRecorder ได้คลิปสั้นกว่าต้นฉบับ (7.7 วิ → ~5 วิ) หลักฐานหาย
+  const mime=['video/mp4;codecs=avc1','video/mp4'].find(t=>{ try{ return MediaRecorder.isTypeSupported(t) }catch(e){ return false } })
+  if(!mime) return { error:NO }
+  const url=URL.createObjectURL(file), v=document.createElement('video')
+  v.muted=true; v.playsInline=true; v.setAttribute('playsinline',''); v.preload='auto'; v.src=url
+  let ui=null, wl=null, rec=null, onVis=null
+  try{
+    await new Promise((ok,bad)=>{ v.onloadeddata=ok; v.onerror=()=>bad(new Error('เปิดไฟล์วีดีโอไม่ได้')); setTimeout(()=>bad(new Error('โหลดวีดีโอนานเกินไป')),30000) })   // loadeddata = มีเฟรมแรกให้วาดแล้ว
+    const dur=v.duration
+    if(!isFinite(dur)||dur<=0) throw new Error('อ่านความยาวคลิปไม่ได้')
+    const minBps=500e3, bps=Math.floor(Math.min(2.5e6, VID_TARGET_MB*1048576*8*0.9/(dur+3)))   // +3 วิ = ช่วงค้างหัว/ท้าย
+    if(bps<minBps) throw new Error(`คลิปยาว ${(dur/60).toFixed(1)} นาที ย่อแล้วก็ยังเกิน ${VID_MAX_MB} MB — ถ่ายแยกเป็นหลายคลิป คลิปละไม่เกิน ~5 นาที`)
+    const sc=Math.min(1, 1280/Math.max(v.videoWidth||1280, v.videoHeight||720))
+    const W=Math.max(2,Math.round((v.videoWidth||1280)*sc/2)*2), H=Math.max(2,Math.round((v.videoHeight||720)*sc/2)*2)
+    const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const ctx=cv.getContext('2d')
+    rec=new MediaRecorder(cv.captureStream(30), { mimeType:mime, videoBitsPerSecond:bps })
+    const chunks=[]; rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data) }
+    const stopped=new Promise(r=>{ rec.onstop=r })
+    let cancelled=false, finish, hold=true   // hold = วาดเฟรมค้างไว้ (ช่วงอุ่นเครื่องต้นคลิป + ช่วงท้ายคลิป)
+    const done=new Promise(r=>{ finish=r })
+    ui=_vidUI(()=>{ cancelled=true; try{ v.pause() }catch(e){}; finish() })
+    try{ if(navigator.wakeLock) wl=await navigator.wakeLock.request('screen') }catch(e){}   // กันจอดับระหว่างย่อ
+    onVis=()=>{ if(document.hidden){ try{ v.pause(); if(rec.state==='recording') rec.pause() }catch(e){} }
+      else if(!cancelled&&!v.ended){ try{ if(rec.state==='paused') rec.resume(); v.play() }catch(e){} } }   // สลับแอป = พักไว้ กลับมาทำต่อ
+    document.addEventListener('visibilitychange', onVis)
+    // วาดทุกเฟรมจอ (ไม่รอเฟรมใหม่ของวีดีโอ) — ช่วงภาพนิ่งก็ยังถูกอัด ความยาวคลิปผลลัพธ์จึงเท่าต้นฉบับ
+    const draw=()=>{ if(cancelled||(v.ended&&!hold)) return; try{ ctx.drawImage(v,0,0,W,H) }catch(e){}; ui.set(v.currentTime/dur); tick() }
+    const tick=()=>requestAnimationFrame(draw)
+    // ทดสอบ 2026-10-26 (เทียบภาพเฟรมต่อเฟรม): ไม่มีช่วงค้าง = ต้นคลิปหาย ~0.75 วิ + ท้ายคลิปหาย เพราะตัวเข้ารหัสต้องอุ่นเครื่อง/ทิ้งเฟรมท้าย
+    // → ค้างเฟรมแรก 1 วิก่อนเล่น และค้างเฟรมสุดท้าย 1.5 วิหลังจบ · ผล 3 รอบ เฟรมแรก/สุดท้ายตรงต้นฉบับ ไม่มีเนื้อหาหาย
+    v.onended=()=>{ hold=true; setTimeout(()=>{ hold=false; finish() },1500) }
+    rec.start()   // อัดก้อนเดียว (แบบเก็บท่อนทุก 1 วิ ทำคลิปหาย 1.6 วิ)
+    tick()
+    await new Promise(r=>setTimeout(r,1000))
+    hold=false
+    if(!cancelled) await v.play()
+    await done
+    if(rec.state!=='inactive') rec.stop()
+    await stopped
+    if(cancelled) return { error:'ยกเลิกการย่อคลิปแล้ว' }
+    const out=new Blob(chunks,{ type:mime.split(';')[0] })
+    if(!out.size) throw new Error('ย่อคลิปแล้วได้ไฟล์ว่าง')
+    return { blob:out, mb:out.size/1048576, dur }
+  }catch(e){ try{ if(rec&&rec.state!=='inactive') rec.stop() }catch(_){}; return { error:'ย่อคลิปไม่สำเร็จ: '+((e&&e.message)||e)+' — ถ่ายใหม่ให้สั้นลงแทน' } }
+  finally{ if(onVis) document.removeEventListener('visibilitychange', onVis); try{ wl&&wl.release() }catch(e){}; if(ui) ui.close(); try{ v.pause(); v.removeAttribute('src'); v.load() }catch(e){}; URL.revokeObjectURL(url) }
+}
 // ส่งวีดีโอแบบแบ่งท่อน (TUS resumable, ท่อนละ 6 MB ตามที่ Supabase กำหนด) — เน็ตหลุดก็ส่งต่อจากท่อนที่ค้าง ไม่ต้องเริ่มใหม่
 // เดิมส่งก้อนเดียว: คลิปที่อัปสำเร็จ 321 ไฟล์ (ถึง 19 ต.ค.) ใหญ่สุด 38.9 MB ไม่มีเกิน 40 MB เลย = คลิปยาวพังเงียบ
 let _tusMod=null
@@ -3179,9 +3242,14 @@ async function handlePhotos(cpId, files){
       let blob, tblob=null
       if(isV){   // วิดีโอ: ไม่ใส่ลายน้ำ/ไม่ทำ thumb · ไม่จำกัดขนาด (ส่งแบบแบ่งท่อนใน syncQueue) · กันคลิป 0 ไบต์
         if(!f.size){ failMsg='ไฟล์วีดีโอว่าง (0 ไบต์) — ถ่ายใหม่อีกครั้ง'; continue }
-        if(f.size>VID_MAX_MB*1048576){ failMsg=`คลิปนี้ ${(f.size/1048576).toFixed(0)} MB เกินเพดาน ${VID_MAX_MB} MB — ถ่ายใหม่ให้สั้นลง (ไม่เกิน ~30 วินาที) และตั้งกล้องเป็น 1080p 30fps (ไม่ใช่ 4K / 60fps)`; continue }
         blob=f
-        if(f.size<=VID_COPY_MAX_MB*1048576){   // คัดลอกเข้าเครื่องให้ครบก่อน (กันไฟล์จากกล้องหลุดกลายเป็น 0 ไบต์) · คลิปใหญ่มากใช้ไฟล์ตรง กันมือถือแรมเต็ม
+        if(f.size>VID_MAX_MB*1048576){   // เกินเพดาน → ย่อในเครื่องให้อัตโนมัติ (CM ไม่ต้องถ่ายใหม่)
+          const c=await compressVideo(f)
+          if(c.error){ failMsg=c.error; continue }
+          if(c.blob.size>VID_MAX_MB*1048576){ failMsg=`ย่อแล้วยังได้ ${c.mb.toFixed(0)} MB เกิน ${VID_MAX_MB} MB — ถ่ายแยกเป็นคลิปสั้นลง`; continue }
+          blob=c.blob
+          toast(`ย่อคลิปแล้ว ${(f.size/1048576).toFixed(0)} → ${c.mb.toFixed(0)} MB ✓`,'ok')
+        } else if(f.size<=VID_COPY_MAX_MB*1048576){   // คัดลอกเข้าเครื่องให้ครบก่อน (กันไฟล์จากกล้องหลุดกลายเป็น 0 ไบต์) · คลิปใหญ่มากใช้ไฟล์ตรง กันมือถือแรมเต็ม
           let buf=null; try{ buf=await f.arrayBuffer() }catch(e){}
           if(buf&&buf.byteLength) blob=new Blob([buf],{type:f.type||'video/mp4'})
           else { failMsg='ไฟล์วีดีโออ่านไม่ได้ (0 ไบต์) — ถ่ายใหม่อีกครั้ง'; continue } } }
