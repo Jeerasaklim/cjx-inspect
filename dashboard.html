@@ -236,7 +236,9 @@ function phaseStat(code,phase){ const cps=cpsOf(phase,storeNewForm(code)); const
   cps.forEach(c=>{ const e=m[String(c.id)]; if(e){done++; if(e.status==='pass')pass++; else if(e.status==='fail')fail++; else if(e.status==='fixed')fixed++} })
   let key='none'; if(done){ key= fail?'fail': done<total?'progress': fixed?'fixed':'pass' }
   return {key,done,total,pass,fail,fixed} }
-function approved(code,phase){ return signoffs.some(x=>x.store_code===code&&String(x.scope)===String(phase)&&x.kind==='approve') }
+// หัวหน้าตีกลับงวด (signoff kind 'reject') → ลายเซ็น/อนุมัติ ที่เกิดก่อน reject ล่าสุดของ scope นั้นไม่นับ (ล้อแอป)
+function sigAlive(x, list){ if(!['sign_cm','sign_contractor','approve'].includes(x.kind)) return true; let r=''; (list||[]).forEach(y=>{ if(y.kind==='reject'&&y.store_code===x.store_code&&String(y.scope)===String(x.scope)&&(y.created_at||'')>r) r=y.created_at||'' }); return !r||(x.created_at||'')>r }
+function approved(code,phase){ return signoffs.some(x=>x.store_code===code&&String(x.scope)===String(phase)&&x.kind==='approve'&&sigAlive(x,signoffs)) }
 function lastActivity(code){ const m=cur[code]||{}; let last=null; Object.values(m).forEach(e=>{ if(e.created_at&&(!last||e.created_at>last.at)) last={at:e.created_at,by:e.by} }); return last }
 function computeSetupScore(code){ const m=cur[code]||{}
   let total=0,gotMain=0,maxMain=0,gotSub=0,maxSub=0,doneItems=0,failItems=0,fixedItems=0,totalItems=0,wDecided=0
@@ -1030,7 +1032,7 @@ function baBlock(cp, mediaByCp, cmUid){ const ims=mediaByCp[String(cp)]||[]; con
 function gradeStampBg(g){ return (g==='A'||g==='B')?'#006948':g==='C'?'#b15f00':g==='D'?'#DC2626':'#9aa7b2' }
 function _dNo(pfx,code){ return `CJX-${pfx}-${new Date().getFullYear()+543}-${esc(code)}` }
 function _today(){ const d=new Date(),p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543}` }
-function pickSig(sg,kind,scope){ const a=sg.filter(x=>x.kind===kind&&(scope==null||String(x.scope)===String(scope))); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
+function pickSig(sg,kind,scope){ const a=sg.filter(x=>x.kind===kind&&(scope==null||String(x.scope)===String(scope))&&sigAlive(x,sg)); return a.length?a.reduce((p,c)=>((c.created_at||'')>(p.created_at||'')?c:p)):null }
 const REP_LB_JS=`document.addEventListener('click',function(e){var im=e.target.closest&&e.target.closest('img.zim');if(!im)return;var f=im.getAttribute('data-full')||im.src;var d=document.createElement('div');d.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;cursor:zoom-out';d.innerHTML='<img src="'+f+'" style="max-width:95%;max-height:95%;object-fit:contain;border-radius:8px;box-shadow:0 10px 60px rgba(0,0,0,.6)">';d.onclick=function(){d.remove()};document.addEventListener('keydown',function h(ev){if(ev.key==='Escape'){d.remove();document.removeEventListener('keydown',h)}});document.body.appendChild(d)});`
 function wrapReport(inner){ return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${REPORT_CSS}
 img.zim{cursor:zoom-in;transition:transform .08s}img.zim:hover{transform:scale(1.03);box-shadow:0 3px 12px rgba(0,0,0,.25)}
