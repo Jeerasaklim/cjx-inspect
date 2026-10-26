@@ -3138,6 +3138,7 @@ async function evqCount(){ const st=await evqStore('readonly'); return new Promi
 async function queueCount(){ const st=await qStore('readonly'); return new Promise(res=>{ const q=st.count(); q.onsuccess=()=>res(q.result); q.onerror=()=>res(0) }) }
 
 // ถ่าย/เลือกหลายรูปทีเดียว · เข้าคิวในเครื่องทันที (offline ได้) · อ่าน GPS ครั้งเดียว/ชุด
+const VID_MAX_MB=500   // ต้องตรงกับ Supabase → Storage → Settings → Upload file size limit (ช่วงยังใช้ Supabase · ย้าย Launchpad แล้วให้ Tech กำหนดเอง)
 const VID_COPY_MAX_MB=150   // คลิป ≤ นี้ คัดลอกเข้าหน่วยความจำก่อนเก็บคิว · ใหญ่กว่านี้เก็บไฟล์ตรง (กันมือถือแรมไม่พอ)
 // ส่งวีดีโอแบบแบ่งท่อน (TUS resumable, ท่อนละ 6 MB ตามที่ Supabase กำหนด) — เน็ตหลุดก็ส่งต่อจากท่อนที่ค้าง ไม่ต้องเริ่มใหม่
 // เดิมส่งก้อนเดียว: คลิปที่อัปสำเร็จ 321 ไฟล์ (ถึง 19 ต.ค.) ใหญ่สุด 38.9 MB ไม่มีเกิน 40 MB เลย = คลิปยาวพังเงียบ
@@ -3178,6 +3179,7 @@ async function handlePhotos(cpId, files){
       let blob, tblob=null
       if(isV){   // วิดีโอ: ไม่ใส่ลายน้ำ/ไม่ทำ thumb · ไม่จำกัดขนาด (ส่งแบบแบ่งท่อนใน syncQueue) · กันคลิป 0 ไบต์
         if(!f.size){ failMsg='ไฟล์วีดีโอว่าง (0 ไบต์) — ถ่ายใหม่อีกครั้ง'; continue }
+        if(f.size>VID_MAX_MB*1048576){ failMsg=`คลิปนี้ ${(f.size/1048576).toFixed(0)} MB เกินเพดาน ${VID_MAX_MB} MB — ถ่ายให้สั้นลง หรือตั้งกล้องเป็น 1080p (ไม่ใช่ 4K)`; continue }
         blob=f
         if(f.size<=VID_COPY_MAX_MB*1048576){   // คัดลอกเข้าเครื่องให้ครบก่อน (กันไฟล์จากกล้องหลุดกลายเป็น 0 ไบต์) · คลิปใหญ่มากใช้ไฟล์ตรง กันมือถือแรมเต็ม
           let buf=null; try{ buf=await f.arrayBuffer() }catch(e){}
