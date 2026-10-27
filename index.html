@@ -3138,9 +3138,9 @@ async function evqCount(){ const st=await evqStore('readonly'); return new Promi
 async function queueCount(){ const st=await qStore('readonly'); return new Promise(res=>{ const q=st.count(); q.onsuccess=()=>res(q.result); q.onerror=()=>res(0) }) }
 
 // ถ่าย/เลือกหลายรูปทีเดียว · เข้าคิวในเครื่องทันที (offline ได้) · อ่าน GPS ครั้งเดียว/ชุด
-const VID_MAX_MB=50   // = Supabase Global file size limit (ล็อกที่ 50 MB เพราะเปิด Spend cap กันบิลเพิ่ม · ตัดสินใจ 2026-10-26) · ย้าย Launchpad แล้วให้ Tech กำหนดเอง
+const VID_MAX_MB=300   // คลิป ≤ นี้ส่งต้นฉบับ (มีเสียง) · เกินนี้ย่อในเครื่อง · Supabase Global file size limit = 1 GB (Spend cap ยังเปิด) · ตัดสินใจ 2026-10-27 (เดิม 50) · ย้าย Launchpad แล้วให้ Tech กำหนดเอง
 const VID_COPY_MAX_MB=150   // คลิป ≤ นี้ คัดลอกเข้าหน่วยความจำก่อนเก็บคิว · ใหญ่กว่านี้เก็บไฟล์ตรง (กันมือถือแรมไม่พอ)
-const VID_TARGET_MB=45      // ย่อคลิปให้เหลือไม่เกินนี้ (เผื่อระยะก่อนชนเพดาน 50 MB)
+const VID_TARGET_MB=280     // ย่อคลิปให้เหลือไม่เกินนี้ (เผื่อระยะก่อนชนเพดาน VID_MAX_MB)
 // ===== ย่อคลิปในเครื่อง: เล่นคลิปแบบเงียบ → วาดลง canvas 720p → อัดใหม่ด้วย MediaRecorder (ใช้เวลาเท่าความยาวคลิป · ไม่มีเสียง) =====
 function _vidUI(onCancel){
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:320;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center'
@@ -3155,7 +3155,7 @@ function _vidUI(onCancel){
            close:()=>ov.remove() }
 }
 async function compressVideo(file){
-  const NO='คลิปใหญ่เกิน 50 MB และมือถือเครื่องนี้ย่อคลิปไม่ได้ — อัปเดตแอป Chrome/Safari แล้วลองแนบใหม่ หรือแบ่งเป็นคลิปสั้นลง'
+  const NO=`คลิปใหญ่เกิน ${VID_MAX_MB} MB และมือถือเครื่องนี้ย่อคลิปไม่ได้ — อัปเดตแอป Chrome/Safari แล้วลองแนบใหม่ หรือแบ่งเป็นคลิปสั้นลง`
   if(!('MediaRecorder' in window) || !HTMLCanvasElement.prototype.captureStream) return { error:NO }
   // ใช้ mp4 เท่านั้น — ทดสอบ 2026-10-26: webm จาก MediaRecorder ได้คลิปสั้นกว่าต้นฉบับ (7.7 วิ → ~5 วิ) หลักฐานหาย
   const mime=['video/mp4;codecs=avc1','video/mp4'].find(t=>{ try{ return MediaRecorder.isTypeSupported(t) }catch(e){ return false } })
