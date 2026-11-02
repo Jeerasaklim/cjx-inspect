@@ -3208,7 +3208,8 @@ async function compressVideo(file){
 let _tusMod=null
 async function tusUpload(path, blob, ctype){
   try{
-    if(!_tusMod) _tusMod=await import('https://esm.sh/tus-js-client@4.1.0')
+    // ต้องชี้ตัว browser ตรงๆ — URL เปล่า esm.sh ส่งตัว Node มา (รับแค่ Buffer/Readable) = วีดีโอทุกคลิปพัง "source object may only be an instance of Buffer or Readable"
+    if(!_tusMod) _tusMod=await import('https://esm.sh/tus-js-client@4.1.0/lib.esm/browser/index.js')
     const tus=_tusMod.default||_tusMod
     const ses=(await sb.auth.getSession()).data.session
     if(!ses) return { message:'เซสชันหมดอายุ — ปิดแอปแล้วเปิดใหม่' }
@@ -3290,6 +3291,9 @@ async function syncQueue(force){
   if(!session){ if(await queueCount().catch(()=>0)) toast('อัปรูปไม่ขึ้น: เซสชันหมดอายุ — ปิดแอปแล้วเปิดใหม่/ล็อกอินใหม่','err'); return }
   _syncing=true; _syncTouched=false; _lastUpErr=''
   try{
+    try{ if(!localStorage.getItem('cjx_tusfix1')){   // ครั้งเดียว: วีดีโอที่ค้างเพราะบั๊กตัวส่ง (26 ต.ค.–2 พ.ย.) ให้ส่งใหม่เอง ไม่ต้องรอ CM กด badge
+      for(const r of await queueAll()) if(r.kind==='video'&&r.tries){ r.tries=0; await queuePut(r) }
+      localStorage.setItem('cjx_tusfix1','1') } }catch(e){}
     const items=await queueAll(); const cache={}
     for(const r of items){
       if(!force && (r.tries||0)>=QMAXTRY) continue   // ข้ามรูปที่ส่งไม่ขึ้นซ้ำๆ — ไม่ให้บล็อกรูปที่ดี
