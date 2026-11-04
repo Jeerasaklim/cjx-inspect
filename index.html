@@ -3522,7 +3522,7 @@ function phKey(cur, phase){
   return ids.some(id=>cur[id].status==='fail')?'fail':'pass'
 }
 let _dashRows=[], _dashView='urgent', _dashKpi={}, _dashScope='ทุกสาขา', _dashFilter='all', _dashQuery=''
-let _approvalRows=[]   // งวดก่อสร้าง 1-9 ที่เซ็นครบ 2 ฝ่าย (locked) → รออนุมัติ/อนุมัติแล้ว (ตาม role scope)
+let _approvalRows=[]   // งวดก่อสร้าง 1-9 + Pre-Con 101-104 ที่เซ็นครบ 2 ฝ่าย (locked) → รออนุมัติ/อนุมัติแล้ว (ตาม role scope)
 let _setupApprRows={wait:[],done:[]}   // ฝั่ง Set-Up: สาขาที่ตรวจครบรอเซ็น / เซ็นครบ 2 ฝ่าย (NSA+CM)
 let _curByStore={}   // {code:{cpId:latestEvent}} ทุกเฟส — ใช้คำนวณ auto red flag
 const dstt=r=> r.fail>0?'fail':(r.done>=r.total?'done':r.done>0?'progress':'idle')
@@ -3656,9 +3656,10 @@ function renderPoolApprove(q){
   }
   // ===== ฝั่งก่อสร้าง: แตะ → เข้าหน้าตรวจงวดนั้นเลย =====
   const pend=_approvalRows.filter(r=>!r.approved).filter(match), appr=_approvalRows.filter(r=>r.approved).filter(match)
-  const phN=p=>((PHASES.find(x=>x[0]===p)||[])[1])||('งวด '+p)
+  const phN=p=>((PHASES.concat(PRECON).find(x=>x[0]===p)||[])[1])||('งวด '+p)
+  const phL=p=>p>100?'Pre-Con '+(p-100):'งวด '+p
   const row=r=>`<div class="sc apprItem" data-code="${esc(r.code)}" data-phase="${r.phase}">
-    <div class="tp"><div><div class="nm">${esc(r.name)}</div><div class="mt"><span class="code">${esc(r.code)}</span> · งวด ${r.phase} · ${esc(phN(r.phase))}${r.prov?' · '+esc(r.prov):''}</div></div></div></div>`
+    <div class="tp"><div><div class="nm">${esc(r.name)}</div><div class="mt"><span class="code">${esc(r.code)}</span> · ${phL(r.phase)} · ${esc(phN(r.phase))}${r.prov?' · '+esc(r.prov):''}</div></div></div></div>`
   const cm=(profile&&profile.role==='cm')
   el.innerHTML = cm
     ? hdr('🖨️ อนุมัติแล้ว — พร้อมปริ้นให้ ผรม. ('+appr.length+')','#37D98B')+(appr.length?appr.map(row).join(''):'<div class="fwok" style="margin-top:4px">— ยังไม่มีงวดที่อนุมัติ</div>')
@@ -3716,7 +3717,7 @@ async function loadDashData(){
   const inScope=new Set(scoped.map(s=>s.code))
   _approvalRows=[]
   Object.keys(sgBy).forEach(k=>{ const i=k.indexOf('|'); const code=k.slice(0,i), scope=k.slice(i+1), o=sgBy[k]
-    const ph=+scope; if(!(ph>=1&&ph<=9)) return        // เฉพาะงวดก่อสร้าง 1-9
+    const ph=+scope; if(!((ph>=1&&ph<=9)||PRECON.some(p=>p[0]===ph))) return        // งวดก่อสร้าง 1-9 + Pre-Con 101-104 (เซ็น/อนุมัติแบบเดียวกัน)
     if(!(o.cm&&o.con)) return                           // ต้องเซ็นครบ 2 ฝ่าย (locked)
     if(!inScope.has(code)) return                       // ตามสิทธิ์ที่เห็น
     const s=stores.find(z=>z.code===code)||{}
