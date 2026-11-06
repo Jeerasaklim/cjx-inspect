@@ -1695,8 +1695,8 @@ function openAdmin(){ hideAllViews(); showTabbar(false); show($('viewAdmin'),tru
   const cc=(checkpoints&&checkpoints.length)?checkpoints:null
   const s2=$('admS2'); if(s2) s2.textContent=cc?cc.filter(c=>c.phase<200).length:170
   const s3=$('admS3'); if(s3) s3.textContent=cc?cc.filter(c=>c.phase>=201&&c.phase<=208).length:165
-  sb.from('profiles').select('id',{count:'exact',head:true}).then(r=>{ const n=(r&&r.count!=null)?r.count:null; const s4=$('admS4'); if(s4)s4.textContent=(n!=null?n:'—'); const u=$('admUsers'); if(u)u.textContent=(n!=null?n:'—')+' บัญชีใช้งาน' }).catch(()=>{})
-  sb.from('profiles').select('id',{count:'exact',head:true}).eq('role','pending').then(r=>{ const p=(r&&r.count!=null)?r.count:0; const pe=$('admPending'); if(pe&&p>0){ pe.textContent=p+' รออนุมัติ'; pe.style.display='inline-flex' } }).catch(()=>{})
+  // ผู้ใช้งาน = คนที่มีสิทธิ์เท่านั้น · บัญชี pending (ล็อกอินเองแต่ไม่อยู่ในทะเบียน) ไม่นับ ไม่แสดง — ให้สิทธิ์ที่ทะเบียน Roster
+  sb.from('profiles').select('id',{count:'exact',head:true}).neq('role','pending').then(r=>{ const n=(r&&r.count!=null)?r.count:null; const s4=$('admS4'); if(s4)s4.textContent=(n!=null?n:'—'); const u=$('admUsers'); if(u)u.textContent=(n!=null?n:'—')+' บัญชีใช้งาน' }).catch(()=>{})
   if(!cc) loadChecklist().then(()=>{ const a=$('admS2'),b=$('admS3'); if(a)a.textContent=checkpoints.filter(c=>c.phase<200).length||170; if(b)b.textContent=checkpoints.filter(c=>c.phase>=201&&c.phase<=208).length||165 }).catch(()=>{})
 }
 function openAdminSec(sec){
@@ -3828,12 +3828,12 @@ $('dashBack').onclick = ()=>switchTab('home')
 let _users=[], _userQ=''
 $('btnUsers').onclick = async ()=>{
   $('usersBox').innerHTML='<div class="spin" style="padding:8px 0">กำลังโหลด…</div>'
-  const { data, error } = await sb.from('profiles').select('id,name,email,role').order('email')
+  const { data, error } = await sb.from('profiles').select('id,name,email,role').neq('role','pending').order('email')
   if(error){ $('usersBox').innerHTML=`<div class="msg err">โหลดไม่สำเร็จ: ${esc(error.message)}</div>`; return }
   _users=data||[]; drawUsers()
 }
 $('btnUsersCsv').onclick = async ()=>{
-  if(!_users.length){ const { data } = await sb.from('profiles').select('id,name,email,role').order('email'); _users=data||[] }
+  if(!_users.length){ const { data } = await sb.from('profiles').select('id,name,email,role').neq('role','pending').order('email'); _users=data||[] }
   if(!_users.length) return toast('ยังไม่มีผู้ใช้','err')
   const rows=[['email','name','role']].concat(_users.map(u=>[u.email||'', u.name||'', u.role||'']))
   const csv='﻿'+rows.map(r=>r.map(c=>/[",\n]/.test(c)?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\r\n')
@@ -3892,8 +3892,13 @@ async function renderRoster(){
   $('rosBox').innerHTML='<div class="spin" style="padding:8px 0">กำลังโหลด…</div>'
   const { data, error } = await sb.from('roster').select('email,name,role').order('email')
   if(error){ $('rosBox').innerHTML=`<div class="msg err">โหลดไม่สำเร็จ: ${esc(error.message)} — ต้องรัน sql/25_roster_gate.sql ใน Supabase ก่อน</div>`; return }
-  _roster=data||[]; drawRoster()
+  _roster=data||[]
+  // คนที่ล็อกอินเองแต่ไม่อยู่ในทะเบียน (pending) — ไม่นับเป็นผู้ใช้ แต่ให้ Admin เห็นว่าใครพยายามเข้า
+  const { data:pd } = await sb.from('profiles').select('name,email,created_at').eq('role','pending').order('created_at',{ascending:false})
+  _rosPending=(pd||[]).filter(x=>x.email && !_roster.some(r=>(r.email||'').toLowerCase()===x.email.toLowerCase()))
+  drawRoster()
 }
+let _rosPending=[]
 function drawRoster(){
   if(!_roster.length){ $('rosBox').innerHTML='<div class="uhint">ยังไม่มีในทะเบียน — เพิ่มด้านบน หรือกด “นำเข้า CSV”</div>'; return }
   const rows=_roster.map(r=>{ const rc=ROLE_COLOR[r.role]||'#9AA7B2'
@@ -3903,7 +3908,23 @@ function drawRoster(){
       <span class="rdel" data-rdel="${esc(r.email)}" style="cursor:pointer;color:#e06;padding:0 8px;font-weight:800">✕</span>
       <select data-remail="${esc(r.email)}">${_rosOpts(r.role)}</select>
     </div>`}).join('')
-  $('rosBox').innerHTML=`<div class="uhint">${_roster.length} รายชื่อในทะเบียน</div>`+rows
+  const pend=_rosPending.length?`<div style="border:1px solid #5a3a14;background:#1C1608;border-radius:12px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-weight:800;color:#FF9F1C">🔒 พยายามเข้าแต่ไม่มีสิทธิ์ (${_rosPending.length})</div>
+      <div class="uhint" style="margin:2px 0 6px">ล็อกอินเองแต่ไม่อยู่ในทะเบียน = เข้าแอปไม่ได้ · ถ้าเป็นคนที่ต้องใช้งาน เลือก role ด้านขวา = เพิ่มเข้าทะเบียน + ให้สิทธิ์ทันที</div>
+      ${_rosPending.map(u=>`<div class="urow">
+        <div class="un"><b>${esc(u.name||u.email)}</b><span class="uem">${esc(u.email)}</span>
+          <span class="rpill" style="color:#FF9F1C;background:#FF9F1C22">พยายามเข้า ${fmtDate(u.created_at)}</span></div>
+        <select data-pemail="${esc(u.email)}" data-pname="${esc(u.name||'')}"><option value="">— ให้สิทธิ์ —</option>${_rosOpts('')}</select>
+      </div>`).join('')}</div>`:''
+  $('rosBox').innerHTML=pend+`<div class="uhint">${_roster.length} รายชื่อในทะเบียน</div>`+rows
+  $('rosBox').querySelectorAll('select[data-pemail]').forEach(sel=> sel.onchange=async()=>{
+    const email=sel.dataset.pemail, role=sel.value; if(!role) return
+    if(!confirm('ให้สิทธิ์ '+email+' เป็น '+(ROLE_TH[role]||role)+' ?')){ sel.value=''; return }
+    sel.disabled=true
+    const err=await _rosterSet(email,sel.dataset.pname||null,role); sel.disabled=false
+    if(err){ toast('บันทึกไม่สำเร็จ: '+err,'err'); sel.value=''; return }
+    toast('ให้สิทธิ์ '+email+' → '+(ROLE_TH[role]||role),'ok'); renderRoster()
+  })
   $('rosBox').querySelectorAll('select[data-remail]').forEach(sel=> sel.onchange=async()=>{
     const email=sel.dataset.remail, role=sel.value; sel.disabled=true
     const err=await _rosterSet(email,null,role); sel.disabled=false
