@@ -3860,9 +3860,13 @@ function drawUsers(){
     const id=sel.dataset.id, role=sel.value, label=ROLE_TH[role]||role
     const u=_users.find(x=>x.id===id)||{}, nm=u.name||u.email||''
     sel.disabled=true
-    const { error } = await sb.from('profiles').update({role}).eq('id',id)
+    const { data:upd, error } = await sb.from('profiles').update({role}).eq('id',id).select('id')
+    if(error || !(upd&&upd.length)){ sel.disabled=false; sel.value=u.role||''; toast('เปลี่ยนสิทธิ์ไม่สำเร็จ: '+(error?error.message:'ไม่มีสิทธิ์แก้ (0 แถว)'),'err'); return }
+    // sync ทะเบียนสิทธิ์ (roster) ให้ตรงกันเสมอ — ไม่งั้นหน้า "ผู้ใช้" กับ "ทะเบียน" จะโชว์คนละ role
+    if(u.email){ const rec={ email:u.email.trim().toLowerCase(), role }; if(u.name) rec.name=u.name
+      const { error:re } = await sb.from('roster').upsert(rec,{ onConflict:'email' })
+      if(re) toast('เปลี่ยนสิทธิ์แล้ว แต่ทะเบียนสิทธิ์ไม่อัปเดต: '+re.message,'err') }
     sel.disabled=false
-    if(error){ toast('เปลี่ยนสิทธิ์ไม่สำเร็จ: '+error.message,'err'); return }
     u.role=role
     const pill=$('usersBox').querySelector(`.rpill[data-pill="${id}"]`)
     if(pill){ const rc=ROLE_COLOR[role]||'#9AA7B2'; pill.textContent=label; pill.style.color=rc; pill.style.background=rc+'22' }
@@ -3909,11 +3913,11 @@ function drawRoster(){
       <select data-remail="${esc(r.email)}">${_rosOpts(r.role)}</select>
     </div>`}).join('')
   const pend=_rosPending.length?`<div style="border:1px solid #5a3a14;background:#1C1608;border-radius:12px;padding:10px 12px;margin-bottom:12px">
-      <div style="font-weight:800;color:#FF9F1C">🔒 พยายามเข้าแต่ไม่มีสิทธิ์ (${_rosPending.length})</div>
-      <div class="uhint" style="margin:2px 0 6px">ล็อกอินเองแต่ไม่อยู่ในทะเบียน = เข้าแอปไม่ได้ · ถ้าเป็นคนที่ต้องใช้งาน เลือก role ด้านขวา = เพิ่มเข้าทะเบียน + ให้สิทธิ์ทันที</div>
+      <div style="font-weight:800;color:#FF9F1C">🔒 ไม่มีสิทธิ์ · ไม่อยู่ในทะเบียน (${_rosPending.length})</div>
+      <div class="uhint" style="margin:2px 0 6px">คนที่พยายามเข้า + คนที่ถูกถอนสิทธิ์ (ลาออก/บัญชีเก่า) = เข้าแอปไม่ได้ · ประวัติงานยังอยู่ · ถ้าเป็นคนที่ต้องใช้งาน เลือก role ด้านขวา = เพิ่มเข้าทะเบียน + ให้สิทธิ์ทันที</div>
       ${_rosPending.map(u=>`<div class="urow">
         <div class="un"><b>${esc(u.name||u.email)}</b><span class="uem">${esc(u.email)}</span>
-          <span class="rpill" style="color:#FF9F1C;background:#FF9F1C22">พยายามเข้า ${fmtDate(u.created_at)}</span></div>
+          <span class="rpill" style="color:#FF9F1C;background:#FF9F1C22">เข้าครั้งแรก ${fmtDate(u.created_at)}</span></div>
         <select data-pemail="${esc(u.email)}" data-pname="${esc(u.name||'')}"><option value="">— ให้สิทธิ์ —</option>${_rosOpts('')}</select>
       </div>`).join('')}</div>`:''
   $('rosBox').innerHTML=pend+`<div class="uhint">${_roster.length} รายชื่อในทะเบียน</div>`+rows
@@ -3933,10 +3937,11 @@ function drawRoster(){
     toast('ตั้ง '+email+' → '+(ROLE_TH[role]||role),'ok'); drawRoster()
   })
   $('rosBox').querySelectorAll('[data-rdel]').forEach(x=> x.onclick=async()=>{
-    const email=x.dataset.rdel; if(!confirm('ลบ '+email+' ออกจากทะเบียน?')) return
+    const email=x.dataset.rdel; if(!confirm('ถอนสิทธิ์ '+email+' ?\n\nเอาออกจากทะเบียน = เข้าแอปไม่ได้ทันที\nประวัติงาน/รูป/ลายเซ็นในสาขายังอยู่ครบ (ไม่ลบ)\nให้สิทธิ์คืนได้ที่กล่อง 🔒 ด้านบน')) return
     const { error } = await sb.from('roster').delete().eq('email',email)
     if(error){ toast('ลบไม่สำเร็จ: '+error.message,'err'); return }
-    _roster=_roster.filter(r=>r.email!==email); drawRoster(); toast('ลบแล้ว')
+    await sb.from('profiles').update({ role:'pending' }).eq('email', email).neq('role','admin')   // ถอนสิทธิ์จริง (sql/39 trigger ทำซ้ำให้อยู่แล้ว)
+    toast('ถอนสิทธิ์แล้ว — '+email+' เข้าแอปไม่ได้'); renderRoster()
   })
 }
 // ---- ตารางสิทธิ์ (Permission Matrix) Feature × Role ----
